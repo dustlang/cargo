@@ -1,6 +1,6 @@
-# Cargo
+# Payload
 
-Cargo downloads your Rust project’s dependencies and compiles your project.
+Paayload downloads your Dust project’s dependencies and compiles your project.
 
 Learn more at https://doc.rust-lang.org/cargo/
 
