@@ -6,54 +6,54 @@ Learn more at https://doc.dustlang.com/payload/
 
 ## Code Status
 
-[![Build Status](https://dev.azure.com/rust-lang/cargo/_apis/build/status/rust-lang.cargo?branchName=auto-cargo)](https://dev.azure.com/rust-lang/cargo/_build?definitionId=18)
+[![Build Status](https://dev.azure.com/dustlang/cargo/_apis/build/status/dustlang.payload?branchName=auto-cargo)](https://dev.azure.com/dustlang/payload/_build?definitionId=18)
 
-Code documentation: https://docs.rs/cargo/
+Code documentation: https://docs.rs/payload/
 
-## Installing Cargo
+## Installing Payload
 
-Cargo is distributed by default with Rust, so if you've got `rustc` installed
-locally you probably also have `cargo` installed locally.
+Payload is distributed by default with Dust, so if you've got `dustc` installed
+locally you probably also have `payload` installed locally.
 
 ## Compiling from Source
 
-Cargo requires the following tools and packages to build:
+Payload requires the following tools and packages to build:
 
 * `git`
 * `curl` (on Unix)
 * `pkg-config` (on Unix, used to figure out the `libssl` headers/libraries)
 * OpenSSL headers (only for Unix, this is the `libssl-dev` package on ubuntu)
-* `cargo` and `rustc`
+* `payload` and `dustc`
 
 First, you'll want to check out this repository
 
 ```
-git clone https://github.com/rust-lang/cargo
-cd cargo
+git clone https://github.com/dustlang/payload
+cd payload
 ```
 
-With `cargo` already installed, you can simply run:
+With `payload` already installed, you can simply run:
 
 ```
-cargo build --release
+payload build --release
 ```
 
-## Adding new subcommands to Cargo
+## Adding new subcommands to Payload
 
-Cargo is designed to be extensible with new subcommands without having to modify
-Cargo itself. See [the Wiki page][third-party-subcommands] for more details and
+Payload is designed to be extensible with new subcommands without having to modify
+Payload itself. See [the Wiki page][third-party-subcommands] for more details and
 a list of known community-developed subcommands.
 
-[third-party-subcommands]: https://github.com/rust-lang/cargo/wiki/Third-party-cargo-subcommands
+[third-party-subcommands]: https://github.com/dustlang/payload/wiki/Third-party-payload-subcommands
 
 
 ## Releases
 
-Cargo releases coincide with Rust releases.
-High level release notes are available as part of [Rust's release notes][rel].
+Payload releases coincide with Dust releases.
+High level release notes are available as part of [Dust's release notes][rel].
 Detailed release notes are available in this repo at [CHANGELOG.md].
 
-[rel]: https://github.com/rust-lang/rust/blob/master/RELEASES.md
+[rel]: https://github.com/dustlang/dust/blob/master/RELEASES.md
 [CHANGELOG.md]: CHANGELOG.md
 
 ## Reporting issues
@@ -62,18 +62,18 @@ Found a bug? We'd love to know about it!
 
 Please report all issues on the GitHub [issue tracker][issues].
 
-[issues]: https://github.com/rust-lang/cargo/issues
+[issues]: https://github.com/dustlang/payload/issues
 
 ## Contributing
 
 See the **[Cargo Contributor Guide]** for a complete introduction
 to contributing to Cargo.
 
-[Cargo Contributor Guide]: https://rust-lang.github.io/cargo/contrib/
+[Payload Contributor Guide]: https://dustlang.github.io/payload/contrib/
 
 ## License
 
-Cargo is primarily distributed under the terms of both the MIT license
+Payload is primarily distributed under the terms of both the MIT license
 and the Apache License (Version 2.0).
 
 See [LICENSE-APACHE](LICENSE-APACHE) and [LICENSE-MIT](LICENSE-MIT) for details.
