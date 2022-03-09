@@ -1,6 +1,6 @@
 # Payload
 
-Paayload downloads your Dust project’s dependencies and compiles your project.
+Payload downloads your Dust project’s dependencies and compiles your project.
 
 Learn more at https://doc.dustlang.com/payload/
 
