@@ -1,5 +1,5 @@
-# Contributing to Cargo
+# Contributing to Payload
 
-Contributing documentation has moved to the **[Cargo Contributor Guide]**.
+Contributing documentation has moved to the **[Payload Contributor Guide]**.
 
-[Cargo Contributor Guide]: https://rust-lang.github.io/cargo/contrib/
+[Payload Contributor Guide]: https://dustlang.github.io/payload/contrib/
