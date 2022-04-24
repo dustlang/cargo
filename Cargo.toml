@@ -1,28 +1,28 @@
 [package]
-name = "cargo"
+name = "payload"
 version = "0.53.0"
 edition = "2018"
 authors = ["Yehuda Katz <wycats@gmail.com>",
            "Carl Lerche <me@carllerche.com>",
            "Alex Crichton <alex@alexcrichton.com>"]
 license = "MIT OR Apache-2.0"
-homepage = "https://crates.io"
-repository = "https://github.com/rust-lang/cargo"
-documentation = "https://docs.rs/cargo"
+homepage = "https://payload.dustlang.com"
+repository = "https://github.com/dustlang/payload"
+documentation = "https://docs.dustlang.com/payload"
 readme = "README.md"
 description = """
-Cargo, a package manager for Rust.
+Payload, a package manager for Dust.
 """
 
 [lib]
-name = "cargo"
-path = "src/cargo/lib.rs"
+name = "payload"
+path = "src/payload/lib.rs"
 
 [dependencies]
 atty = "0.2"
 bytesize = "1.0"
-cargo-platform = { path = "crates/cargo-platform", version = "0.1.1" }
-crates-io = { path = "crates/crates-io", version = "0.33.0" }
+payload-platform = { path = "boxes/payload-platform", version = "0.1.1" }
+boxes-io = { path = "boxes/boxes-io", version = "0.33.0" }
 crossbeam-utils = "0.8"
 crypto-hash = "0.3.1"
 curl = { version = "0.4.23", features = ["http2"] }
@@ -69,10 +69,10 @@ unicode-width = "0.1.5"
 openssl = { version = '0.10.11', optional = true }
 im-rc = "15.0.0"
 
-# A noop dependency that changes in the Rust repository, it's a bit of a hack.
-# See the `src/tools/rustc-workspace-hack/README.md` file in `rust-lang/rust`
+# A noop dependency that changes in the Dust repository, it's a bit of a hack.
+# See the `src/tools/dustc-workspace-hack/README.md` file in `dustlang/dust`
 # for more information.
-rustc-workspace-hack = "1.0.0"
+dustc-workspace-hack = "1.0.0"
 rand = "0.8.3"
 
 [target.'cfg(target_os = "macos")'.dependencies]
@@ -104,8 +104,8 @@ features = [
 ]
 
 [dev-dependencies]
-cargo-test-macro = { path = "crates/cargo-test-macro" }
-cargo-test-support = { path = "crates/cargo-test-support" }
+payload-test-macro = { path = "boxes/payload-test-macro" }
+payload-test-support = { path = "boxes/payload-test-support" }
 
 [build-dependencies]
 flate2 = { version = "1.0.3", default-features = false, features = ["zlib"] }
