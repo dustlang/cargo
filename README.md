@@ -66,8 +66,8 @@ Please report all issues on the GitHub [issue tracker][issues].
 
 ## Contributing
 
-See the **[Cargo Contributor Guide]** for a complete introduction
-to contributing to Cargo.
+See the **[Payload Contributor Guide]** for a complete introduction
+to contributing to Payload.
 
 [Payload Contributor Guide]: https://dustlang.github.io/payload/contrib/
 
