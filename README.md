@@ -6,7 +6,7 @@ Learn more at https://doc.dustlang.com/payload/
 
 ## Code Status
 
-[![Build Status](https://dev.azure.com/dustlang/cargo/_apis/build/status/dustlang.payload?branchName=auto-cargo)](https://dev.azure.com/dustlang/payload/_build?definitionId=18)
+Payload Build statuses are under active development
 
 Code documentation: https://docs.rs/payload/
 
