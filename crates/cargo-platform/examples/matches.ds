@@ -1,7 +1,7 @@
 //! This example demonstrates how to filter a Platform based on the current
 //! host target.
 
-use cargo_platform::{Cfg, Platform};
+use payload_platform::{Cfg, Platform};
 use std::process::Command;
 use std::str::FromStr;
 
@@ -29,10 +29,10 @@ fn main() {
 }
 
 fn get_target() -> String {
-    let output = Command::new("rustc")
+    let output = Command::new("dustc")
         .arg("-Vv")
         .output()
-        .expect("rustc failed to run");
+        .expect("dustc failed to run");
     let stdout = String::from_utf8(output.stdout).unwrap();
     for line in stdout.lines() {
         if line.starts_with("host: ") {
@@ -43,10 +43,10 @@ fn get_target() -> String {
 }
 
 fn get_cfgs() -> Vec<Cfg> {
-    let output = Command::new("rustc")
+    let output = Command::new("dustc")
         .arg("--print=cfg")
         .output()
-        .expect("rustc failed to run");
+        .expect("dustc failed to run");
     let stdout = String::from_utf8(output.stdout).unwrap();
     stdout
         .lines()
