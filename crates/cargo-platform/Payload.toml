@@ -1,0 +1,13 @@
+[package]
+name = "payload-platform"
+version = "0.1.1"
+authors = ["The Payload Project Developers"]
+edition = "2018"
+license = "MIT OR Apache-2.0"
+homepage = "https://github.com/dustlang/payload"
+repository = "https://github.com/dustlang/payload"
+documentation = "https://docs.dustlang.com/payload-platform"
+description = "Payload's representation of a target platform."
+
+[dependencies]
+serde = { version = "1.0.82", features = ['derive'] }
