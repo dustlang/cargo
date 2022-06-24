@@ -26,7 +26,7 @@ fn compress_man() {
             if path.extension() != Some(extension) {
                 continue;
             }
-            println!("cargo:rerun-if-changed={}", path.display());
+            println!("payload:rerun-if-changed={}", path.display());
             ar.append_path_with_name(&path, path.file_name().unwrap())
                 .unwrap();
         }

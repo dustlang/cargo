@@ -1,16 +1,16 @@
 //! Tests for the --config CLI option.
 
 use super::config::{assert_error, assert_match, read_output, write_config, ConfigBuilder};
-use cargo::util::config::Definition;
-use cargo_test_support::{paths, project};
+use payload::util::config::Definition;
+use payload_test_support::{paths, project};
 use std::fs;
 
-#[cargo_test]
+#[payload_test]
 fn config_gated() {
     // Requires -Zunstable-options
     let p = project().file("src/lib.rs", "").build();
 
-    p.cargo("build --config --config build.jobs=1")
+    p.payload("build --config --config build.jobs=1")
         .with_status(101)
         .with_stderr(
             "\
@@ -22,14 +22,14 @@ See [..]
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn basic() {
     // Simple example.
     let config = ConfigBuilder::new().config_arg("foo='bar'").build();
     assert_eq!(config.get::<String>("foo").unwrap(), "bar");
 }
 
-#[cargo_test]
+#[payload_test]
 fn cli_priority() {
     // Command line takes priority over files and env vars.
     write_config(
@@ -48,9 +48,9 @@ fn cli_priority() {
     assert_eq!(config.get::<bool>("term.verbose").unwrap(), false);
 
     let config = ConfigBuilder::new()
-        .env("CARGO_BUILD_JOBS", "2")
-        .env("CARGO_BUILD_RUSTC", "env")
-        .env("CARGO_TERM_VERBOSE", "false")
+        .env("PAYLOAD_BUILD_JOBS", "2")
+        .env("PAYLOAD_BUILD_RUSTC", "env")
+        .env("PAYLOAD_TERM_VERBOSE", "false")
         .config_arg("build.jobs=1")
         .config_arg("build.rustc='cli'")
         .config_arg("term.verbose=true")
@@ -60,7 +60,7 @@ fn cli_priority() {
     assert_eq!(config.get::<bool>("term.verbose").unwrap(), true);
 }
 
-#[cargo_test]
+#[payload_test]
 fn merges_array() {
     // Array entries are appended.
     write_config(
@@ -79,7 +79,7 @@ fn merges_array() {
 
     // With normal env.
     let config = ConfigBuilder::new()
-        .env("CARGO_BUILD_RUSTFLAGS", "--env1 --env2")
+        .env("PAYLOAD_BUILD_RUSTFLAGS", "--env1 --env2")
         .config_arg("build.rustflags = ['--cli']")
         .build();
     // The order of cli/env is a little questionable here, but would require
@@ -92,7 +92,7 @@ fn merges_array() {
     // With advanced-env.
     let config = ConfigBuilder::new()
         .unstable_flag("advanced-env")
-        .env("CARGO_BUILD_RUSTFLAGS", "--env")
+        .env("PAYLOAD_BUILD_RUSTFLAGS", "--env")
         .config_arg("build.rustflags = ['--cli']")
         .build();
     assert_eq!(
@@ -111,7 +111,7 @@ fn merges_array() {
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn string_list_array() {
     // Using the StringList type.
     write_config(
@@ -125,7 +125,7 @@ fn string_list_array() {
         .build();
     assert_eq!(
         config
-            .get::<cargo::util::config::StringList>("build.rustflags")
+            .get::<payload::util::config::StringList>("build.rustflags")
             .unwrap()
             .as_slice(),
         ["--file", "--cli"]
@@ -133,12 +133,12 @@ fn string_list_array() {
 
     // With normal env.
     let config = ConfigBuilder::new()
-        .env("CARGO_BUILD_RUSTFLAGS", "--env1 --env2")
+        .env("PAYLOAD_BUILD_RUSTFLAGS", "--env1 --env2")
         .config_arg("build.rustflags = ['--cli']")
         .build();
     assert_eq!(
         config
-            .get::<cargo::util::config::StringList>("build.rustflags")
+            .get::<payload::util::config::StringList>("build.rustflags")
             .unwrap()
             .as_slice(),
         ["--file", "--cli", "--env1", "--env2"]
@@ -147,19 +147,19 @@ fn string_list_array() {
     // With advanced-env.
     let config = ConfigBuilder::new()
         .unstable_flag("advanced-env")
-        .env("CARGO_BUILD_RUSTFLAGS", "['--env']")
+        .env("PAYLOAD_BUILD_RUSTFLAGS", "['--env']")
         .config_arg("build.rustflags = ['--cli']")
         .build();
     assert_eq!(
         config
-            .get::<cargo::util::config::StringList>("build.rustflags")
+            .get::<payload::util::config::StringList>("build.rustflags")
             .unwrap()
             .as_slice(),
         ["--file", "--cli", "--env"]
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn merges_table() {
     // Tables are merged.
     write_config(
@@ -182,9 +182,9 @@ fn merges_table() {
 
     // With env.
     let config = ConfigBuilder::new()
-        .env("CARGO_FOO_KEY3", "7")
-        .env("CARGO_FOO_KEY4", "8")
-        .env("CARGO_FOO_KEY5", "9")
+        .env("PAYLOAD_FOO_KEY3", "7")
+        .env("PAYLOAD_FOO_KEY4", "8")
+        .env("PAYLOAD_FOO_KEY5", "9")
         .config_arg("foo.key2 = 4")
         .config_arg("foo.key3 = 5")
         .config_arg("foo.key4 = 6")
@@ -196,7 +196,7 @@ fn merges_table() {
     assert_eq!(config.get::<i32>("foo.key5").unwrap(), 9);
 }
 
-#[cargo_test]
+#[payload_test]
 fn merge_array_mixed_def_paths() {
     // Merging of arrays with different def sites.
     write_config(
@@ -211,7 +211,7 @@ fn merge_array_mixed_def_paths() {
         .cwd(&somedir)
         .config_arg("paths=['cli']")
         // env is currently ignored for get_list()
-        .env("CARGO_PATHS", "env")
+        .env("PAYLOAD_PATHS", "env")
         .build();
     let paths = config.get_list("paths").unwrap().unwrap();
     // The definition for the root value is somewhat arbitrary, but currently starts with the file because that is what is loaded first.
@@ -223,7 +223,7 @@ fn merge_array_mixed_def_paths() {
     assert_eq!(paths.val[1].1.root(&config), somedir);
 }
 
-#[cargo_test]
+#[payload_test]
 fn unused_key() {
     // Unused key passed on command line.
     let config = ConfigBuilder::new()
@@ -238,13 +238,13 @@ warning: unused config key `build.unused` in `--config cli option`
     assert_match(expected, &output);
 }
 
-#[cargo_test]
+#[payload_test]
 fn rerooted_remains() {
     // Re-rooting keeps cli args.
     let somedir = paths::root().join("somedir");
-    fs::create_dir_all(somedir.join(".cargo")).unwrap();
+    fs::create_dir_all(somedir.join(".payload")).unwrap();
     fs::write(
-        somedir.join(".cargo").join("config"),
+        somedir.join(".payload").join("config"),
         "
         a = 'file1'
         b = 'file2'
@@ -267,7 +267,7 @@ fn rerooted_remains() {
     assert_eq!(config.get::<String>("c").unwrap(), "cli2");
 }
 
-#[cargo_test]
+#[payload_test]
 fn bad_parse() {
     // Fail to TOML parse.
     let config = ConfigBuilder::new().config_arg("abc").build_err();
@@ -281,7 +281,7 @@ Caused by:
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn too_many_values() {
     // Currently restricted to only 1 value.
     let config = ConfigBuilder::new().config_arg("a=1\nb=2").build_err();
@@ -300,7 +300,7 @@ b=2` expected exactly one key=value pair, got 2 keys",
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn bad_cv_convert() {
     // ConfigValue does not support all TOML types.
     let config = ConfigBuilder::new().config_arg("a=2019-12-01").build_err();
@@ -317,7 +317,7 @@ Caused by:
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn fail_to_merge_multiple_args() {
     // Error message when multiple args fail to merge.
     let config = ConfigBuilder::new()

@@ -1,19 +1,19 @@
 //! Tests for normal registry dependencies.
 
-use cargo::{core::SourceId, util::paths::remove_dir_all};
-use cargo_test_support::paths::{self, CargoPathExt};
-use cargo_test_support::registry::{self, registry_path, Dependency, Package};
-use cargo_test_support::{basic_manifest, project};
-use cargo_test_support::{cargo_process, registry::registry_url};
-use cargo_test_support::{git, install::cargo_home, t};
+use payload::{core::SourceId, util::paths::remove_dir_all};
+use payload_test_support::paths::{self, PayloadPathExt};
+use payload_test_support::registry::{self, registry_path, Dependency, Package};
+use payload_test_support::{basic_manifest, project};
+use payload_test_support::{payload_process, registry::registry_url};
+use payload_test_support::{git, install::payload_home, t};
 use std::fs::{self, File};
 use std::path::Path;
 
-#[cargo_test]
+#[payload_test]
 fn simple() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -29,7 +29,7 @@ fn simple() {
 
     Package::new("bar", "0.0.1").publish();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(&format!(
             "\
 [UPDATING] `{reg}` index
@@ -43,10 +43,10 @@ fn simple() {
         ))
         .run();
 
-    p.cargo("clean").run();
+    p.payload("clean").run();
 
     // Don't download a second time
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [COMPILING] bar v0.0.1
@@ -57,11 +57,11 @@ fn simple() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn deps() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -78,7 +78,7 @@ fn deps() {
     Package::new("baz", "0.0.1").publish();
     Package::new("bar", "0.0.1").dep("baz", "*").publish();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(&format!(
             "\
 [UPDATING] `{reg}` index
@@ -95,13 +95,13 @@ fn deps() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn nonexistent() {
     Package::new("init", "0.0.1").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -115,7 +115,7 @@ fn nonexistent() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "\
@@ -128,13 +128,13 @@ required by package `foo v0.0.1 ([..])`
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn wrong_case() {
     Package::new("init", "0.0.1").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -149,7 +149,7 @@ fn wrong_case() {
         .build();
 
     // #5678 to make this work
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "\
@@ -163,13 +163,13 @@ required by package `foo v0.0.1 ([..])`
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn mis_hyphenated() {
     Package::new("mis-hyphenated", "0.0.1").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -184,7 +184,7 @@ fn mis_hyphenated() {
         .build();
 
     // #2775 to make this work
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "\
@@ -198,11 +198,11 @@ required by package `foo v0.0.1 ([..])`
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn wrong_version() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -219,7 +219,7 @@ fn wrong_version() {
     Package::new("foo", "0.0.1").publish();
     Package::new("foo", "0.0.2").publish();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr_contains(
             "\
@@ -234,7 +234,7 @@ required by package `foo v0.0.1 ([..])`
     Package::new("foo", "0.0.3").publish();
     Package::new("foo", "0.0.4").publish();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr_contains(
             "\
@@ -247,11 +247,11 @@ required by package `foo v0.0.1 ([..])`
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bad_cksum() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -269,7 +269,7 @@ fn bad_cksum() {
     pkg.publish();
     t!(File::create(&pkg.archive_dst()));
 
-    p.cargo("build -v")
+    p.payload("build -v")
         .with_status(101)
         .with_stderr(
             "\
@@ -285,13 +285,13 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn update_registry() {
     Package::new("init", "0.0.1").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -305,7 +305,7 @@ fn update_registry() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr_contains(
             "\
@@ -318,7 +318,7 @@ required by package `foo v0.0.1 ([..])`
 
     Package::new("notyet", "0.0.1").publish();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(format!(
             "\
 [UPDATING] `{reg}` index
@@ -333,13 +333,13 @@ required by package `foo v0.0.1 ([..])`
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn package_with_path_deps() {
     Package::new("init", "0.0.1").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -355,11 +355,11 @@ fn package_with_path_deps() {
             "#,
         )
         .file("src/main.rs", "fn main() {}")
-        .file("notyet/Cargo.toml", &basic_manifest("notyet", "0.0.1"))
+        .file("notyet/Payload.toml", &basic_manifest("notyet", "0.0.1"))
         .file("notyet/src/lib.rs", "")
         .build();
 
-    p.cargo("package")
+    p.payload("package")
         .with_status(101)
         .with_stderr_contains(
             "\
@@ -369,7 +369,7 @@ fn package_with_path_deps() {
 
 Caused by:
   no matching package named `notyet` found
-  location searched: registry `https://github.com/rust-lang/crates.io-index`
+  location searched: registry `https://github.com/dustlang/crates.io-index`
   required by package `foo v0.0.1 [..]`
 ",
         )
@@ -377,7 +377,7 @@ Caused by:
 
     Package::new("notyet", "0.0.1").publish();
 
-    p.cargo("package")
+    p.payload("package")
         .with_stderr(
             "\
 [PACKAGING] foo v0.0.1 ([CWD])
@@ -393,11 +393,11 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn lockfile_locks() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -413,7 +413,7 @@ fn lockfile_locks() {
 
     Package::new("bar", "0.0.1").publish();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [UPDATING] `[..]` index
@@ -429,14 +429,14 @@ fn lockfile_locks() {
     p.root().move_into_the_past();
     Package::new("bar", "0.0.2").publish();
 
-    p.cargo("build").with_stdout("").run();
+    p.payload("build").with_stdout("").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn lockfile_locks_transitively() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -453,7 +453,7 @@ fn lockfile_locks_transitively() {
     Package::new("baz", "0.0.1").publish();
     Package::new("bar", "0.0.1").dep("baz", "*").publish();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [UPDATING] `[..]` index
@@ -472,14 +472,14 @@ fn lockfile_locks_transitively() {
     Package::new("baz", "0.0.2").publish();
     Package::new("bar", "0.0.2").dep("baz", "*").publish();
 
-    p.cargo("build").with_stdout("").run();
+    p.payload("build").with_stdout("").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn yanks_are_not_used() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -501,7 +501,7 @@ fn yanks_are_not_used() {
         .yanked(true)
         .publish();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [UPDATING] `[..]` index
@@ -517,11 +517,11 @@ fn yanks_are_not_used() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn relying_on_a_yank_is_bad() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -539,7 +539,7 @@ fn relying_on_a_yank_is_bad() {
     Package::new("baz", "0.0.2").yanked(true).publish();
     Package::new("bar", "0.0.1").dep("baz", "=0.0.2").publish();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr_contains(
             "\
@@ -553,11 +553,11 @@ required by package `bar v0.0.1`
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn yanks_in_lockfiles_are_ok() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -573,15 +573,15 @@ fn yanks_in_lockfiles_are_ok() {
 
     Package::new("bar", "0.0.1").publish();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 
     registry_path().join("3").rm_rf();
 
     Package::new("bar", "0.0.1").yanked(true).publish();
 
-    p.cargo("build").with_stdout("").run();
+    p.payload("build").with_stdout("").run();
 
-    p.cargo("update")
+    p.payload("update")
         .with_status(101)
         .with_stderr_contains(
             "\
@@ -593,11 +593,11 @@ required by package `foo v0.0.1 ([..])`
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn yanks_in_lockfiles_are_ok_for_other_update() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -615,18 +615,18 @@ fn yanks_in_lockfiles_are_ok_for_other_update() {
     Package::new("bar", "0.0.1").publish();
     Package::new("baz", "0.0.1").publish();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 
     registry_path().join("3").rm_rf();
 
     Package::new("bar", "0.0.1").yanked(true).publish();
     Package::new("baz", "0.0.1").publish();
 
-    p.cargo("build").with_stdout("").run();
+    p.payload("build").with_stdout("").run();
 
     Package::new("baz", "0.0.2").publish();
 
-    p.cargo("update")
+    p.payload("update")
         .with_status(101)
         .with_stderr_contains(
             "\
@@ -637,7 +637,7 @@ required by package `foo v0.0.1 ([..])`
         )
         .run();
 
-    p.cargo("update -p baz")
+    p.payload("update -p baz")
         .with_stderr_contains(
             "\
 [UPDATING] `[..]` index
@@ -647,11 +647,11 @@ required by package `foo v0.0.1 ([..])`
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn yanks_in_lockfiles_are_ok_with_new_dep() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -667,7 +667,7 @@ fn yanks_in_lockfiles_are_ok_with_new_dep() {
 
     Package::new("bar", "0.0.1").publish();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 
     registry_path().join("3").rm_rf();
 
@@ -675,7 +675,7 @@ fn yanks_in_lockfiles_are_ok_with_new_dep() {
     Package::new("baz", "0.0.1").publish();
 
     p.change_file(
-        "Cargo.toml",
+        "Payload.toml",
         r#"
             [project]
             name = "foo"
@@ -688,14 +688,14 @@ fn yanks_in_lockfiles_are_ok_with_new_dep() {
         "#,
     );
 
-    p.cargo("build").with_stdout("").run();
+    p.payload("build").with_stdout("").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn update_with_lockfile_if_packages_missing() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -710,11 +710,11 @@ fn update_with_lockfile_if_packages_missing() {
         .build();
 
     Package::new("bar", "0.0.1").publish();
-    p.cargo("build").run();
+    p.payload("build").run();
     p.root().move_into_the_past();
 
-    paths::home().join(".cargo/registry").rm_rf();
-    p.cargo("build")
+    paths::home().join(".payload/registry").rm_rf();
+    p.payload("build")
         .with_stderr(
             "\
 [UPDATING] `[..]` index
@@ -726,11 +726,11 @@ fn update_with_lockfile_if_packages_missing() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn update_lockfile() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -746,13 +746,13 @@ fn update_lockfile() {
 
     println!("0.0.1");
     Package::new("bar", "0.0.1").publish();
-    p.cargo("build").run();
+    p.payload("build").run();
 
     Package::new("bar", "0.0.2").publish();
     Package::new("bar", "0.0.3").publish();
-    paths::home().join(".cargo/registry").rm_rf();
+    paths::home().join(".payload/registry").rm_rf();
     println!("0.0.2 update");
-    p.cargo("update -p bar --precise 0.0.2")
+    p.payload("update -p bar --precise 0.0.2")
         .with_stderr(
             "\
 [UPDATING] `[..]` index
@@ -762,7 +762,7 @@ fn update_lockfile() {
         .run();
 
     println!("0.0.2 build");
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [DOWNLOADING] crates ...
@@ -775,7 +775,7 @@ fn update_lockfile() {
         .run();
 
     println!("0.0.3 update");
-    p.cargo("update -p bar")
+    p.payload("update -p bar")
         .with_stderr(
             "\
 [UPDATING] `[..]` index
@@ -785,7 +785,7 @@ fn update_lockfile() {
         .run();
 
     println!("0.0.3 build");
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [DOWNLOADING] crates ...
@@ -800,7 +800,7 @@ fn update_lockfile() {
     println!("new dependencies update");
     Package::new("bar", "0.0.4").dep("spam", "0.2.5").publish();
     Package::new("spam", "0.2.5").publish();
-    p.cargo("update -p bar")
+    p.payload("update -p bar")
         .with_stderr(
             "\
 [UPDATING] `[..]` index
@@ -812,7 +812,7 @@ fn update_lockfile() {
 
     println!("new dependencies update");
     Package::new("bar", "0.0.5").publish();
-    p.cargo("update -p bar")
+    p.payload("update -p bar")
         .with_stderr(
             "\
 [UPDATING] `[..]` index
@@ -823,11 +823,11 @@ fn update_lockfile() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn dev_dependency_not_used() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -844,7 +844,7 @@ fn dev_dependency_not_used() {
     Package::new("baz", "0.0.1").publish();
     Package::new("bar", "0.0.1").dev_dep("baz", "*").publish();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [UPDATING] `[..]` index
@@ -858,37 +858,37 @@ fn dev_dependency_not_used() {
         .run();
 }
 
-#[cargo_test]
-fn login_with_no_cargo_dir() {
+#[payload_test]
+fn login_with_no_payload_dir() {
     // Create a config in the root directory because `login` requires the
     // index to be updated, and we don't want to hit crates.io.
     registry::init();
-    fs::rename(paths::home().join(".cargo"), paths::root().join(".cargo")).unwrap();
+    fs::rename(paths::home().join(".payload"), paths::root().join(".payload")).unwrap();
     paths::home().rm_rf();
-    cargo_process("login foo -v").run();
-    let credentials = fs::read_to_string(paths::home().join(".cargo/credentials")).unwrap();
+    payload_process("login foo -v").run();
+    let credentials = fs::read_to_string(paths::home().join(".payload/credentials")).unwrap();
     assert_eq!(credentials, "[registry]\ntoken = \"foo\"\n");
 }
 
-#[cargo_test]
+#[payload_test]
 fn login_with_differently_sized_token() {
     // Verify that the configuration file gets properly truncated.
     registry::init();
-    let credentials = paths::home().join(".cargo/credentials");
+    let credentials = paths::home().join(".payload/credentials");
     fs::remove_file(&credentials).unwrap();
-    cargo_process("login lmaolmaolmao -v").run();
-    cargo_process("login lmao -v").run();
-    cargo_process("login lmaolmaolmao -v").run();
+    payload_process("login lmaolmaolmao -v").run();
+    payload_process("login lmao -v").run();
+    payload_process("login lmaolmaolmao -v").run();
     let credentials = fs::read_to_string(&credentials).unwrap();
     assert_eq!(credentials, "[registry]\ntoken = \"lmaolmaolmao\"\n");
 }
 
-#[cargo_test]
+#[payload_test]
 fn bad_license_file() {
     Package::new("foo", "1.0.0").publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -901,17 +901,17 @@ fn bad_license_file() {
         )
         .file("src/main.rs", "fn main() {}")
         .build();
-    p.cargo("publish -v --token sekrit")
+    p.payload("publish -v --token sekrit")
         .with_status(101)
         .with_stderr_contains("[ERROR] the license file `foo` does not exist")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn updating_a_dep() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -924,7 +924,7 @@ fn updating_a_dep() {
         )
         .file("src/main.rs", "fn main() {}")
         .file(
-            "a/Cargo.toml",
+            "a/Payload.toml",
             r#"
                 [project]
                 name = "a"
@@ -940,7 +940,7 @@ fn updating_a_dep() {
 
     Package::new("bar", "0.0.1").publish();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [UPDATING] `[..]` index
@@ -955,7 +955,7 @@ fn updating_a_dep() {
         .run();
 
     p.change_file(
-        "a/Cargo.toml",
+        "a/Payload.toml",
         r#"
         [project]
         name = "a"
@@ -969,7 +969,7 @@ fn updating_a_dep() {
     Package::new("bar", "0.1.0").publish();
 
     println!("second");
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [UPDATING] `[..]` index
@@ -984,11 +984,11 @@ fn updating_a_dep() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn git_and_registry_dep() {
     let b = git::repo(&paths::root().join("b"))
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "b"
@@ -1003,7 +1003,7 @@ fn git_and_registry_dep() {
         .build();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                     [project]
@@ -1026,7 +1026,7 @@ fn git_and_registry_dep() {
     Package::new("a", "0.0.1").publish();
 
     p.root().move_into_the_past();
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [UPDATING] [..]
@@ -1043,16 +1043,16 @@ fn git_and_registry_dep() {
     p.root().move_into_the_past();
 
     println!("second");
-    p.cargo("build").with_stdout("").run();
+    p.payload("build").with_stdout("").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn update_publish_then_update() {
-    // First generate a Cargo.lock and a clone of the registry index at the
+    // First generate a Payload.lock and a clone of the registry index at the
     // "head" of the current registry.
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1066,21 +1066,21 @@ fn update_publish_then_update() {
         .file("src/main.rs", "fn main() {}")
         .build();
     Package::new("a", "0.1.0").publish();
-    p.cargo("build").run();
+    p.payload("build").run();
 
     // Next, publish a new package and back up the copy of the registry we just
     // created.
     Package::new("a", "0.1.1").publish();
-    let registry = paths::home().join(".cargo/registry");
+    let registry = paths::home().join(".payload/registry");
     let backup = paths::root().join("registry-backup");
     t!(fs::rename(&registry, &backup));
 
-    // Generate a Cargo.lock with the newer version, and then move the old copy
+    // Generate a Payload.lock with the newer version, and then move the old copy
     // of the registry back into place.
     let p2 = project()
         .at("foo2")
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1093,18 +1093,18 @@ fn update_publish_then_update() {
         )
         .file("src/main.rs", "fn main() {}")
         .build();
-    p2.cargo("build").run();
+    p2.payload("build").run();
     registry.rm_rf();
     t!(fs::rename(&backup, &registry));
     t!(fs::rename(
-        p2.root().join("Cargo.lock"),
-        p.root().join("Cargo.lock")
+        p2.root().join("Payload.lock"),
+        p.root().join("Payload.lock")
     ));
 
-    // Finally, build the first project again (with our newer Cargo.lock) which
+    // Finally, build the first project again (with our newer Payload.lock) which
     // should force an update of the old registry, download the new crate, and
     // then build everything again.
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [UPDATING] [..]
@@ -1118,11 +1118,11 @@ fn update_publish_then_update() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn fetch_downloads() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1138,7 +1138,7 @@ fn fetch_downloads() {
 
     Package::new("a", "0.1.0").publish();
 
-    p.cargo("fetch")
+    p.payload("fetch")
         .with_stderr(
             "\
 [UPDATING] `[..]` index
@@ -1149,11 +1149,11 @@ fn fetch_downloads() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn update_transitive_dependency() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1170,11 +1170,11 @@ fn update_transitive_dependency() {
     Package::new("a", "0.1.0").dep("b", "*").publish();
     Package::new("b", "0.1.0").publish();
 
-    p.cargo("fetch").run();
+    p.payload("fetch").run();
 
     Package::new("b", "0.1.1").publish();
 
-    p.cargo("update -pb")
+    p.payload("update -pb")
         .with_stderr(
             "\
 [UPDATING] `[..]` index
@@ -1183,7 +1183,7 @@ fn update_transitive_dependency() {
         )
         .run();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [DOWNLOADING] crates ...
@@ -1197,11 +1197,11 @@ fn update_transitive_dependency() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn update_backtracking_ok() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1227,7 +1227,7 @@ fn update_backtracking_ok() {
         .publish();
     Package::new("openssl", "0.1.0").publish();
 
-    p.cargo("generate-lockfile").run();
+    p.payload("generate-lockfile").run();
 
     Package::new("openssl", "0.1.1").publish();
     Package::new("hyper", "0.6.6")
@@ -1235,7 +1235,7 @@ fn update_backtracking_ok() {
         .dep("cookie", "0.1.0")
         .publish();
 
-    p.cargo("update -p hyper")
+    p.payload("update -p hyper")
         .with_stderr(
             "\
 [UPDATING] `[..]` index
@@ -1246,11 +1246,11 @@ fn update_backtracking_ok() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn update_multiple_packages() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1270,13 +1270,13 @@ fn update_multiple_packages() {
     Package::new("b", "0.1.0").publish();
     Package::new("c", "0.1.0").publish();
 
-    p.cargo("fetch").run();
+    p.payload("fetch").run();
 
     Package::new("a", "0.1.1").publish();
     Package::new("b", "0.1.1").publish();
     Package::new("c", "0.1.1").publish();
 
-    p.cargo("update -pa -pb")
+    p.payload("update -pa -pb")
         .with_stderr(
             "\
 [UPDATING] `[..]` index
@@ -1286,7 +1286,7 @@ fn update_multiple_packages() {
         )
         .run();
 
-    p.cargo("update -pb -pc")
+    p.payload("update -pb -pc")
         .with_stderr(
             "\
 [UPDATING] `[..]` index
@@ -1295,7 +1295,7 @@ fn update_multiple_packages() {
         )
         .run();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr_contains("[DOWNLOADED] a v0.1.1 (registry `[ROOT][..]`)")
         .with_stderr_contains("[DOWNLOADED] b v0.1.1 (registry `[ROOT][..]`)")
         .with_stderr_contains("[DOWNLOADED] c v0.1.1 (registry `[ROOT][..]`)")
@@ -1306,11 +1306,11 @@ fn update_multiple_packages() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bundled_crate_in_registry() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1329,7 +1329,7 @@ fn bundled_crate_in_registry() {
     Package::new("baz", "0.1.0")
         .dep("bar", "0.1.0")
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "baz"
@@ -1341,18 +1341,18 @@ fn bundled_crate_in_registry() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "")
         .publish();
 
-    p.cargo("run").run();
+    p.payload("run").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn update_same_prefix_oh_my_how_was_this_a_bug() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "ugh"
@@ -1371,15 +1371,15 @@ fn update_same_prefix_oh_my_how_was_this_a_bug() {
         .dep("foobar", "0.2.0")
         .publish();
 
-    p.cargo("generate-lockfile").run();
-    p.cargo("update -pfoobar --precise=0.2.0").run();
+    p.payload("generate-lockfile").run();
+    p.payload("update -pfoobar --precise=0.2.0").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn use_semver() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "bar"
@@ -1395,21 +1395,21 @@ fn use_semver() {
 
     Package::new("foo", "1.2.3-alpha.0").publish();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn use_semver_package_incorrectly() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [workspace]
             members = ["a", "b"]
             "#,
         )
         .file(
-            "a/Cargo.toml",
+            "a/Payload.toml",
             r#"
             [project]
             name = "a"
@@ -1418,7 +1418,7 @@ fn use_semver_package_incorrectly() {
             "#,
         )
         .file(
-            "b/Cargo.toml",
+            "b/Payload.toml",
             r#"
             [project]
             name = "b"
@@ -1433,7 +1433,7 @@ fn use_semver_package_incorrectly() {
         .file("b/src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "\
@@ -1447,11 +1447,11 @@ required by package `b v0.1.0 ([..])`
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn only_download_relevant() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "bar"
@@ -1473,7 +1473,7 @@ fn only_download_relevant() {
     Package::new("bar", "0.1.0").publish();
     Package::new("baz", "0.1.0").publish();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [UPDATING] `[..]` index
@@ -1487,11 +1487,11 @@ fn only_download_relevant() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn resolve_and_backtracking() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "bar"
@@ -1510,14 +1510,14 @@ fn resolve_and_backtracking() {
         .publish();
     Package::new("foo", "0.1.0").publish();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn upstream_warnings_on_extra_verbose() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "bar"
@@ -1535,16 +1535,16 @@ fn upstream_warnings_on_extra_verbose() {
         .file("src/lib.rs", "fn unused() {}")
         .publish();
 
-    p.cargo("build -vv")
+    p.payload("build -vv")
         .with_stderr_contains("[..]warning: function is never used[..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn disallow_network() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "bar"
@@ -1558,7 +1558,7 @@ fn disallow_network() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("build --frozen")
+    p.payload("build --frozen")
         .with_status(101)
         .with_stderr(
             "\
@@ -1577,11 +1577,11 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn add_dep_dont_update_registry() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "bar"
@@ -1594,7 +1594,7 @@ fn add_dep_dont_update_registry() {
         )
         .file("src/main.rs", "fn main() {}")
         .file(
-            "baz/Cargo.toml",
+            "baz/Payload.toml",
             r#"
                 [project]
                 name = "baz"
@@ -1610,10 +1610,10 @@ fn add_dep_dont_update_registry() {
 
     Package::new("remote", "0.3.4").publish();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 
     p.change_file(
-        "Cargo.toml",
+        "Payload.toml",
         r#"
         [project]
         name = "bar"
@@ -1626,7 +1626,7 @@ fn add_dep_dont_update_registry() {
         "#,
     );
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [COMPILING] bar v0.5.0 ([..])
@@ -1636,11 +1636,11 @@ fn add_dep_dont_update_registry() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bump_version_dont_update_registry() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "bar"
@@ -1653,7 +1653,7 @@ fn bump_version_dont_update_registry() {
         )
         .file("src/main.rs", "fn main() {}")
         .file(
-            "baz/Cargo.toml",
+            "baz/Payload.toml",
             r#"
                 [project]
                 name = "baz"
@@ -1669,10 +1669,10 @@ fn bump_version_dont_update_registry() {
 
     Package::new("remote", "0.3.4").publish();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 
     p.change_file(
-        "Cargo.toml",
+        "Payload.toml",
         r#"
         [project]
         name = "bar"
@@ -1684,7 +1684,7 @@ fn bump_version_dont_update_registry() {
         "#,
     );
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [COMPILING] bar v0.6.0 ([..])
@@ -1694,11 +1694,11 @@ fn bump_version_dont_update_registry() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn old_version_req() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "bar"
@@ -1714,12 +1714,12 @@ fn old_version_req() {
 
     Package::new("remote", "0.2.0").publish();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 warning: parsed version requirement `0.2*` is no longer valid
 
-Previous versions of Cargo accepted this malformed requirement,
+Previous versions of Payload accepted this malformed requirement,
 but it is being deprecated. This was found when parsing the manifest
 of bar 0.5.0, and the correct version requirement is `0.2.*`.
 
@@ -1729,7 +1729,7 @@ this warning.
 
 warning: parsed version requirement `0.2*` is no longer valid
 
-Previous versions of Cargo accepted this malformed requirement,
+Previous versions of Payload accepted this malformed requirement,
 but it is being deprecated. This was found when parsing the manifest
 of bar 0.5.0, and the correct version requirement is `0.2.*`.
 
@@ -1748,11 +1748,11 @@ this warning.
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn old_version_req_upstream() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "bar"
@@ -1768,7 +1768,7 @@ fn old_version_req_upstream() {
 
     Package::new("remote", "0.3.0")
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "remote"
@@ -1783,7 +1783,7 @@ fn old_version_req_upstream() {
         .publish();
     Package::new("bar", "0.2.0").publish();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [UPDATING] [..]
@@ -1791,7 +1791,7 @@ fn old_version_req_upstream() {
 [DOWNLOADED] [..]
 warning: parsed version requirement `0.2*` is no longer valid
 
-Previous versions of Cargo accepted this malformed requirement,
+Previous versions of Payload accepted this malformed requirement,
 but it is being deprecated. This was found when parsing the manifest
 of remote 0.3.0, and the correct version requirement is `0.2.*`.
 
@@ -1807,13 +1807,13 @@ this warning.
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn toml_lies_but_index_is_truth() {
     Package::new("foo", "0.2.0").publish();
     Package::new("bar", "0.3.0")
         .dep("foo", "0.2.0")
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "bar"
@@ -1829,7 +1829,7 @@ fn toml_lies_but_index_is_truth() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "bar"
@@ -1843,10 +1843,10 @@ fn toml_lies_but_index_is_truth() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("build -v").run();
+    p.payload("build -v").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn vv_prints_warnings() {
     Package::new("foo", "0.2.0")
         .file(
@@ -1857,7 +1857,7 @@ fn vv_prints_warnings() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "fo"
@@ -1871,10 +1871,10 @@ fn vv_prints_warnings() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("build -vv").run();
+    p.payload("build -vv").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bad_and_or_malicious_packages_rejected() {
     Package::new("foo", "0.2.0")
         .extra_file("foo-0.1.0/src/lib.rs", "")
@@ -1882,7 +1882,7 @@ fn bad_and_or_malicious_packages_rejected() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "fo"
@@ -1896,7 +1896,7 @@ fn bad_and_or_malicious_packages_rejected() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("build -vv")
+    p.payload("build -vv")
         .with_status(101)
         .with_stderr(
             "\
@@ -1915,14 +1915,14 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn git_init_templatedir_missing() {
     Package::new("foo", "0.2.0").dep("bar", "*").publish();
     Package::new("bar", "0.2.0").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "fo"
@@ -1936,9 +1936,9 @@ fn git_init_templatedir_missing() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 
-    remove_dir_all(paths::home().join(".cargo/registry")).unwrap();
+    remove_dir_all(paths::home().join(".payload/registry")).unwrap();
     fs::write(
         paths::home().join(".gitconfig"),
         r#"
@@ -1948,11 +1948,11 @@ fn git_init_templatedir_missing() {
     )
     .unwrap();
 
-    p.cargo("build").run();
-    p.cargo("build").run();
+    p.payload("build").run();
+    p.payload("build").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn rename_deps_and_features() {
     Package::new("foo", "0.1.0")
         .file("src/lib.rs", "pub fn f1() {}")
@@ -1986,7 +1986,7 @@ fn rename_deps_and_features() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "a"
@@ -2006,12 +2006,12 @@ fn rename_deps_and_features() {
         )
         .build();
 
-    p.cargo("build").run();
-    p.cargo("build --features bar/foo01").run();
-    p.cargo("build --features bar/another").run();
+    p.payload("build").run();
+    p.payload("build --features bar/foo01").run();
+    p.payload("build --features bar/another").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn ignore_invalid_json_lines() {
     Package::new("foo", "0.1.0").publish();
     Package::new("foo", "0.1.1").invalid_json(true).publish();
@@ -2019,7 +2019,7 @@ fn ignore_invalid_json_lines() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "a"
@@ -2034,16 +2034,16 @@ fn ignore_invalid_json_lines() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn readonly_registry_still_works() {
     Package::new("foo", "0.1.0").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "a"
@@ -2057,11 +2057,11 @@ fn readonly_registry_still_works() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("generate-lockfile").run();
-    p.cargo("fetch --locked").run();
+    p.payload("generate-lockfile").run();
+    p.payload("fetch --locked").run();
     chmod_readonly(&paths::home(), true);
-    p.cargo("build").run();
-    // make sure we un-readonly the files afterwards so "cargo clean" can remove them (#6934)
+    p.payload("build").run();
+    // make sure we un-readonly the files afterwards so "payload clean" can remove them (#6934)
     chmod_readonly(&paths::home(), false);
 
     fn chmod_readonly(path: &Path, readonly: bool) {
@@ -2084,20 +2084,20 @@ fn readonly_registry_still_works() {
     }
 }
 
-#[cargo_test]
+#[payload_test]
 fn registry_index_rejected() {
     Package::new("dep", "0.1.0").publish();
 
     let p = project()
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
             [registry]
             index = "https://example.com/"
             "#,
         )
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -2110,11 +2110,11 @@ fn registry_index_rejected() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("check")
+    p.payload("check")
         .with_status(101)
         .with_stderr(
             "\
-[ERROR] failed to parse manifest at `[..]/foo/Cargo.toml`
+[ERROR] failed to parse manifest at `[..]/foo/Payload.toml`
 
 Caused by:
   the `registry.index` config value is no longer supported
@@ -2123,7 +2123,7 @@ Caused by:
         )
         .run();
 
-    p.cargo("login")
+    p.payload("login")
         .with_status(101)
         .with_stderr(
             "\
@@ -2134,11 +2134,11 @@ Use `[source]` replacement to alter the default index for crates.io.
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn package_lock_inside_package_is_overwritten() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -2154,24 +2154,24 @@ fn package_lock_inside_package_is_overwritten() {
 
     Package::new("bar", "0.0.1")
         .file("src/lib.rs", "")
-        .file(".cargo-ok", "")
+        .file(".payload-ok", "")
         .publish();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 
     let id = SourceId::for_registry(&registry_url()).unwrap();
-    let hash = cargo::util::hex::short_hash(&id);
-    let ok = cargo_home()
+    let hash = payload::util::hex::short_hash(&id);
+    let ok = payload_home()
         .join("registry")
         .join("src")
         .join(format!("-{}", hash))
         .join("bar-0.0.1")
-        .join(".cargo-ok");
+        .join(".payload-ok");
 
     assert_eq!(ok.metadata().unwrap().len(), 2);
 }
 
-#[cargo_test]
+#[payload_test]
 fn ignores_unknown_index_version() {
     // If the version field is not understood, it is ignored.
     Package::new("bar", "1.0.0").publish();
@@ -2179,7 +2179,7 @@ fn ignores_unknown_index_version() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -2192,7 +2192,7 @@ fn ignores_unknown_index_version() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("tree")
+    p.payload("tree")
         .with_stdout(
             "foo v0.1.0 [..]\n\
              └── bar v1.0.0\n\

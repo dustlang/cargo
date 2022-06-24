@@ -1,9 +1,9 @@
-//! Tests for dep-info files. This includes the dep-info file Cargo creates in
+//! Tests for dep-info files. This includes the dep-info file Payload creates in
 //! the output directory, and the ones stored in the fingerprint.
 
-use cargo_test_support::paths::{self, CargoPathExt};
-use cargo_test_support::registry::Package;
-use cargo_test_support::{
+use payload_test_support::paths::{self, PayloadPathExt};
+use payload_test_support::registry::Package;
+use payload_test_support::{
     basic_bin_manifest, basic_manifest, is_nightly, main_file, project, rustc_host, Project,
 };
 use filetime::FileTime;
@@ -75,14 +75,14 @@ fn assert_deps_contains(project: &Project, fingerprint: &str, expected: &[(u8, &
     })
 }
 
-#[cargo_test]
+#[payload_test]
 fn build_dep_info() {
     let p = project()
-        .file("Cargo.toml", &basic_bin_manifest("foo"))
+        .file("Payload.toml", &basic_bin_manifest("foo"))
         .file("src/foo.rs", &main_file(r#""i am foo""#, &[]))
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 
     let depinfo_bin_path = &p.bin("foo").with_extension("d");
 
@@ -103,11 +103,11 @@ fn build_dep_info() {
     }
 }
 
-#[cargo_test]
+#[payload_test]
 fn build_dep_info_lib() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -124,15 +124,15 @@ fn build_dep_info_lib() {
         .file("examples/ex.rs", "")
         .build();
 
-    p.cargo("build --example=ex").run();
+    p.payload("build --example=ex").run();
     assert!(p.example_lib("ex", "lib").with_extension("d").is_file());
 }
 
-#[cargo_test]
+#[payload_test]
 fn build_dep_info_rlib() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -148,15 +148,15 @@ fn build_dep_info_rlib() {
         .file("examples/ex.rs", "")
         .build();
 
-    p.cargo("build --example=ex").run();
+    p.payload("build --example=ex").run();
     assert!(p.example_lib("ex", "rlib").with_extension("d").is_file());
 }
 
-#[cargo_test]
+#[payload_test]
 fn build_dep_info_dylib() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -172,26 +172,26 @@ fn build_dep_info_dylib() {
         .file("examples/ex.rs", "")
         .build();
 
-    p.cargo("build --example=ex").run();
+    p.payload("build --example=ex").run();
     assert!(p.example_lib("ex", "dylib").with_extension("d").is_file());
 }
 
-#[cargo_test]
+#[payload_test]
 fn dep_path_inside_target_has_correct_path() {
     let p = project()
-        .file("Cargo.toml", &basic_bin_manifest("a"))
+        .file("Payload.toml", &basic_bin_manifest("a"))
         .file("target/debug/blah", "")
         .file(
             "src/main.rs",
             r#"
                 fn main() {
-                    let x = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/target/debug/blah"));
+                    let x = include_bytes!(concat!(env!("PAYLOAD_MANIFEST_DIR"), "/target/debug/blah"));
                 }
             "#,
         )
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 
     let depinfo_path = &p.bin("a").with_extension("d");
 
@@ -212,14 +212,14 @@ fn dep_path_inside_target_has_correct_path() {
     }
 }
 
-#[cargo_test]
+#[payload_test]
 fn no_rewrite_if_no_change() {
     let p = project().file("src/lib.rs", "").build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
     let dep_info = p.root().join("target/debug/libfoo.d");
     let metadata1 = dep_info.metadata().unwrap();
-    p.cargo("build").run();
+    p.payload("build").run();
     let metadata2 = dep_info.metadata().unwrap();
 
     assert_eq!(
@@ -228,10 +228,10 @@ fn no_rewrite_if_no_change() {
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn relative_depinfo_paths_ws() {
     if !is_nightly() {
-        // -Z binary-dep-depinfo is unstable (https://github.com/rust-lang/rust/issues/63012)
+        // -Z binary-dep-depinfo is unstable (https://github.com/dustlang/rust/issues/63012)
         return;
     }
 
@@ -250,7 +250,7 @@ fn relative_depinfo_paths_ws() {
     let p = project()
         /*********** Workspace ***********/
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [workspace]
             members = ["foo"]
@@ -258,7 +258,7 @@ fn relative_depinfo_paths_ws() {
         )
         /*********** Main Project ***********/
         .file(
-            "foo/Cargo.toml",
+            "foo/Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -289,7 +289,7 @@ fn relative_depinfo_paths_ws() {
         .file("foo/build.rs", "fn main() { bdep::f(); }")
         /*********** Proc Macro ***********/
         .file(
-            "pm/Cargo.toml",
+            "pm/Payload.toml",
             r#"
             [package]
             name = "pm"
@@ -317,14 +317,14 @@ fn relative_depinfo_paths_ws() {
             "#,
         )
         /*********** Path Dependency `bar` ***********/
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "pub fn f() {}")
         .build();
 
     let host = rustc_host();
-    p.cargo("build -Z binary-dep-depinfo --target")
+    p.payload("build -Z binary-dep-depinfo --target")
         .arg(&host)
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_payload()
         .with_stderr_contains("[COMPILING] foo [..]")
         .run();
 
@@ -359,17 +359,17 @@ fn relative_depinfo_paths_ws() {
     );
 
     // Make sure it stays fresh.
-    p.cargo("build -Z binary-dep-depinfo --target")
+    p.payload("build -Z binary-dep-depinfo --target")
         .arg(&host)
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_payload()
         .with_stderr("[FINISHED] dev [..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn relative_depinfo_paths_no_ws() {
     if !is_nightly() {
-        // -Z binary-dep-depinfo is unstable (https://github.com/rust-lang/rust/issues/63012)
+        // -Z binary-dep-depinfo is unstable (https://github.com/dustlang/rust/issues/63012)
         return;
     }
 
@@ -388,7 +388,7 @@ fn relative_depinfo_paths_no_ws() {
     let p = project()
         /*********** Main Project ***********/
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -419,7 +419,7 @@ fn relative_depinfo_paths_no_ws() {
         .file("build.rs", "fn main() { bdep::f(); }")
         /*********** Proc Macro ***********/
         .file(
-            "pm/Cargo.toml",
+            "pm/Payload.toml",
             r#"
             [package]
             name = "pm"
@@ -447,12 +447,12 @@ fn relative_depinfo_paths_no_ws() {
             "#,
         )
         /*********** Path Dependency `bar` ***********/
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "pub fn f() {}")
         .build();
 
-    p.cargo("build -Z binary-dep-depinfo")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -Z binary-dep-depinfo")
+        .masquerade_as_nightly_payload()
         .with_stderr_contains("[COMPILING] foo [..]")
         .run();
 
@@ -487,13 +487,13 @@ fn relative_depinfo_paths_no_ws() {
     );
 
     // Make sure it stays fresh.
-    p.cargo("build -Z binary-dep-depinfo")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -Z binary-dep-depinfo")
+        .masquerade_as_nightly_payload()
         .with_stderr("[FINISHED] dev [..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn reg_dep_source_not_tracked() {
     // Make sure source files in dep-info file are not tracked for registry dependencies.
     Package::new("regdep", "0.1.0")
@@ -502,7 +502,7 @@ fn reg_dep_source_not_tracked() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -515,7 +515,7 @@ fn reg_dep_source_not_tracked() {
         .file("src/lib.rs", "pub fn f() { regdep::f(); }")
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 
     assert_deps(
         &p,
@@ -533,13 +533,13 @@ fn reg_dep_source_not_tracked() {
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn canonical_path() {
     if !is_nightly() {
-        // -Z binary-dep-depinfo is unstable (https://github.com/rust-lang/rust/issues/63012)
+        // -Z binary-dep-depinfo is unstable (https://github.com/dustlang/rust/issues/63012)
         return;
     }
-    if !cargo_test_support::symlink_supported() {
+    if !payload_test_support::symlink_supported() {
         return;
     }
     Package::new("regdep", "0.1.0")
@@ -548,7 +548,7 @@ fn canonical_path() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -565,8 +565,8 @@ fn canonical_path() {
     real.mkdir_p();
     p.symlink(real, "target");
 
-    p.cargo("build -Z binary-dep-depinfo")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -Z binary-dep-depinfo")
+        .masquerade_as_nightly_payload()
         .run();
 
     assert_deps_contains(

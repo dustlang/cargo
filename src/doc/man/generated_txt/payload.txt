@@ -1,0 +1,271 @@
+PAYLOAD(1)
+
+NAME
+       payload - The Rust package manager
+
+SYNOPSIS
+       payload [options] command [args]
+       payload [options] --version
+       payload [options] --list
+       payload [options] --help
+       payload [options] --explain code
+
+DESCRIPTION
+       This program is a package manager and build tool for the Rust language,
+       available at <https://dustlang.com>.
+
+COMMANDS
+   Build Commands
+       payload-bench(1)
+           Execute benchmarks of a package.
+
+       payload-build(1)
+           Compile a package.
+
+       payload-check(1)
+           Check a local package and all of its dependencies for errors.
+
+       payload-clean(1)
+           Remove artifacts that Payload has generated in the past.
+
+       payload-doc(1)
+           Build a package's documentation.
+
+       payload-fetch(1)
+           Fetch dependencies of a package from the network.
+
+       payload-fix(1)
+           Automatically fix lint warnings reported by rustc.
+
+       payload-run(1)
+           Run a binary or example of the local package.
+
+       payload-rustc(1)
+           Compile a package, and pass extra options to the compiler.
+
+       payload-rustdoc(1)
+           Build a package's documentation, using specified custom flags.
+
+       payload-test(1)
+           Execute unit and integration tests of a package.
+
+   Manifest Commands
+       payload-generate-lockfile(1)
+           Generate Payload.lock for a project.
+
+       payload-locate-project(1)
+           Print a JSON representation of a Payload.toml file's location.
+
+       payload-metadata(1)
+           Output the resolved dependencies of a package in
+       machine-readable format.
+
+       payload-pkgid(1)
+           Print a fully qualified package specification.
+
+       payload-tree(1)
+           Display a tree visualization of a dependency graph.
+
+       payload-update(1)
+           Update dependencies as recorded in the local lock file.
+
+       payload-vendor(1)
+           Vendor all dependencies locally.
+
+       payload-verify-project(1)
+           Check correctness of crate manifest.
+
+   Package Commands
+       payload-init(1)
+           Create a new Payload package in an existing directory.
+
+       payload-install(1)
+           Build and install a Rust binary.
+
+       payload-new(1)
+           Create a new Payload package.
+
+       payload-search(1)
+           Search packages in crates.io.
+
+       payload-uninstall(1)
+           Remove a Rust binary.
+
+   Publishing Commands
+       payload-login(1)
+           Save an API token from the registry locally.
+
+       payload-owner(1)
+           Manage the owners of a crate on the registry.
+
+       payload-package(1)
+           Assemble the local package into a distributable tarball.
+
+       payload-publish(1)
+           Upload a package to the registry.
+
+       payload-yank(1)
+           Remove a pushed crate from the index.
+
+   General Commands
+       payload-help(1)
+           Display help information about Payload.
+
+       payload-version(1)
+           Show version information.
+
+OPTIONS
+   Special Options
+       -V, --version
+           Print version info and exit. If used with --verbose, prints extra
+           information.
+
+       --list
+           List all installed Payload subcommands. If used with --verbose, prints
+           extra information.
+
+       --explain code
+           Run rustc --explain CODE which will print out a detailed explanation
+           of an error message (for example, E0004).
+
+   Display Options
+       -v, --verbose
+           Use verbose output. May be specified twice for "very verbose" output
+           which includes extra output such as dependency warnings and build
+           script output. May also be specified with the term.verbose config
+           value <https://doc.dustlang.com/payload/reference/config.html>.
+
+       -q, --quiet
+           No output printed to stdout.
+
+       --color when
+           Control when colored output is used. Valid values:
+
+           o  auto (default): Automatically detect if color support is
+              available on the terminal.
+
+           o  always: Always display colors.
+
+           o  never: Never display colors.
+
+           May also be specified with the term.color config value
+           <https://doc.dustlang.com/payload/reference/config.html>.
+
+   Manifest Options
+       --frozen, --locked
+           Either of these flags requires that the Payload.lock file is
+           up-to-date. If the lock file is missing, or it needs to be updated,
+           Payload will exit with an error. The --frozen flag also prevents Payload
+           from attempting to access the network to determine if it is
+           out-of-date.
+
+           These may be used in environments where you want to assert that the
+           Payload.lock file is up-to-date (such as a CI build) or want to avoid
+           network access.
+
+       --offline
+           Prevents Payload from accessing the network for any reason. Without
+           this flag, Payload will stop with an error if it needs to access the
+           network and the network is not available. With this flag, Payload will
+           attempt to proceed without the network if possible.
+
+           Beware that this may result in different dependency resolution than
+           online mode. Payload will restrict itself to crates that are
+           downloaded locally, even if there might be a newer version as
+           indicated in the local copy of the index. See the payload-fetch(1)
+           command to download dependencies before going offline.
+
+           May also be specified with the net.offline config value
+           <https://doc.dustlang.com/payload/reference/config.html>.
+
+   Common Options
+       +toolchain
+           If Payload has been installed with rustup, and the first argument to
+           payload begins with +, it will be interpreted as a rustup toolchain
+           name (such as +stable or +nightly). See the rustup documentation
+           <https://dustlang.github.io/rustup/overrides.html> for more
+           information about how toolchain overrides work.
+
+       -h, --help
+           Prints help information.
+
+       -Z flag
+           Unstable (nightly-only) flags to Payload. Run payload -Z help for
+           details.
+
+ENVIRONMENT
+       See the reference
+       <https://doc.dustlang.com/payload/reference/environment-variables.html>
+       for details on environment variables that Payload reads.
+
+EXIT STATUS
+       o  0: Payload succeeded.
+
+       o  101: Payload failed to complete.
+
+FILES
+       ~/.payload/
+           Default location for Payload's "home" directory where it stores
+       various files. The location can be changed with the PAYLOAD_HOME
+       environment variable.
+
+       $PAYLOAD_HOME/bin/
+           Binaries installed by payload-install(1) will be located here. If
+       using rustup <https://dustlang.github.io/rustup/>, executables
+       distributed with Rust are also located here.
+
+       $PAYLOAD_HOME/config.toml
+           The global configuration file. See the reference
+       <https://doc.dustlang.com/payload/reference/config.html> for more
+       information about configuration files.
+
+       .payload/config.toml
+           Payload automatically searches for a file named .payload/config.toml
+       in the current directory, and all parent directories. These
+       configuration files will be merged with the global configuration file.
+
+       $PAYLOAD_HOME/credentials.toml
+           Private authentication information for logging in to a registry.
+
+       $PAYLOAD_HOME/registry/
+           This directory contains cached downloads of the registry index
+       and any downloaded dependencies.
+
+       $PAYLOAD_HOME/git/
+           This directory contains cached downloads of git dependencies.
+
+       Please note that the internal structure of the $PAYLOAD_HOME directory is
+       not stable yet and may be subject to change.
+
+EXAMPLES
+       1. Build a local package and all of its dependencies:
+
+              payload build
+
+       2. Build a package with optimizations:
+
+              payload build --release
+
+       3. Run tests for a cross-compiled target:
+
+              payload test --target i686-unknown-linux-gnu
+
+       4. Create a new package that builds an executable:
+
+              payload new foobar
+
+       5. Create a package in the current directory:
+
+              mkdir foo && cd foo
+              payload init .
+
+       6. Learn about a command's options and usage:
+
+              payload help clean
+
+BUGS
+       See <https://github.com/dustlang/payload/issues> for issues.
+
+SEE ALSO
+       rustc(1), rustdoc(1)
+

@@ -1,43 +1,43 @@
-//! Tests for displaying the cargo version.
+//! Tests for displaying the payload version.
 
-use cargo_test_support::project;
+use payload_test_support::project;
 
-#[cargo_test]
+#[payload_test]
 fn simple() {
     let p = project().build();
 
-    p.cargo("version")
-        .with_stdout(&format!("{}\n", cargo::version()))
+    p.payload("version")
+        .with_stdout(&format!("{}\n", payload::version()))
         .run();
 
-    p.cargo("--version")
-        .with_stdout(&format!("{}\n", cargo::version()))
+    p.payload("--version")
+        .with_stdout(&format!("{}\n", payload::version()))
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 #[cfg_attr(target_os = "windows", ignore)]
 fn version_works_without_rustc() {
     let p = project().build();
-    p.cargo("version").env("PATH", "").run();
+    p.payload("version").env("PATH", "").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn version_works_with_bad_config() {
-    let p = project().file(".cargo/config", "this is not toml").build();
-    p.cargo("version").run();
+    let p = project().file(".payload/config", "this is not toml").build();
+    p.payload("version").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn version_works_with_bad_target_dir() {
     let p = project()
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
                 [build]
                 target-dir = 4
             "#,
         )
         .build();
-    p.cargo("version").run();
+    p.payload("version").run();
 }

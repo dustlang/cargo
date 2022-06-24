@@ -1,11 +1,11 @@
 ## Features
 
-Cargo "features" provide a mechanism to express [conditional compilation] and
+Payload "features" provide a mechanism to express [conditional compilation] and
 [optional dependencies](#optional-dependencies). A package defines a set of
-named features in the `[features]` table of `Cargo.toml`, and each feature can
+named features in the `[features]` table of `Payload.toml`, and each feature can
 either be enabled or disabled. Features for the package being built can be
 enabled on the command-line with flags such as `--features`. Features for
-dependencies can be enabled in the dependency declaration in `Cargo.toml`.
+dependencies can be enabled in the dependency declaration in `Payload.toml`.
 
 See also the [Features Examples] chapter for some examples of how features can
 be used.
@@ -15,7 +15,7 @@ be used.
 
 ### The `[features]` section
 
-Features are defined in the `[features]` table in `Cargo.toml`. Each feature
+Features are defined in the `[features]` table in `Payload.toml`. Each feature
 specifies an array of other features or optional dependencies that it enables.
 The following examples illustrate how features could be used for a 2D image
 processing library where support for different image formats can be optionally
@@ -37,7 +37,7 @@ inside `lib.rs` of the package could include this:
 pub mod webp;
 ```
 
-Cargo sets features in the package using the `rustc` [`--cfg` flag], and code
+Payload sets features in the package using the `rustc` [`--cfg` flag], and code
 can test for their presence with the [`cfg` attribute] or the [`cfg` macro].
 
 Features can list other features to enable. For example, the ICO image format
@@ -197,7 +197,7 @@ enabled:
 
 * `--features` _FEATURES_: Enables the listed features. Multiple features may
   be separated with commas or spaces. If using spaces, be sure to use quotes
-  around all the features if running Cargo from a shell (such as `--features
+  around all the features if running Payload from a shell (such as `--features
   "foo bar"`). If building multiple packages in a [workspace], the
   `package-name/feature-name` syntax can be used to specify features for
   specific workspace members.
@@ -215,7 +215,7 @@ enabled:
 Features are unique to the package that defines them. Enabling a feature on a
 package does not enable a feature of the same name on other packages.
 
-When a dependency is used by multiple packages, Cargo will use the union of
+When a dependency is used by multiple packages, Payload will use the union of
 all features enabled on that dependency when building it. This helps ensure
 that only a single copy of the dependency is used. See the [features section]
 of the resolver documentation for more details.
@@ -229,7 +229,7 @@ another dependency `bar` which enables the "std" and "winnt" features of
 ![winapi features example](../images/winapi-features.svg)
 
 [`winapi`]: https://crates.io/crates/winapi
-[winapi-features]: https://github.com/retep998/winapi-rs/blob/0.3.9/Cargo.toml#L25-L431
+[winapi-features]: https://github.com/retep998/winapi-rs/blob/0.3.9/Payload.toml#L25-L431
 
 A consequence of this is that features should be *additive*. That is, enabling
 a feature should not disable functionality, and it should usually be safe to
@@ -285,27 +285,27 @@ Instead of using mutually exclusive features, consider some other options:
 #### Inspecting resolved features
 
 In complex dependency graphs, it can sometimes be difficult to understand how
-different features get enabled on various packages. The [`cargo tree`] command
+different features get enabled on various packages. The [`payload tree`] command
 offers several options to help inspect and visualize which features are
 enabled. Some options to try:
 
-* `cargo tree -e features`: This will show features in the dependency graph.
+* `payload tree -e features`: This will show features in the dependency graph.
   Each feature will appear showing which package enabled it.
-* `cargo tree -f "{p} {f}"`: This is a more compact view that shows a
+* `payload tree -f "{p} {f}"`: This is a more compact view that shows a
   comma-spearated list of features enabled on each package.
-* `cargo tree -e features -i foo`: This will invert the tree, showing how
+* `payload tree -e features -i foo`: This will invert the tree, showing how
   features flow into the given package "foo". This can be useful because
   viewing the entire graph can be quite large and overwhelming. Use this when
   you are trying to figure out which features are enabled on a specific
-  package and why. See the example at the bottom of the [`cargo tree`] page on
+  package and why. See the example at the bottom of the [`payload tree`] page on
   how to read this.
 
-[`cargo tree`]: ../commands/cargo-tree.md
+[`payload tree`]: ../commands/payload-tree.md
 
 ### Feature resolver version 2
 
 A different feature resolver can be specified with the `resolver` field in
-`Cargo.toml`, like this:
+`Payload.toml`, like this:
 
 ```toml
 [package]
@@ -341,8 +341,8 @@ are built multiple times to reduce overall build time. If it is not *required*
 to build those duplicated packages with separate features, consider adding
 features to the `features` list in the [dependency
 declaration](#dependency-features) so that the duplicates end up with the same
-features (and thus Cargo will build it only once). You can detect these
-duplicate dependencies with the [`cargo tree --duplicates`][`cargo tree`]
+features (and thus Payload will build it only once). You can detect these
+duplicate dependencies with the [`payload tree --duplicates`][`payload tree`]
 command. It will show which packages are built multiple times; look for any
 entries listed with the same version. See [Inspecting resolved
 features](#inspecting-resolved-features) for more on fetching information on
@@ -358,7 +358,7 @@ The `resolver = "2"` setting also changes the behavior of the `--features` and
 With version `"1"`, you can only enable features for the package in the
 current working directory. For example, in a workspace with packages `foo` and
 `bar`, and you are in the directory for package `foo`, and ran the command
-`cargo build -p bar --features bar-feat`, this would fail because the
+`payload build -p bar --features bar-feat`, this would fail because the
 `--features` flag only allowed enabling features on `foo`.
 
 With `resolver = "2"`, the features flags allow enabling features for any of
@@ -368,7 +368,7 @@ For example:
 ```sh
 # This command is allowed with resolver = "2", regardless of which directory
 # you are in.
-cargo build -p foo -p bar --features foo-feat,bar-feat
+payload build -p foo -p bar --features foo-feat,bar-feat
 ```
 
 Additionally, with `resolver = "1"`, the `--no-default-features` flag only
@@ -383,19 +383,19 @@ version "2", it will disable the default features for all workspace members.
 ### Build scripts
 
 [Build scripts] can detect which features are enabled on the package by
-inspecting the `CARGO_FEATURE_<name>` environment variable, where `<name>` is
+inspecting the `PAYLOAD_FEATURE_<name>` environment variable, where `<name>` is
 the feature name converted to uppercase and `-` converted to `_`.
 
 [build scripts]: build-scripts.md
 
 ### Required features
 
-The [`required-features` field] can be used to disable specific [Cargo
+The [`required-features` field] can be used to disable specific [Payload
 targets] if a feature is not enabled. See the linked documentation for more
 details.
 
-[`required-features` field]: cargo-targets.md#the-required-features-field
-[Cargo targets]: cargo-targets.md
+[`required-features` field]: payload-targets.md#the-required-features-field
+[Payload targets]: payload-targets.md
 
 ### SemVer compatibility
 
@@ -406,26 +406,26 @@ found in the [SemVer Compatibility chapter](semver.md).
 
 Care should be taken when adding and removing feature definitions and optional
 dependencies, as these can sometimes be backwards-incompatible changes. More
-details can be found in the [Cargo section](semver.md#cargo) of the SemVer
+details can be found in the [Payload section](semver.md#payload) of the SemVer
 Compatibility chapter. In short, follow these rules:
 
 * The following is usually safe to do in a minor release:
-  * Add a [new feature][cargo-feature-add] or [optional dependency][cargo-dep-add].
-  * [Change the features used on a dependency][cargo-change-dep-feature].
+  * Add a [new feature][payload-feature-add] or [optional dependency][payload-dep-add].
+  * [Change the features used on a dependency][payload-change-dep-feature].
 * The following should usually **not** be done in a minor release:
-  * [Remove a feature][cargo-feature-remove] or [optional dependency][cargo-remove-opt-dep].
+  * [Remove a feature][payload-feature-remove] or [optional dependency][payload-remove-opt-dep].
   * [Moving existing public code behind a feature][item-remove].
-  * [Remove a feature from a feature list][cargo-feature-remove-another].
+  * [Remove a feature from a feature list][payload-feature-remove-another].
 
 See the links for caveats and examples.
 
-[cargo-change-dep-feature]: semver.md#cargo-change-dep-feature
-[cargo-dep-add]: semver.md#cargo-dep-add
-[cargo-feature-add]: semver.md#cargo-feature-add
+[payload-change-dep-feature]: semver.md#payload-change-dep-feature
+[payload-dep-add]: semver.md#payload-dep-add
+[payload-feature-add]: semver.md#payload-feature-add
 [item-remove]: semver.md#item-remove
-[cargo-feature-remove]: semver.md#cargo-feature-remove
-[cargo-remove-opt-dep]: semver.md#cargo-remove-opt-dep
-[cargo-feature-remove-another]: semver.md#cargo-feature-remove-another
+[payload-feature-remove]: semver.md#payload-feature-remove
+[payload-remove-opt-dep]: semver.md#payload-remove-opt-dep
+[payload-feature-remove-another]: semver.md#payload-feature-remove-another
 
 ### Feature documentation and discovery
 
@@ -442,7 +442,7 @@ considered "unstable" or otherwise shouldn't be used. For example, if there is
 an optional dependency, but you don't want users to explicitly list that
 optional dependency as a feature, exclude it from the documented list.
 
-Documentation published on [docs.rs] can use metadata in `Cargo.toml` to
+Documentation published on [docs.rs] can use metadata in `Payload.toml` to
 control which features are enabled when the documentation is built. See
 [docs.rs metadata documentation] for more details.
 
@@ -456,7 +456,7 @@ control which features are enabled when the documentation is built. See
 [docs.rs]: https://docs.rs/
 [serde.rs]: https://serde.rs/feature-flags.html
 [doc comments]: ../../rustdoc/how-to-write-documentation.html
-[regex crate source]: https://github.com/rust-lang/regex/blob/1.4.2/src/lib.rs#L488-L583
+[regex crate source]: https://github.com/dustlang/regex/blob/1.4.2/src/lib.rs#L488-L583
 [regex-docs-rs]: https://docs.rs/regex/1.4.2/regex/#crate-features
 [sccache]: https://github.com/mozilla/sccache/blob/0.2.13/README.md#build-requirements
 [`doc_cfg`]: ../../unstable-book/language-features/doc-cfg.html
@@ -467,10 +467,10 @@ control which features are enabled when the documentation is built. See
 When features are documented in the library API, this can make it easier for
 your users to discover which features are available and what they do. If the
 feature documentation for a package isn't readily available, you can look at
-the `Cargo.toml` file, but sometimes it can be hard to track it down. The
+the `Payload.toml` file, but sometimes it can be hard to track it down. The
 crate page on [crates.io] has a link to the source repository if available.
-Tools like [`cargo vendor`] or [cargo-clone-crate] can be used to download the
+Tools like [`payload vendor`] or [payload-clone-crate] can be used to download the
 source and inspect it.
 
-[`cargo vendor`]: ../commands/cargo-vendor.md
-[cargo-clone-crate]: https://crates.io/crates/cargo-clone-crate
+[`payload vendor`]: ../commands/payload-vendor.md
+[payload-clone-crate]: https://crates.io/crates/payload-clone-crate

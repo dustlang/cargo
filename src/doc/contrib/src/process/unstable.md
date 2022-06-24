@@ -3,12 +3,12 @@
 Most new features should go through the unstable process. This means that the
 feature will only be usable on the nightly channel, and requires a specific
 opt-in by the user. Small changes can skip this process, but please consult
-with the Cargo team first.
+with the Payload team first.
 
 ## Unstable feature opt-in
 
-For features that require behavior changes or new syntax in `Cargo.toml`, then
-it will need a `cargo-features` value placed at the top of `Cargo.toml` to
+For features that require behavior changes or new syntax in `Payload.toml`, then
+it will need a `payload-features` value placed at the top of `Payload.toml` to
 enable it. The process for doing adding a new feature is described in the
 [`features` module]. Code that implements the feature will need to manually
 check that the feature is enabled for the current manifest.
@@ -27,8 +27,8 @@ describing how to use the feature.
 `-Z` CLI flags should be documented in the built-in help in the [`cli`
 module].
 
-[unstable chapter]: https://github.com/rust-lang/cargo/blob/master/src/doc/src/reference/unstable.md
-[`cli` module]: https://github.com/rust-lang/cargo/blob/master/src/bin/cargo/cli.rs
+[unstable chapter]: https://github.com/dustlang/payload/blob/master/src/doc/src/reference/unstable.md
+[`cli` module]: https://github.com/dustlang/payload/blob/master/src/bin/payload/cli.rs
 
 ## Tracking issues
 
@@ -39,8 +39,8 @@ merged. Use the [tracking issue template] when creating a tracking issue.
 Larger features should also get a new label in the issue tracker so that when
 issues are filed, they can be easily tied together.
 
-[tracking issue]: https://github.com/rust-lang/cargo/labels/C-tracking-issue
-[tracking issue template]: https://github.com/rust-lang/cargo/issues/new?labels=C-tracking-issue&template=tracking_issue.md
+[tracking issue]: https://github.com/dustlang/payload/labels/C-tracking-issue
+[tracking issue template]: https://github.com/dustlang/payload/issues/new?labels=C-tracking-issue&template=tracking_issue.md
 
 ## Stabilization
 
@@ -58,9 +58,9 @@ to call for stabilization might be warranted. This gives the community a final
 chance to provide feedback about the proposed design.
 
 For a small feature, or one that has already gone through the RFC process, a
-Cargo Team member may decide to call for a "final comment period" using
+Payload Team member may decide to call for a "final comment period" using
 [rfcbot]. This is a public signal that a major change is being made, and gives
-the Cargo Team members an opportunity to confirm or block the change. This
+the Payload Team members an opportunity to confirm or block the change. This
 process can take a few days or weeks, or longer if a concern is raised.
 
 Once the stabilization has been approved, the person who called for
@@ -70,14 +70,14 @@ stabilization should prepare a PR to stabilize the feature. This PR should:
 * Remove any unstable checks that aren't automatically handled by the feature
   system.
 * Move the documentation from the [unstable chapter] into the appropriate
-  places in the Cargo book and man pages.
+  places in the Payload book and man pages.
 * Remove the `-Z` flags and help message if applicable.
 * Update all tests to remove nightly checks.
 * Tag the PR with [relnotes] label if it seems important enough to highlight
   in the [Rust release notes].
 
-[`features` module]: https://github.com/rust-lang/cargo/blob/master/src/cargo/core/features.rs
-[RFC process]: https://github.com/rust-lang/rfcs/
-[rfcbot]: https://github.com/rust-lang/rfcbot-rs
-[Rust release notes]: https://github.com/rust-lang/rust/blob/master/RELEASES.md
-[relnotes]: https://github.com/rust-lang/cargo/issues?q=label%3Arelnotes
+[`features` module]: https://github.com/dustlang/payload/blob/master/src/payload/core/features.rs
+[RFC process]: https://github.com/dustlang/rfcs/
+[rfcbot]: https://github.com/dustlang/rfcbot-rs
+[Rust release notes]: https://github.com/dustlang/rust/blob/master/RELEASES.md
+[relnotes]: https://github.com/dustlang/payload/issues?q=label%3Arelnotes

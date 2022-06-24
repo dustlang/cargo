@@ -1,17 +1,17 @@
 //! Tests for the metabuild feature (declarative build scripts).
 
-use cargo_test_support::{
+use payload_test_support::{
     basic_lib_manifest, basic_manifest, is_coarse_mtime, project, registry::Package, rustc_host,
     Project,
 };
 
 use std::str;
 
-#[cargo_test]
+#[payload_test]
 fn metabuild_gated() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -22,8 +22,8 @@ fn metabuild_gated() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build")
-        .masquerade_as_nightly_cargo()
+    p.payload("build")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_stderr_contains(
             "\
@@ -32,7 +32,7 @@ error: failed to parse manifest at `[..]`
 Caused by:
   feature `metabuild` is required
 
-  consider adding `cargo-features = [\"metabuild\"]` to the manifest
+  consider adding `payload-features = [\"metabuild\"]` to the manifest
 ",
         )
         .run();
@@ -41,9 +41,9 @@ Caused by:
 fn basic_project() -> Project {
     project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-                cargo-features = ["metabuild"]
+                payload-features = ["metabuild"]
                 [package]
                 name = "foo"
                 version = "0.0.1"
@@ -55,13 +55,13 @@ fn basic_project() -> Project {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("mb/Cargo.toml", &basic_lib_manifest("mb"))
+        .file("mb/Payload.toml", &basic_lib_manifest("mb"))
         .file(
             "mb/src/lib.rs",
             r#"pub fn metabuild() { println!("Hello mb"); }"#,
         )
         .file(
-            "mb-other/Cargo.toml",
+            "mb-other/Payload.toml",
             r#"
                 [package]
                 name = "mb-other"
@@ -75,23 +75,23 @@ fn basic_project() -> Project {
         .build()
 }
 
-#[cargo_test]
+#[payload_test]
 fn metabuild_basic() {
     let p = basic_project();
-    p.cargo("build -vv")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -vv")
+        .masquerade_as_nightly_payload()
         .with_stdout_contains("[foo 0.0.1] Hello mb")
         .with_stdout_contains("[foo 0.0.1] Hello mb-other")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn metabuild_error_both() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-                cargo-features = ["metabuild"]
+                payload-features = ["metabuild"]
                 [package]
                 name = "foo"
                 version = "0.0.1"
@@ -103,15 +103,15 @@ fn metabuild_error_both() {
         )
         .file("src/lib.rs", "")
         .file("build.rs", r#"fn main() {}"#)
-        .file("mb/Cargo.toml", &basic_lib_manifest("mb"))
+        .file("mb/Payload.toml", &basic_lib_manifest("mb"))
         .file(
             "mb/src/lib.rs",
             r#"pub fn metabuild() { println!("Hello mb"); }"#,
         )
         .build();
 
-    p.cargo("build -vv")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -vv")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_stderr_contains(
             "\
@@ -124,13 +124,13 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn metabuild_missing_dep() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-                cargo-features = ["metabuild"]
+                payload-features = ["metabuild"]
                 [package]
                 name = "foo"
                 version = "0.0.1"
@@ -140,8 +140,8 @@ fn metabuild_missing_dep() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build -vv")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -vv")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_stderr_contains(
             "\
@@ -153,13 +153,13 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn metabuild_optional_dep() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-                cargo-features = ["metabuild"]
+                payload-features = ["metabuild"]
                 [package]
                 name = "foo"
                 version = "0.0.1"
@@ -170,32 +170,32 @@ fn metabuild_optional_dep() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("mb/Cargo.toml", &basic_lib_manifest("mb"))
+        .file("mb/Payload.toml", &basic_lib_manifest("mb"))
         .file(
             "mb/src/lib.rs",
             r#"pub fn metabuild() { println!("Hello mb"); }"#,
         )
         .build();
 
-    p.cargo("build -vv")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -vv")
+        .masquerade_as_nightly_payload()
         .with_stdout_does_not_contain("[foo 0.0.1] Hello mb")
         .run();
 
-    p.cargo("build -vv --features mb")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -vv --features mb")
+        .masquerade_as_nightly_payload()
         .with_stdout_contains("[foo 0.0.1] Hello mb")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn metabuild_lib_name() {
     // Test when setting `name` on [lib].
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-                cargo-features = ["metabuild"]
+                payload-features = ["metabuild"]
                 [package]
                 name = "foo"
                 version = "0.0.1"
@@ -207,7 +207,7 @@ fn metabuild_lib_name() {
         )
         .file("src/lib.rs", "")
         .file(
-            "mb/Cargo.toml",
+            "mb/Payload.toml",
             r#"
                 [package]
                 name = "mb"
@@ -222,13 +222,13 @@ fn metabuild_lib_name() {
         )
         .build();
 
-    p.cargo("build -vv")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -vv")
+        .masquerade_as_nightly_payload()
         .with_stdout_contains("[foo 0.0.1] Hello mb")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn metabuild_fresh() {
     if is_coarse_mtime() {
         // This test doesn't work on coarse mtimes very well. Because the
@@ -241,9 +241,9 @@ fn metabuild_fresh() {
     // Check that rebuild is fresh.
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-                cargo-features = ["metabuild"]
+                payload-features = ["metabuild"]
                 [package]
                 name = "foo"
                 version = "0.0.1"
@@ -254,20 +254,20 @@ fn metabuild_fresh() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("mb/Cargo.toml", &basic_lib_manifest("mb"))
+        .file("mb/Payload.toml", &basic_lib_manifest("mb"))
         .file(
             "mb/src/lib.rs",
             r#"pub fn metabuild() { println!("Hello mb"); }"#,
         )
         .build();
 
-    p.cargo("build -vv")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -vv")
+        .masquerade_as_nightly_payload()
         .with_stdout_contains("[foo 0.0.1] Hello mb")
         .run();
 
-    p.cargo("build -vv")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -vv")
+        .masquerade_as_nightly_payload()
         .with_stdout_does_not_contain("[foo 0.0.1] Hello mb")
         .with_stderr(
             "\
@@ -279,13 +279,13 @@ fn metabuild_fresh() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn metabuild_links() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-                cargo-features = ["metabuild"]
+                payload-features = ["metabuild"]
                 [package]
                 name = "foo"
                 version = "0.0.1"
@@ -297,12 +297,12 @@ fn metabuild_links() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("mb/Cargo.toml", &basic_lib_manifest("mb"))
+        .file("mb/Payload.toml", &basic_lib_manifest("mb"))
         .file(
             "mb/src/lib.rs",
             r#"
                 pub fn metabuild() {
-                    assert_eq!(std::env::var("CARGO_MANIFEST_LINKS"),
+                    assert_eq!(std::env::var("PAYLOAD_MANIFEST_LINKS"),
                         Ok("cat".to_string()));
                     println!("Hello mb");
                 }
@@ -310,19 +310,19 @@ fn metabuild_links() {
         )
         .build();
 
-    p.cargo("build -vv")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -vv")
+        .masquerade_as_nightly_payload()
         .with_stdout_contains("[foo 0.0.1] Hello mb")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn metabuild_override() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-                cargo-features = ["metabuild"]
+                payload-features = ["metabuild"]
                 [package]
                 name = "foo"
                 version = "0.0.1"
@@ -334,13 +334,13 @@ fn metabuild_override() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("mb/Cargo.toml", &basic_lib_manifest("mb"))
+        .file("mb/Payload.toml", &basic_lib_manifest("mb"))
         .file(
             "mb/src/lib.rs",
             r#"pub fn metabuild() { panic!("should not run"); }"#,
         )
         .file(
-            ".cargo/config",
+            ".payload/config",
             &format!(
                 r#"
                     [target.{}.cat]
@@ -351,23 +351,23 @@ fn metabuild_override() {
         )
         .build();
 
-    p.cargo("build -vv").masquerade_as_nightly_cargo().run();
+    p.payload("build -vv").masquerade_as_nightly_payload().run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn metabuild_workspace() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["member1", "member2"]
             "#,
         )
         .file(
-            "member1/Cargo.toml",
+            "member1/Payload.toml",
             r#"
-                cargo-features = ["metabuild"]
+                payload-features = ["metabuild"]
                 [package]
                 name = "member1"
                 version = "0.0.1"
@@ -380,9 +380,9 @@ fn metabuild_workspace() {
         )
         .file("member1/src/lib.rs", "")
         .file(
-            "member2/Cargo.toml",
+            "member2/Payload.toml",
             r#"
-                cargo-features = ["metabuild"]
+                payload-features = ["metabuild"]
                 [package]
                 name = "member2"
                 version = "0.0.1"
@@ -397,24 +397,24 @@ fn metabuild_workspace() {
 
     project()
         .at("mb1")
-        .file("Cargo.toml", &basic_lib_manifest("mb1"))
+        .file("Payload.toml", &basic_lib_manifest("mb1"))
         .file(
             "src/lib.rs",
-            r#"pub fn metabuild() { println!("Hello mb1 {}", std::env::var("CARGO_MANIFEST_DIR").unwrap()); }"#,
+            r#"pub fn metabuild() { println!("Hello mb1 {}", std::env::var("PAYLOAD_MANIFEST_DIR").unwrap()); }"#,
         )
         .build();
 
     project()
         .at("mb2")
-        .file("Cargo.toml", &basic_lib_manifest("mb2"))
+        .file("Payload.toml", &basic_lib_manifest("mb2"))
         .file(
             "src/lib.rs",
-            r#"pub fn metabuild() { println!("Hello mb2 {}", std::env::var("CARGO_MANIFEST_DIR").unwrap()); }"#,
+            r#"pub fn metabuild() { println!("Hello mb2 {}", std::env::var("PAYLOAD_MANIFEST_DIR").unwrap()); }"#,
         )
         .build();
 
-    p.cargo("build -vv --workspace")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -vv --workspace")
+        .masquerade_as_nightly_payload()
         .with_stdout_contains("[member1 0.0.1] Hello mb1 [..]member1")
         .with_stdout_contains("[member1 0.0.1] Hello mb2 [..]member1")
         .with_stdout_contains("[member2 0.0.1] Hello mb1 [..]member2")
@@ -422,16 +422,16 @@ fn metabuild_workspace() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn metabuild_metadata() {
     // The metabuild Target is filtered out of the `metadata` results.
     let p = basic_project();
 
     let output = p
-        .cargo("metadata --format-version=1")
-        .masquerade_as_nightly_cargo()
+        .payload("metadata --format-version=1")
+        .masquerade_as_nightly_payload()
         .exec_with_output()
-        .expect("cargo metadata failed");
+        .expect("payload metadata failed");
     let stdout = str::from_utf8(&output.stdout).unwrap();
     let meta: serde_json::Value = serde_json::from_str(stdout).expect("failed to parse json");
     let mb_info: Vec<&str> = meta["packages"]
@@ -448,12 +448,12 @@ fn metabuild_metadata() {
     assert_eq!(mb_info, ["mb", "mb-other"]);
 }
 
-#[cargo_test]
+#[payload_test]
 fn metabuild_build_plan() {
     let p = basic_project();
 
-    p.cargo("build --build-plan -Zunstable-options")
-        .masquerade_as_nightly_cargo()
+    p.payload("build --build-plan -Zunstable-options")
+        .masquerade_as_nightly_payload()
         .with_json(
             r#"
             {
@@ -539,9 +539,9 @@ fn metabuild_build_plan() {
                     }
                 ],
                 "inputs": [
-                    "[..]/foo/Cargo.toml",
-                    "[..]/foo/mb/Cargo.toml",
-                    "[..]/foo/mb-other/Cargo.toml"
+                    "[..]/foo/Payload.toml",
+                    "[..]/foo/mb/Payload.toml",
+                    "[..]/foo/mb-other/Payload.toml"
                 ]
             }
             "#,
@@ -551,22 +551,22 @@ fn metabuild_build_plan() {
     assert_eq!(p.glob("target/.metabuild/metabuild-foo-*.rs").count(), 1);
 }
 
-#[cargo_test]
+#[payload_test]
 fn metabuild_two_versions() {
     // Two versions of a metabuild dep with the same name.
     let p = project()
         .at("ws")
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["member1", "member2"]
             "#,
         )
         .file(
-            "member1/Cargo.toml",
+            "member1/Payload.toml",
             r#"
-                cargo-features = ["metabuild"]
+                payload-features = ["metabuild"]
                 [package]
                 name = "member1"
                 version = "0.0.1"
@@ -578,9 +578,9 @@ fn metabuild_two_versions() {
         )
         .file("member1/src/lib.rs", "")
         .file(
-            "member2/Cargo.toml",
+            "member2/Payload.toml",
             r#"
-                cargo-features = ["metabuild"]
+                payload-features = ["metabuild"]
                 [package]
                 name = "member2"
                 version = "0.0.1"
@@ -594,31 +594,31 @@ fn metabuild_two_versions() {
         .build();
 
     project().at("mb1")
-        .file("Cargo.toml", r#"
+        .file("Payload.toml", r#"
             [package]
             name = "mb"
             version = "0.0.1"
         "#)
         .file(
             "src/lib.rs",
-            r#"pub fn metabuild() { println!("Hello mb1 {}", std::env::var("CARGO_MANIFEST_DIR").unwrap()); }"#,
+            r#"pub fn metabuild() { println!("Hello mb1 {}", std::env::var("PAYLOAD_MANIFEST_DIR").unwrap()); }"#,
         )
         .build();
 
     project().at("mb2")
-        .file("Cargo.toml", r#"
+        .file("Payload.toml", r#"
             [package]
             name = "mb"
             version = "0.0.2"
         "#)
         .file(
             "src/lib.rs",
-            r#"pub fn metabuild() { println!("Hello mb2 {}", std::env::var("CARGO_MANIFEST_DIR").unwrap()); }"#,
+            r#"pub fn metabuild() { println!("Hello mb2 {}", std::env::var("PAYLOAD_MANIFEST_DIR").unwrap()); }"#,
         )
         .build();
 
-    p.cargo("build -vv --workspace")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -vv --workspace")
+        .masquerade_as_nightly_payload()
         .with_stdout_contains("[member1 0.0.1] Hello mb1 [..]member1")
         .with_stdout_contains("[member2 0.0.1] Hello mb2 [..]member2")
         .run();
@@ -629,10 +629,10 @@ fn metabuild_two_versions() {
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn metabuild_external_dependency() {
     Package::new("mb", "1.0.0")
-        .file("Cargo.toml", &basic_manifest("mb", "1.0.0"))
+        .file("Payload.toml", &basic_manifest("mb", "1.0.0"))
         .file(
             "src/lib.rs",
             r#"pub fn metabuild() { println!("Hello mb"); }"#,
@@ -640,9 +640,9 @@ fn metabuild_external_dependency() {
         .publish();
     Package::new("dep", "1.0.0")
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-                cargo-features = ["metabuild"]
+                payload-features = ["metabuild"]
                 [package]
                 name = "dep"
                 version = "1.0.0"
@@ -658,7 +658,7 @@ fn metabuild_external_dependency() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -670,19 +670,19 @@ fn metabuild_external_dependency() {
         .file("src/lib.rs", "extern crate dep;")
         .build();
 
-    p.cargo("build -vv")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -vv")
+        .masquerade_as_nightly_payload()
         .with_stdout_contains("[dep 1.0.0] Hello mb")
         .run();
 
     assert_eq!(p.glob("target/.metabuild/metabuild-dep-*.rs").count(), 1);
 }
 
-#[cargo_test]
+#[payload_test]
 fn metabuild_json_artifact() {
     let p = basic_project();
-    p.cargo("build --message-format=json")
-        .masquerade_as_nightly_cargo()
+    p.payload("build --message-format=json")
+        .masquerade_as_nightly_payload()
         .with_json_contains_unordered(
             r#"
             {
@@ -724,13 +724,13 @@ fn metabuild_json_artifact() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn metabuild_failed_build_json() {
     let p = basic_project();
     // Modify the metabuild dep so that it fails to compile.
     p.change_file("mb/src/lib.rs", "");
-    p.cargo("build --message-format=json")
-        .masquerade_as_nightly_cargo()
+    p.payload("build --message-format=json")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_json_contains_unordered(
             r#"

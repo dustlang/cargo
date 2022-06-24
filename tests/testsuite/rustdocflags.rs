@@ -1,23 +1,23 @@
 //! Tests for setting custom rustdoc flags.
 
-use cargo_test_support::project;
+use payload_test_support::project;
 
-#[cargo_test]
+#[payload_test]
 fn parses_env() {
     let p = project().file("src/lib.rs", "").build();
 
-    p.cargo("doc -v")
+    p.payload("doc -v")
         .env("RUSTDOCFLAGS", "--cfg=foo")
         .with_stderr_contains("[RUNNING] `rustdoc [..] --cfg=foo[..]`")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn parses_config() {
     let p = project()
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
                 [build]
                 rustdocflags = ["--cfg", "foo"]
@@ -25,32 +25,32 @@ fn parses_config() {
         )
         .build();
 
-    p.cargo("doc -v")
+    p.payload("doc -v")
         .with_stderr_contains("[RUNNING] `rustdoc [..] --cfg foo[..]`")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bad_flags() {
     let p = project().file("src/lib.rs", "").build();
 
-    p.cargo("doc")
+    p.payload("doc")
         .env("RUSTDOCFLAGS", "--bogus")
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn rerun() {
     let p = project().file("src/lib.rs", "").build();
 
-    p.cargo("doc").env("RUSTDOCFLAGS", "--cfg=foo").run();
-    p.cargo("doc")
+    p.payload("doc").env("RUSTDOCFLAGS", "--cfg=foo").run();
+    p.payload("doc")
         .env("RUSTDOCFLAGS", "--cfg=foo")
         .with_stderr("[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]")
         .run();
-    p.cargo("doc")
+    p.payload("doc")
         .env("RUSTDOCFLAGS", "--cfg=bar")
         .with_stderr(
             "\
@@ -61,8 +61,8 @@ fn rerun() {
         .run();
 }
 
-#[cargo_test]
-fn rustdocflags_passed_to_rustdoc_through_cargo_test() {
+#[payload_test]
+fn rustdocflags_passed_to_rustdoc_through_payload_test() {
     let p = project()
         .file(
             "src/lib.rs",
@@ -74,44 +74,44 @@ fn rustdocflags_passed_to_rustdoc_through_cargo_test() {
         )
         .build();
 
-    p.cargo("test --doc")
+    p.payload("test --doc")
         .env("RUSTDOCFLAGS", "--cfg do_not_choke")
         .run();
 }
 
-#[cargo_test]
-fn rustdocflags_passed_to_rustdoc_through_cargo_test_only_once() {
+#[payload_test]
+fn rustdocflags_passed_to_rustdoc_through_payload_test_only_once() {
     let p = project().file("src/lib.rs", "").build();
 
-    p.cargo("test --doc")
+    p.payload("test --doc")
         .env("RUSTDOCFLAGS", "--markdown-no-toc")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn rustdocflags_misspelled() {
     let p = project().file("src/main.rs", "fn main() { }").build();
 
-    p.cargo("doc")
+    p.payload("doc")
         .env("RUSTDOC_FLAGS", "foo")
-        .with_stderr_contains("[WARNING] Cargo does not read `RUSTDOC_FLAGS` environment variable. Did you mean `RUSTDOCFLAGS`?")
+        .with_stderr_contains("[WARNING] Payload does not read `RUSTDOC_FLAGS` environment variable. Did you mean `RUSTDOCFLAGS`?")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn whitespace() {
     // Checks behavior of different whitespace characters.
     let p = project().file("src/lib.rs", "").build();
 
     // "too many operands"
-    p.cargo("doc")
+    p.payload("doc")
         .env("RUSTDOCFLAGS", "--crate-version this has spaces")
         .with_stderr_contains("[ERROR] could not document `foo`")
         .with_status(101)
         .run();
 
     const SPACED_VERSION: &str = "a\nb\tc\u{00a0}d";
-    p.cargo("doc")
+    p.payload("doc")
         .env(
             "RUSTDOCFLAGS",
             format!("--crate-version {}", SPACED_VERSION),

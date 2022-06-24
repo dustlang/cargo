@@ -1,15 +1,15 @@
-//! Tests for the `cargo run` command.
+//! Tests for the `payload run` command.
 
-use cargo::util::paths::dylib_path_envvar;
-use cargo_test_support::{basic_bin_manifest, basic_lib_manifest, project, Project};
+use payload::util::paths::dylib_path_envvar;
+use payload_test_support::{basic_bin_manifest, basic_lib_manifest, project, Project};
 
-#[cargo_test]
+#[payload_test]
 fn simple() {
     let p = project()
         .file("src/main.rs", r#"fn main() { println!("hello"); }"#)
         .build();
 
-    p.cargo("run")
+    p.payload("run")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
@@ -21,34 +21,34 @@ fn simple() {
     assert!(p.bin("foo").is_file());
 }
 
-#[cargo_test]
+#[payload_test]
 fn simple_quiet() {
     let p = project()
         .file("src/main.rs", r#"fn main() { println!("hello"); }"#)
         .build();
 
-    p.cargo("run -q").with_stdout("hello").run();
+    p.payload("run -q").with_stdout("hello").run();
 
-    p.cargo("run --quiet").with_stdout("hello").run();
+    p.payload("run --quiet").with_stdout("hello").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn simple_quiet_and_verbose() {
     let p = project()
         .file("src/main.rs", r#"fn main() { println!("hello"); }"#)
         .build();
 
-    p.cargo("run -q -v")
+    p.payload("run -q -v")
         .with_status(101)
         .with_stderr("[ERROR] cannot set both --verbose and --quiet")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn quiet_and_verbose_config() {
     let p = project()
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
                 [term]
                 verbose = true
@@ -57,10 +57,10 @@ fn quiet_and_verbose_config() {
         .file("src/main.rs", r#"fn main() { println!("hello"); }"#)
         .build();
 
-    p.cargo("run -q").run();
+    p.payload("run -q").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn simple_with_args() {
     let p = project()
         .file(
@@ -74,11 +74,11 @@ fn simple_with_args() {
         )
         .build();
 
-    p.cargo("run hello world").run();
+    p.payload("run hello world").run();
 }
 
 #[cfg(unix)]
-#[cargo_test]
+#[payload_test]
 fn simple_with_non_utf8_args() {
     use std::os::unix::ffi::OsStrExt;
 
@@ -97,13 +97,13 @@ fn simple_with_non_utf8_args() {
         )
         .build();
 
-    p.cargo("run")
+    p.payload("run")
         .arg("hello")
         .arg(std::ffi::OsStr::from_bytes(b"ab\xFFcd"))
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn exit_code() {
     let p = project()
         .file("src/main.rs", "fn main() { std::process::exit(2); }")
@@ -121,10 +121,10 @@ fn exit_code() {
             "[ERROR] process didn't exit successfully: `target[..]foo[..]` (exit code: 2)",
         );
     }
-    p.cargo("run").with_status(2).with_stderr(output).run();
+    p.payload("run").with_status(2).with_stderr(output).run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn exit_code_verbose() {
     let p = project()
         .file("src/main.rs", "fn main() { std::process::exit(2); }")
@@ -144,23 +144,23 @@ fn exit_code_verbose() {
         );
     }
 
-    p.cargo("run -v").with_status(2).with_stderr(output).run();
+    p.payload("run -v").with_status(2).with_stderr(output).run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn no_main_file() {
     let p = project().file("src/lib.rs", "").build();
 
-    p.cargo("run")
+    p.payload("run")
         .with_status(101)
         .with_stderr(
             "[ERROR] a bin target must be available \
-             for `cargo run`\n",
+             for `payload run`\n",
         )
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn too_many_bins() {
     let p = project()
         .file("src/lib.rs", "")
@@ -169,10 +169,10 @@ fn too_many_bins() {
         .build();
 
     // Using [..] here because the order is not stable
-    p.cargo("run")
+    p.payload("run")
         .with_status(101)
         .with_stderr(
-            "[ERROR] `cargo run` could not determine which binary to run. \
+            "[ERROR] `payload run` could not determine which binary to run. \
              Use the `--bin` option to specify a binary, or the \
              `default-run` manifest key.\
              \navailable binaries: [..]\n",
@@ -180,7 +180,7 @@ fn too_many_bins() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn specify_name() {
     let p = project()
         .file("src/lib.rs", "")
@@ -202,7 +202,7 @@ fn specify_name() {
         )
         .build();
 
-    p.cargo("run --bin a -v")
+    p.payload("run --bin a -v")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
@@ -214,7 +214,7 @@ fn specify_name() {
         .with_stdout("hello a.rs")
         .run();
 
-    p.cargo("run --bin b -v")
+    p.payload("run --bin b -v")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([..])
@@ -226,11 +226,11 @@ fn specify_name() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn specify_default_run() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -244,16 +244,16 @@ fn specify_default_run() {
         .file("src/bin/b.rs", r#"fn main() { println!("hello B"); }"#)
         .build();
 
-    p.cargo("run").with_stdout("hello A").run();
-    p.cargo("run --bin a").with_stdout("hello A").run();
-    p.cargo("run --bin b").with_stdout("hello B").run();
+    p.payload("run").with_stdout("hello A").run();
+    p.payload("run --bin a").with_stdout("hello A").run();
+    p.payload("run --bin b").with_stdout("hello B").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bogus_default_run() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -266,11 +266,11 @@ fn bogus_default_run() {
         .file("src/bin/a.rs", r#"fn main() { println!("hello A"); }"#)
         .build();
 
-    p.cargo("run")
+    p.payload("run")
         .with_status(101)
         .with_stderr(
             "\
-[ERROR] failed to parse manifest at `[..]/foo/Cargo.toml`
+[ERROR] failed to parse manifest at `[..]/foo/Payload.toml`
 
 Caused by:
   default-run target `b` not found
@@ -281,7 +281,7 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn run_example() {
     let p = project()
         .file("src/lib.rs", "")
@@ -289,7 +289,7 @@ fn run_example() {
         .file("src/bin/a.rs", r#"fn main() { println!("bin"); }"#)
         .build();
 
-    p.cargo("run --example a")
+    p.payload("run --example a")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
@@ -300,11 +300,11 @@ fn run_example() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn run_library_example() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -319,17 +319,17 @@ fn run_library_example() {
         .file("examples/bar.rs", "fn foo() {}")
         .build();
 
-    p.cargo("run --example bar")
+    p.payload("run --example bar")
         .with_status(101)
         .with_stderr("[ERROR] example target `bar` is a library and cannot be executed")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn run_bin_example() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -343,7 +343,7 @@ fn run_bin_example() {
         .file("examples/bar.rs", r#"fn main() { println!("example"); }"#)
         .build();
 
-    p.cargo("run --example bar")
+    p.payload("run --example bar")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
@@ -361,7 +361,7 @@ fn autodiscover_examples_project(rust_edition: &str, autoexamples: Option<bool>)
     };
     project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                     [project]
@@ -392,38 +392,38 @@ fn autodiscover_examples_project(rust_edition: &str, autoexamples: Option<bool>)
         .build()
 }
 
-#[cargo_test]
+#[payload_test]
 fn run_example_autodiscover_2015() {
     let p = autodiscover_examples_project("2015", None);
-    p.cargo("run --example a")
+    p.payload("run --example a")
         .with_status(101)
         .with_stderr(
             "warning: \
-An explicit [[example]] section is specified in Cargo.toml which currently
-disables Cargo from automatically inferring other example targets.
+An explicit [[example]] section is specified in Payload.toml which currently
+disables Payload from automatically inferring other example targets.
 This inference behavior will change in the Rust 2018 edition and the following
 files will be included as a example target:
 
 * [..]a.rs
 
-This is likely to break cargo build or cargo test as these files may not be
+This is likely to break payload build or payload test as these files may not be
 ready to be compiled as a example target today. You can future-proof yourself
 and disable this warning by adding `autoexamples = false` to your [package]
-section. You may also move the files to a location where Cargo would not
+section. You may also move the files to a location where Payload would not
 automatically infer them to be a target, such as in subfolders.
 
 For more information on this warning you can consult
-https://github.com/rust-lang/cargo/issues/5330
+https://github.com/dustlang/payload/issues/5330
 error: no example target named `a`
 ",
         )
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn run_example_autodiscover_2015_with_autoexamples_enabled() {
     let p = autodiscover_examples_project("2015", Some(true));
-    p.cargo("run --example a")
+    p.payload("run --example a")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
@@ -434,19 +434,19 @@ fn run_example_autodiscover_2015_with_autoexamples_enabled() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn run_example_autodiscover_2015_with_autoexamples_disabled() {
     let p = autodiscover_examples_project("2015", Some(false));
-    p.cargo("run --example a")
+    p.payload("run --example a")
         .with_status(101)
         .with_stderr("error: no example target named `a`\n")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn run_example_autodiscover_2018() {
     let p = autodiscover_examples_project("2018", None);
-    p.cargo("run --example a")
+    p.payload("run --example a")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
@@ -457,11 +457,11 @@ fn run_example_autodiscover_2018() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn autobins_disables() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [project]
             name = "foo"
@@ -473,13 +473,13 @@ fn autobins_disables() {
         .file("src/bin/mod.rs", "// empty")
         .build();
 
-    p.cargo("run")
+    p.payload("run")
         .with_status(101)
-        .with_stderr("[ERROR] a bin target must be available for `cargo run`")
+        .with_stderr("[ERROR] a bin target must be available for `payload run`")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn run_bins() {
     let p = project()
         .file("src/lib.rs", "")
@@ -487,7 +487,7 @@ fn run_bins() {
         .file("src/bin/a.rs", r#"fn main() { println!("bin"); }"#)
         .build();
 
-    p.cargo("run --bins")
+    p.payload("run --bins")
         .with_status(1)
         .with_stderr_contains(
             "error: Found argument '--bins' which wasn't expected, or isn't valid in this context",
@@ -495,7 +495,7 @@ fn run_bins() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn run_with_filename() {
     let p = project()
         .file("src/lib.rs", "")
@@ -509,12 +509,12 @@ fn run_with_filename() {
         .file("examples/a.rs", r#"fn main() { println!("example"); }"#)
         .build();
 
-    p.cargo("run --bin bin.rs")
+    p.payload("run --bin bin.rs")
         .with_status(101)
         .with_stderr("[ERROR] no bin target named `bin.rs`")
         .run();
 
-    p.cargo("run --bin a.rs")
+    p.payload("run --bin a.rs")
         .with_status(101)
         .with_stderr(
             "\
@@ -524,12 +524,12 @@ fn run_with_filename() {
         )
         .run();
 
-    p.cargo("run --example example.rs")
+    p.payload("run --example example.rs")
         .with_status(101)
         .with_stderr("[ERROR] no example target named `example.rs`")
         .run();
 
-    p.cargo("run --example a.rs")
+    p.payload("run --example a.rs")
         .with_status(101)
         .with_stderr(
             "\
@@ -540,24 +540,24 @@ fn run_with_filename() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn either_name_or_example() {
     let p = project()
         .file("src/bin/a.rs", r#"fn main() { println!("hello a.rs"); }"#)
         .file("examples/b.rs", r#"fn main() { println!("hello b.rs"); }"#)
         .build();
 
-    p.cargo("run --bin a --example b")
+    p.payload("run --bin a --example b")
         .with_status(101)
         .with_stderr(
-            "[ERROR] `cargo run` can run at most one \
+            "[ERROR] `payload run` can run at most one \
              executable, but multiple were \
              specified",
         )
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn one_bin_multiple_examples() {
     let p = project()
         .file("src/lib.rs", "")
@@ -569,7 +569,7 @@ fn one_bin_multiple_examples() {
         .file("examples/b.rs", r#"fn main() { println!("hello b.rs"); }"#)
         .build();
 
-    p.cargo("run")
+    p.payload("run")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
@@ -580,11 +580,11 @@ fn one_bin_multiple_examples() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn example_with_release_flag() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -611,7 +611,7 @@ fn example_with_release_flag() {
                 }
             "#,
         )
-        .file("bar/Cargo.toml", &basic_lib_manifest("bar"))
+        .file("bar/Payload.toml", &basic_lib_manifest("bar"))
         .file(
             "bar/src/bar.rs",
             r#"
@@ -626,7 +626,7 @@ fn example_with_release_flag() {
         )
         .build();
 
-    p.cargo("run -v --release --example a")
+    p.payload("run -v --release --example a")
         .with_stderr(
             "\
 [COMPILING] bar v0.5.0 ([CWD]/bar)
@@ -655,7 +655,7 @@ fast2",
         )
         .run();
 
-    p.cargo("run -v --example a")
+    p.payload("run -v --example a")
         .with_stderr(
             "\
 [COMPILING] bar v0.5.0 ([CWD]/bar)
@@ -685,11 +685,11 @@ slow2",
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn run_dylib_dep() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -705,7 +705,7 @@ fn run_dylib_dep() {
             r#"extern crate bar; fn main() { bar::bar(); }"#,
         )
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -720,10 +720,10 @@ fn run_dylib_dep() {
         .file("bar/src/lib.rs", "pub fn bar() {}")
         .build();
 
-    p.cargo("run hello world").run();
+    p.payload("run hello world").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn release_works() {
     let p = project()
         .file(
@@ -734,7 +734,7 @@ fn release_works() {
         )
         .build();
 
-    p.cargo("run --release")
+    p.payload("run --release")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
@@ -746,11 +746,11 @@ fn release_works() {
     assert!(p.release_bin("foo").is_file());
 }
 
-#[cargo_test]
+#[payload_test]
 fn run_bin_different_name() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -764,10 +764,10 @@ fn run_bin_different_name() {
         .file("src/bar.rs", "fn main() {}")
         .build();
 
-    p.cargo("run").run();
+    p.payload("run").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn dashes_are_forwarded() {
     let p = project()
         .file(
@@ -784,19 +784,19 @@ fn dashes_are_forwarded() {
         )
         .build();
 
-    p.cargo("run -- -- a -- b").run();
+    p.payload("run -- -- a -- b").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn run_from_executable_folder() {
     let p = project()
         .file("src/main.rs", r#"fn main() { println!("hello"); }"#)
         .build();
 
     let cwd = p.root().join("target").join("debug");
-    p.cargo("build").run();
+    p.payload("build").run();
 
-    p.cargo("run")
+    p.payload("run")
         .cwd(cwd)
         .with_stderr(
             "[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]\n\
@@ -806,7 +806,7 @@ fn run_from_executable_folder() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn run_with_library_paths() {
     let p = project();
 
@@ -820,7 +820,7 @@ fn run_with_library_paths() {
 
     let p = p
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -834,8 +834,8 @@ fn run_with_library_paths() {
             &format!(
                 r##"
                     fn main() {{
-                        println!(r#"cargo:rustc-link-search=native={}"#);
-                        println!(r#"cargo:rustc-link-search={}"#);
+                        println!(r#"payload:rustc-link-search=native={}"#);
+                        println!(r#"payload:rustc-link-search={}"#);
                     }}
                 "##,
                 dir1.display(),
@@ -861,10 +861,10 @@ fn run_with_library_paths() {
         )
         .build();
 
-    p.cargo("run").run();
+    p.payload("run").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn library_paths_sorted_alphabetically() {
     let p = project();
 
@@ -879,7 +879,7 @@ fn library_paths_sorted_alphabetically() {
 
     let p = p
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -893,9 +893,9 @@ fn library_paths_sorted_alphabetically() {
             &format!(
                 r##"
                     fn main() {{
-                        println!(r#"cargo:rustc-link-search=native={}"#);
-                        println!(r#"cargo:rustc-link-search=native={}"#);
-                        println!(r#"cargo:rustc-link-search=native={}"#);
+                        println!(r#"payload:rustc-link-search=native={}"#);
+                        println!(r#"payload:rustc-link-search=native={}"#);
+                        println!(r#"payload:rustc-link-search=native={}"#);
                     }}
                 "##,
                 dir1.display(),
@@ -921,28 +921,28 @@ fn library_paths_sorted_alphabetically() {
         )
         .build();
 
-    p.cargo("run").run();
+    p.payload("run").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn fail_no_extra_verbose() {
     let p = project()
         .file("src/main.rs", "fn main() { std::process::exit(1); }")
         .build();
 
-    p.cargo("run -q")
+    p.payload("run -q")
         .with_status(1)
         .with_stdout("")
         .with_stderr("")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn run_multiple_packages() {
     let p = project()
         .no_manifest()
         .file(
-            "foo/Cargo.toml",
+            "foo/Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -961,24 +961,24 @@ fn run_multiple_packages() {
             "#,
         )
         .file("foo/src/foo.rs", "fn main() { println!(\"foo\"); }")
-        .file("foo/d1/Cargo.toml", &basic_bin_manifest("d1"))
+        .file("foo/d1/Payload.toml", &basic_bin_manifest("d1"))
         .file("foo/d1/src/lib.rs", "")
         .file("foo/d1/src/main.rs", "fn main() { println!(\"d1\"); }")
-        .file("foo/d2/Cargo.toml", &basic_bin_manifest("d2"))
+        .file("foo/d2/Payload.toml", &basic_bin_manifest("d2"))
         .file("foo/d2/src/main.rs", "fn main() { println!(\"d2\"); }")
-        .file("d3/Cargo.toml", &basic_bin_manifest("d3"))
+        .file("d3/Payload.toml", &basic_bin_manifest("d3"))
         .file("d3/src/main.rs", "fn main() { println!(\"d2\"); }")
         .build();
 
-    let cargo = || {
-        let mut process_builder = p.cargo("run");
+    let payload = || {
+        let mut process_builder = p.payload("run");
         process_builder.cwd("foo");
         process_builder
     };
 
-    cargo().arg("-p").arg("d1").with_stdout("d1").run();
+    payload().arg("-p").arg("d1").with_stdout("d1").run();
 
-    cargo()
+    payload()
         .arg("-p")
         .arg("d2")
         .arg("--bin")
@@ -986,30 +986,30 @@ fn run_multiple_packages() {
         .with_stdout("d2")
         .run();
 
-    cargo().with_stdout("foo").run();
+    payload().with_stdout("foo").run();
 
-    cargo().arg("-p").arg("d1").arg("-p").arg("d2")
+    payload().arg("-p").arg("d1").arg("-p").arg("d2")
                     .with_status(1)
                     .with_stderr_contains("error: The argument '--package <SPEC>' was provided more than once, but cannot be used multiple times").run();
 
-    cargo()
+    payload()
         .arg("-p")
         .arg("d3")
         .with_status(101)
         .with_stderr_contains("[ERROR] package(s) `d3` not found in workspace [..]")
         .run();
 
-    cargo()
+    payload()
         .arg("-p")
         .arg("d*")
         .with_status(101)
         .with_stderr_contains(
-            "[ERROR] `cargo run` does not support glob pattern `d*` on package selection",
+            "[ERROR] `payload run` does not support glob pattern `d*` on package selection",
         )
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn explicit_bin_with_args() {
     let p = project()
         .file(
@@ -1023,48 +1023,48 @@ fn explicit_bin_with_args() {
         )
         .build();
 
-    p.cargo("run --bin foo hello world").run();
+    p.payload("run --bin foo hello world").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn run_workspace() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["a", "b"]
             "#,
         )
-        .file("a/Cargo.toml", &basic_bin_manifest("a"))
+        .file("a/Payload.toml", &basic_bin_manifest("a"))
         .file("a/src/main.rs", r#"fn main() {println!("run-a");}"#)
-        .file("b/Cargo.toml", &basic_bin_manifest("b"))
+        .file("b/Payload.toml", &basic_bin_manifest("b"))
         .file("b/src/main.rs", r#"fn main() {println!("run-b");}"#)
         .build();
 
-    p.cargo("run")
+    p.payload("run")
         .with_status(101)
         .with_stderr(
             "\
-[ERROR] `cargo run` could not determine which binary to run[..]
+[ERROR] `payload run` could not determine which binary to run[..]
 available binaries: a, b",
         )
         .run();
-    p.cargo("run --bin a").with_stdout("run-a").run();
+    p.payload("run --bin a").with_stdout("run-a").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn default_run_workspace() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["a", "b"]
             "#,
         )
         .file(
-            "a/Cargo.toml",
+            "a/Payload.toml",
             r#"
                 [project]
                 name = "a"
@@ -1073,24 +1073,24 @@ fn default_run_workspace() {
             "#,
         )
         .file("a/src/main.rs", r#"fn main() {println!("run-a");}"#)
-        .file("b/Cargo.toml", &basic_bin_manifest("b"))
+        .file("b/Payload.toml", &basic_bin_manifest("b"))
         .file("b/src/main.rs", r#"fn main() {println!("run-b");}"#)
         .build();
 
-    p.cargo("run").with_stdout("run-a").run();
+    p.payload("run").with_stdout("run-a").run();
 }
 
-#[cargo_test]
+#[payload_test]
 #[cfg(target_os = "macos")]
 fn run_link_system_path_macos() {
-    use cargo_test_support::paths::{self, CargoPathExt};
+    use payload_test_support::paths::{self, PayloadPathExt};
     use std::fs;
     // Check that the default system library path is honored.
     // First, build a shared library that will be accessed from
     // DYLD_FALLBACK_LIBRARY_PATH.
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [project]
             name = "foo"
@@ -1104,7 +1104,7 @@ fn run_link_system_path_macos() {
             "#[no_mangle] pub extern fn something_shared() {}",
         )
         .build();
-    p.cargo("build").run();
+    p.payload("build").run();
 
     // This is convoluted. Since this test can't modify things in /usr,
     // this needs to dance around to check that things work.
@@ -1119,13 +1119,13 @@ fn run_link_system_path_macos() {
     // 1. Build with rustc-link-search pointing to libfoo so the initial
     //    binary can be linked.
     // 2. Move the library to ~/lib
-    // 3. Run `cargo run` to make sure it can still find the library in
+    // 3. Run `payload run` to make sure it can still find the library in
     //    ~/lib.
     //
     // This should be equivalent to having the library in /usr/local/lib.
     let p2 = project()
         .at("bar")
-        .file("Cargo.toml", &basic_bin_manifest("bar"))
+        .file("Payload.toml", &basic_bin_manifest("bar"))
         .file(
             "src/main.rs",
             r#"
@@ -1142,16 +1142,16 @@ fn run_link_system_path_macos() {
             &format!(
                 r#"
                 fn main() {{
-                    println!("cargo:rustc-link-lib=foo");
-                    println!("cargo:rustc-link-search={}");
+                    println!("payload:rustc-link-lib=foo");
+                    println!("payload:rustc-link-search={}");
                 }}
                 "#,
                 p.target_debug_dir().display()
             ),
         )
         .build();
-    p2.cargo("build").run();
-    p2.cargo("test").run();
+    p2.payload("build").run();
+    p2.payload("test").run();
 
     let libdir = paths::home().join("lib");
     fs::create_dir(&libdir).unwrap();
@@ -1163,11 +1163,11 @@ fn run_link_system_path_macos() {
     p.root().rm_rf();
     const VAR: &str = "DYLD_FALLBACK_LIBRARY_PATH";
     // Reset DYLD_FALLBACK_LIBRARY_PATH so that we don't inherit anything that
-    // was set by the cargo that invoked the test.
-    p2.cargo("run").env_remove(VAR).run();
-    p2.cargo("test").env_remove(VAR).run();
+    // was set by the payload that invoked the test.
+    p2.payload("run").env_remove(VAR).run();
+    p2.payload("test").env_remove(VAR).run();
     // Ensure this still works when DYLD_FALLBACK_LIBRARY_PATH has
     // a value set.
-    p2.cargo("run").env(VAR, &libdir).run();
-    p2.cargo("test").env(VAR, &libdir).run();
+    p2.payload("run").env(VAR, &libdir).run();
+    p2.payload("test").env(VAR, &libdir).run();
 }

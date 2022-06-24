@@ -5,7 +5,7 @@
 The [`Workspace`] object is usually created very early by calling the
 [`workspace`][ws-method] helper method. This discovers the root of the
 workspace, and loads all the workspace members as a [`Package`] object. Each
-package corresponds to a single `Cargo.toml` (which is deserialized into a
+package corresponds to a single `Payload.toml` (which is deserialized into a
 [`Manifest`]), and may define several [`Target`]s, such as the library,
 binaries, integration test or examples. Targets are crates (each target
 defines a crate root, like `src/lib.rs` or `examples/foo.rs`) and are what is
@@ -16,7 +16,7 @@ actually compiled by `rustc`.
 There are several data structures that are important to understand how
 packages are found and loaded:
 
-* [`Package`] — A package, which is a `Cargo.toml` manifest and its associated
+* [`Package`] — A package, which is a `Payload.toml` manifest and its associated
   source files.
     * [`PackageId`] — A unique identifier for a package.
 * [`Source`] — An abstraction for something that can fetch packages (a remote
@@ -50,15 +50,15 @@ structures above come together.
 
 [`Resolve`] is the representation of a directed graph of package dependencies,
 which uses [`PackageId`]s for nodes. This is the data structure that is saved
-to the `Cargo.lock` file. If there is no lock file, Cargo constructs a resolve
+to the `Payload.lock` file. If there is no lock file, Payload constructs a resolve
 by finding a graph of packages which matches declared dependency specification
 according to SemVer.
 
 [`ops::resolve`] is the front-end for creating a `Resolve`. It handles loading
-the `Cargo.lock` file, checking if it needs updating, etc.
+the `Payload.lock` file, checking if it needs updating, etc.
 
 Resolution is currently performed twice. It is performed once with all
-features enabled. This is the resolve that gets saved to `Cargo.lock`. It then
+features enabled. This is the resolve that gets saved to `Payload.lock`. It then
 runs again with only the specific features the user selected on the
 command-line. Ideally this second run will get removed in the future when
 transitioning to the new feature resolver.
@@ -73,20 +73,20 @@ as it can help reduce the dependencies it has to consider during resolution
 Checking if a feature is enabled must go through the new feature resolver.
 
 
-[`Workspace`]: https://github.com/rust-lang/cargo/blob/master/src/cargo/core/workspace.rs
-[ws-method]: https://github.com/rust-lang/cargo/blob/e4b65bdc80f2a293447f2f6a808fa7c84bf9a357/src/cargo/util/command_prelude.rs#L298-L318
-[`Package`]: https://github.com/rust-lang/cargo/blob/master/src/cargo/core/package.rs
-[`Target`]: https://github.com/rust-lang/cargo/blob/e4b65bdc80f2a293447f2f6a808fa7c84bf9a357/src/cargo/core/manifest.rs#L181-L206
-[`Manifest`]: https://github.com/rust-lang/cargo/blob/e4b65bdc80f2a293447f2f6a808fa7c84bf9a357/src/cargo/core/manifest.rs#L27-L51
-[`Source`]: https://github.com/rust-lang/cargo/blob/master/src/cargo/core/source/mod.rs
-[`SourceId`]: https://github.com/rust-lang/cargo/blob/master/src/cargo/core/source/source_id.rs
-[`SourceMap`]: https://github.com/rust-lang/cargo/blob/e4b65bdc80f2a293447f2f6a808fa7c84bf9a357/src/cargo/core/source/mod.rs#L245-L249
-[`PackageRegistry`]: https://github.com/rust-lang/cargo/blob/e4b65bdc80f2a293447f2f6a808fa7c84bf9a357/src/cargo/core/registry.rs#L36-L81
-[`ops::resolve`]: https://github.com/rust-lang/cargo/blob/master/src/cargo/ops/resolve.rs
-[`resolver::features`]: https://github.com/rust-lang/cargo/blob/master/src/cargo/core/resolver/features.rs#L259
-[source implementations]: https://github.com/rust-lang/cargo/tree/master/src/cargo/sources
-[`PackageId`]: https://github.com/rust-lang/cargo/blob/master/src/cargo/core/package_id.rs
-[`Summary`]: https://github.com/rust-lang/cargo/blob/master/src/cargo/core/summary.rs
-[`PackageSet`]: https://github.com/rust-lang/cargo/blob/e4b65bdc80f2a293447f2f6a808fa7c84bf9a357/src/cargo/core/package.rs#L283-L296
-[`Downloads`]: https://github.com/rust-lang/cargo/blob/e4b65bdc80f2a293447f2f6a808fa7c84bf9a357/src/cargo/core/package.rs#L298-L352
-[`Resolve`]: https://github.com/rust-lang/cargo/blob/master/src/cargo/core/resolver/resolve.rs
+[`Workspace`]: https://github.com/dustlang/payload/blob/master/src/payload/core/workspace.rs
+[ws-method]: https://github.com/dustlang/payload/blob/e4b65bdc80f2a293447f2f6a808fa7c84bf9a357/src/payload/util/command_prelude.rs#L298-L318
+[`Package`]: https://github.com/dustlang/payload/blob/master/src/payload/core/package.rs
+[`Target`]: https://github.com/dustlang/payload/blob/e4b65bdc80f2a293447f2f6a808fa7c84bf9a357/src/payload/core/manifest.rs#L181-L206
+[`Manifest`]: https://github.com/dustlang/payload/blob/e4b65bdc80f2a293447f2f6a808fa7c84bf9a357/src/payload/core/manifest.rs#L27-L51
+[`Source`]: https://github.com/dustlang/payload/blob/master/src/payload/core/source/mod.rs
+[`SourceId`]: https://github.com/dustlang/payload/blob/master/src/payload/core/source/source_id.rs
+[`SourceMap`]: https://github.com/dustlang/payload/blob/e4b65bdc80f2a293447f2f6a808fa7c84bf9a357/src/payload/core/source/mod.rs#L245-L249
+[`PackageRegistry`]: https://github.com/dustlang/payload/blob/e4b65bdc80f2a293447f2f6a808fa7c84bf9a357/src/payload/core/registry.rs#L36-L81
+[`ops::resolve`]: https://github.com/dustlang/payload/blob/master/src/payload/ops/resolve.rs
+[`resolver::features`]: https://github.com/dustlang/payload/blob/master/src/payload/core/resolver/features.rs#L259
+[source implementations]: https://github.com/dustlang/payload/tree/master/src/payload/sources
+[`PackageId`]: https://github.com/dustlang/payload/blob/master/src/payload/core/package_id.rs
+[`Summary`]: https://github.com/dustlang/payload/blob/master/src/payload/core/summary.rs
+[`PackageSet`]: https://github.com/dustlang/payload/blob/e4b65bdc80f2a293447f2f6a808fa7c84bf9a357/src/payload/core/package.rs#L283-L296
+[`Downloads`]: https://github.com/dustlang/payload/blob/e4b65bdc80f2a293447f2f6a808fa7c84bf9a357/src/payload/core/package.rs#L298-L352
+[`Resolve`]: https://github.com/dustlang/payload/blob/master/src/payload/core/resolver/resolve.rs

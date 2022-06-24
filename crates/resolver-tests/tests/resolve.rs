@@ -1,6 +1,6 @@
-use cargo::core::dependency::DepKind;
-use cargo::core::Dependency;
-use cargo::util::{is_ci, Config};
+use payload::core::dependency::DepKind;
+use payload::core::Dependency;
+use payload::util::{is_ci, Config};
 
 use resolver_tests::{
     assert_contains, assert_same, dep, dep_kind, dep_loc, dep_req, dep_req_kind, loc_names, names,
@@ -334,7 +334,7 @@ fn public_dependency_filling_in_and_update() {
 
 #[test]
 fn public_dependency_skipping() {
-    // When backtracking due to a failed dependency, if Cargo is
+    // When backtracking due to a failed dependency, if Payload is
     // trying to be clever and skip irrelevant dependencies, care must
     // the effects of pub dep must be accounted for.
     let input = vec![
@@ -351,7 +351,7 @@ fn public_dependency_skipping() {
 
 #[test]
 fn public_dependency_skipping_in_backtracking() {
-    // When backtracking due to a failed dependency, if Cargo is
+    // When backtracking due to a failed dependency, if Payload is
     // trying to be clever and skip irrelevant dependencies, care must
     // the effects of pub dep must be accounted for.
     let input = vec![
@@ -653,7 +653,7 @@ fn resolving_backtrack() {
 
 #[test]
 fn resolving_backtrack_features() {
-    // test for cargo/issues/4347
+    // test for payload/issues/4347
     let mut bad = dep("bar");
     bad.set_features(vec!["bad"]);
 
@@ -764,7 +764,7 @@ fn resolving_with_sys_crates() {
 fn resolving_with_constrained_sibling_backtrack_parent() {
     // There is no point in considering all of the backtrack_trap{1,2}
     // candidates since they can't change the result of failing to
-    // resolve 'constrained'. Cargo should (ideally) skip past them and resume
+    // resolve 'constrained'. Payload should (ideally) skip past them and resume
     // resolution once the activation of the parent, 'bar', is rolled back.
     // Note that the traps are slightly more constrained to make sure they
     // get picked first.
@@ -1014,7 +1014,7 @@ fn resolving_with_constrained_sibling_backtrack_activation() {
     // It makes sense to resolve most-constrained deps first, but
     // with that logic the backtrack traps here come between the two
     // attempted resolutions of 'constrained'. When backtracking,
-    // cargo should skip past them and resume resolution once the
+    // payload should skip past them and resume resolution once the
     // number of activations for 'constrained' changes.
     let mut reglist = vec![
         pkg!(("foo", "1.0.0") => [dep_req("bar", "=1.0.0"),
@@ -1025,7 +1025,7 @@ fn resolving_with_constrained_sibling_backtrack_activation() {
     ];
     // Bump these to make the test harder, but you'll also need to
     // change the version constraints on `constrained` above. To correctly
-    // exercise Cargo, the relationship between the values is:
+    // exercise Payload, the relationship between the values is:
     // NUM_CONSTRAINED - vsn < NUM_TRAPS < vsn
     // to make sure the traps are resolved between `constrained`.
     const NUM_TRAPS: usize = 45; // min 1
@@ -1059,7 +1059,7 @@ fn resolving_with_public_constrained_sibling() {
     // It makes sense to resolve most-constrained deps first, but
     // with that logic the backtrack traps here come between the two
     // attempted resolutions of 'constrained'. When backtracking,
-    // cargo should skip past them and resume resolution once the
+    // payload should skip past them and resume resolution once the
     // number of activations for 'constrained' changes.
     let mut reglist = vec![
         pkg!(("foo", "1.0.0") => [dep_req("bar", "=1.0.0"),
@@ -1070,7 +1070,7 @@ fn resolving_with_public_constrained_sibling() {
     ];
     // Bump these to make the test harder, but you'll also need to
     // change the version constraints on `constrained` above. To correctly
-    // exercise Cargo, the relationship between the values is:
+    // exercise Payload, the relationship between the values is:
     // NUM_CONSTRAINED - vsn < NUM_TRAPS < vsn
     // to make sure the traps are resolved between `constrained`.
     const NUM_TRAPS: usize = 45; // min 1
@@ -1091,7 +1091,7 @@ fn resolving_with_public_constrained_sibling() {
 
 #[test]
 fn resolving_with_constrained_sibling_transitive_dep_effects() {
-    // When backtracking due to a failed dependency, if Cargo is
+    // When backtracking due to a failed dependency, if Payload is
     // trying to be clever and skip irrelevant dependencies, care must
     // be taken to not miss the transitive effects of alternatives. E.g.
     // in the right-to-left resolution of the graph below, B may
@@ -1138,13 +1138,13 @@ fn resolving_with_constrained_sibling_transitive_dep_effects() {
 
 #[test]
 fn incomplete_information_skipping() {
-    // When backtracking due to a failed dependency, if Cargo is
+    // When backtracking due to a failed dependency, if Payload is
     // trying to be clever and skip irrelevant dependencies, care must
     // be taken to not miss the transitive effects of alternatives.
-    // Fuzzing discovered that for some reason cargo was skipping based
+    // Fuzzing discovered that for some reason payload was skipping based
     // on incomplete information in the following case:
     // minimized bug found in:
-    // https://github.com/rust-lang/cargo/commit/003c29b0c71e5ea28fbe8e72c148c755c9f3f8d9
+    // https://github.com/dustlang/payload/commit/003c29b0c71e5ea28fbe8e72c148c755c9f3f8d9
     let input = vec![
         pkg!(("a", "1.0.0")),
         pkg!(("a", "1.1.0")),
@@ -1187,12 +1187,12 @@ fn incomplete_information_skipping() {
 
 #[test]
 fn incomplete_information_skipping_2() {
-    // When backtracking due to a failed dependency, if Cargo is
+    // When backtracking due to a failed dependency, if Payload is
     // trying to be clever and skip irrelevant dependencies, care must
     // be taken to not miss the transitive effects of alternatives.
-    // Fuzzing discovered that for some reason cargo was skipping based
+    // Fuzzing discovered that for some reason payload was skipping based
     // on incomplete information in the following case:
-    // https://github.com/rust-lang/cargo/commit/003c29b0c71e5ea28fbe8e72c148c755c9f3f8d9
+    // https://github.com/dustlang/payload/commit/003c29b0c71e5ea28fbe8e72c148c755c9f3f8d9
     let input = vec![
         pkg!(("b", "3.8.10")),
         pkg!(("b", "8.7.4")),
@@ -1256,13 +1256,13 @@ fn incomplete_information_skipping_2() {
 
 #[test]
 fn incomplete_information_skipping_3() {
-    // When backtracking due to a failed dependency, if Cargo is
+    // When backtracking due to a failed dependency, if Payload is
     // trying to be clever and skip irrelevant dependencies, care must
     // be taken to not miss the transitive effects of alternatives.
-    // Fuzzing discovered that for some reason cargo was skipping based
+    // Fuzzing discovered that for some reason payload was skipping based
     // on incomplete information in the following case:
     // minimized bug found in:
-    // https://github.com/rust-lang/cargo/commit/003c29b0c71e5ea28fbe8e72c148c755c9f3f8d9
+    // https://github.com/dustlang/payload/commit/003c29b0c71e5ea28fbe8e72c148c755c9f3f8d9
     let input = vec![
         pkg! {("to_yank", "3.0.3")},
         pkg! {("to_yank", "3.3.0")},

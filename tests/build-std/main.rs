@@ -13,17 +13,17 @@
 //! not catching any regressions that `tests/testsuite/standard_lib.rs` isn't
 //! already catching.
 //!
-//! All tests here should use `#[cargo_test(build_std)]` to indicate that
+//! All tests here should use `#[payload_test(build_std)]` to indicate that
 //! boilerplate should be generated to require the nightly toolchain and the
-//! `CARGO_RUN_BUILD_STD_TESTS` env var to be set to actually run these tests.
+//! `PAYLOAD_RUN_BUILD_STD_TESTS` env var to be set to actually run these tests.
 //! Otherwise the tests are skipped.
 
-use cargo_test_support::*;
+use payload_test_support::*;
 use std::env;
 use std::path::Path;
 
 fn enable_build_std(e: &mut Execs, arg: Option<&str>) {
-    e.env_remove("CARGO_HOME");
+    e.env_remove("PAYLOAD_HOME");
     e.env_remove("HOME");
 
     // And finally actually enable `build-std` for now
@@ -32,7 +32,7 @@ fn enable_build_std(e: &mut Execs, arg: Option<&str>) {
         None => "-Zbuild-std".to_string(),
     };
     e.arg(arg);
-    e.masquerade_as_nightly_cargo();
+    e.masquerade_as_nightly_payload();
 }
 
 // Helper methods used in the tests below
@@ -59,7 +59,7 @@ impl BuildStd for Execs {
     }
 }
 
-#[cargo_test(build_std)]
+#[payload_test(build_std)]
 fn basic() {
     let p = project()
         .file(
@@ -104,10 +104,10 @@ fn basic() {
         )
         .build();
 
-    p.cargo("check").build_std().target_host().run();
-    p.cargo("build").build_std().target_host().run();
-    p.cargo("run").build_std().target_host().run();
-    p.cargo("test").build_std().target_host().run();
+    p.payload("check").build_std().target_host().run();
+    p.payload("build").build_std().target_host().run();
+    p.payload("run").build_std().target_host().run();
+    p.payload("test").build_std().target_host().run();
 
     // Check for hack that removes dylibs.
     let deps_dir = Path::new("target")
@@ -118,11 +118,11 @@ fn basic() {
     assert_eq!(p.glob(deps_dir.join("*.dylib")).count(), 0);
 }
 
-#[cargo_test(build_std)]
+#[payload_test(build_std)]
 fn cross_custom() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -137,7 +137,7 @@ fn cross_custom() {
             "src/lib.rs",
             "#![no_std] pub fn f() -> u32 { dep::answer() }",
         )
-        .file("dep/Cargo.toml", &basic_manifest("dep", "0.1.0"))
+        .file("dep/Payload.toml", &basic_manifest("dep", "0.1.0"))
         .file("dep/src/lib.rs", "#![no_std] pub fn answer() -> u32 { 42 }")
         .file(
             "custom-target.json",
@@ -156,12 +156,12 @@ fn cross_custom() {
         )
         .build();
 
-    p.cargo("build --target custom-target.json -v")
+    p.payload("build --target custom-target.json -v")
         .build_std_arg("core")
         .run();
 }
 
-#[cargo_test(build_std)]
+#[payload_test(build_std)]
 fn custom_test_framework() {
     let p = project()
         .file(
@@ -213,7 +213,7 @@ fn custom_test_framework() {
     paths.insert(0, sysroot_bin);
     let new_path = env::join_paths(paths).unwrap();
 
-    p.cargo("test --target target.json --no-run -v")
+    p.payload("test --target target.json --no-run -v")
         .env("PATH", new_path)
         .build_std_arg("core")
         .run();

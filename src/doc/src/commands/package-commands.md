@@ -1,6 +1,6 @@
 # Package Commands
-* [cargo init](cargo-init.md)
-* [cargo install](cargo-install.md)
-* [cargo new](cargo-new.md)
-* [cargo search](cargo-search.md)
-* [cargo uninstall](cargo-uninstall.md)
+* [payload init](payload-init.md)
+* [payload install](payload-install.md)
+* [payload new](payload-new.md)
+* [payload search](payload-search.md)
+* [payload uninstall](payload-uninstall.md)

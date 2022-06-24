@@ -2,14 +2,14 @@
 
 ### Package ID specifications
 
-Subcommands of Cargo frequently need to refer to a particular package within a
+Subcommands of Payload frequently need to refer to a particular package within a
 dependency graph for various operations like updating, cleaning, building, etc.
-To solve this problem, Cargo supports *Package ID Specifications*. A specification
+To solve this problem, Payload supports *Package ID Specifications*. A specification
 is a string which is used to uniquely refer to one package within a graph of
 packages.
 
 The specification may be fully qualified, such as
-`https://github.com/rust-lang/crates.io-index#regex:1.4.3` or it may be
+`https://github.com/dustlang/crates.io-index#regex:1.4.3` or it may be
 abbreviated, such as `regex`. The abbreviated form may be used as long as it
 uniquely identifies a single package in the dependency graph. If there is
 ambiguity, additional qualifiers can be added to make it unique. For example,
@@ -41,16 +41,16 @@ The following are references to the `regex` package on `crates.io`:
 |:------------------------------------------------------------|:-------:|:-------:|
 | `regex`                                                     | `regex` | `*`     |
 | `regex:1.4.3`                                               | `regex` | `1.4.3` |
-| `https://github.com/rust-lang/crates.io-index#regex`        | `regex` | `*`     |
-| `https://github.com/rust-lang/crates.io-index#regex:1.4.3`  | `regex` | `1.4.3` |
+| `https://github.com/dustlang/crates.io-index#regex`        | `regex` | `*`     |
+| `https://github.com/dustlang/crates.io-index#regex:1.4.3`  | `regex` | `1.4.3` |
 
 The following are some examples of specs for several different git dependencies:
 
 | Spec                                                      | Name             | Version  |
 |:----------------------------------------------------------|:----------------:|:--------:|
-| `https://github.com/rust-lang/cargo#0.52.0`               | `cargo`          | `0.52.0` |
-| `https://github.com/rust-lang/cargo#cargo-platform:0.1.1` | <nobr>`cargo-platform`</nobr> | `0.1.1`  |
-| `ssh://git@github.com/rust-lang/regex.git#regex:1.4.3`    | `regex`          | `1.4.3`  |
+| `https://github.com/dustlang/payload#0.52.0`               | `payload`          | `0.52.0` |
+| `https://github.com/dustlang/payload#payload-platform:0.1.1` | <nobr>`payload-platform`</nobr> | `0.1.1`  |
+| `ssh://git@github.com/dustlang/regex.git#regex:1.4.3`    | `regex`          | `1.4.3`  |
 
 Local packages on the filesystem can use `file://` URLs to reference them:
 

@@ -8,8 +8,8 @@ use std::sync::atomic::{AtomicUsize, Ordering::SeqCst};
 use std::sync::Arc;
 use std::thread::{self, JoinHandle};
 
-use cargo_test_support::paths;
-use cargo_test_support::{basic_manifest, project};
+use payload_test_support::paths;
+use payload_test_support::{basic_manifest, project};
 
 fn setup_failed_auth_test() -> (SocketAddr, JoinHandle<()>, Arc<AtomicUsize>) {
     let server = TcpListener::bind("127.0.0.1:0").unwrap();
@@ -74,7 +74,7 @@ fn setup_failed_auth_test() -> (SocketAddr, JoinHandle<()>, Arc<AtomicUsize>) {
 
     let script = project()
         .at("script")
-        .file("Cargo.toml", &basic_manifest("script", "0.1.0"))
+        .file("Payload.toml", &basic_manifest("script", "0.1.0"))
         .file(
             "src/main.rs",
             r#"
@@ -86,7 +86,7 @@ fn setup_failed_auth_test() -> (SocketAddr, JoinHandle<()>, Arc<AtomicUsize>) {
         )
         .build();
 
-    script.cargo("build -v").run();
+    script.payload("build -v").run();
     let script = script.bin("script");
 
     let config = paths::home().join(".gitconfig");
@@ -102,12 +102,12 @@ fn setup_failed_auth_test() -> (SocketAddr, JoinHandle<()>, Arc<AtomicUsize>) {
 }
 
 // Tests that HTTP auth is offered from `credential.helper`.
-#[cargo_test]
+#[payload_test]
 fn http_auth_offered() {
     let (addr, t, connections) = setup_failed_auth_test();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                     [project]
@@ -123,7 +123,7 @@ fn http_auth_offered() {
         )
         .file("src/main.rs", "")
         .file(
-            ".cargo/config",
+            ".payload/config",
             "[net]
              retry = 0
             ",
@@ -132,7 +132,7 @@ fn http_auth_offered() {
 
     // This is a "contains" check because the last error differs by platform,
     // may span multiple lines, and isn't relevant to this test.
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr_contains(&format!(
             "\
@@ -167,7 +167,7 @@ Caused by:
 }
 
 // Boy, sure would be nice to have a TLS implementation in rust!
-#[cargo_test]
+#[payload_test]
 fn https_something_happens() {
     let server = TcpListener::bind("127.0.0.1:0").unwrap();
     let addr = server.local_addr().unwrap();
@@ -180,7 +180,7 @@ fn https_something_happens() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                     [project]
@@ -196,14 +196,14 @@ fn https_something_happens() {
         )
         .file("src/main.rs", "")
         .file(
-            ".cargo/config",
+            ".payload/config",
             "[net]
              retry = 0
             ",
         )
         .build();
 
-    p.cargo("build -v")
+    p.payload("build -v")
         .with_status(101)
         .with_stderr_contains(&format!(
             "[UPDATING] git repository `https://{addr}/foo/bar`",
@@ -231,7 +231,7 @@ Caused by:
 }
 
 // It would sure be nice to have an SSH implementation in Rust!
-#[cargo_test]
+#[payload_test]
 fn ssh_something_happens() {
     let server = TcpListener::bind("127.0.0.1:0").unwrap();
     let addr = server.local_addr().unwrap();
@@ -241,7 +241,7 @@ fn ssh_something_happens() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                     [project]
@@ -258,7 +258,7 @@ fn ssh_something_happens() {
         .file("src/main.rs", "")
         .build();
 
-    p.cargo("build -v")
+    p.payload("build -v")
         .with_status(101)
         .with_stderr_contains(&format!(
             "[UPDATING] git repository `ssh://{addr}/foo/bar`",
@@ -274,11 +274,11 @@ Caused by:
     t.join().ok().unwrap();
 }
 
-#[cargo_test]
+#[payload_test]
 fn net_err_suggests_fetch_with_cli() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -292,7 +292,7 @@ fn net_err_suggests_fetch_with_cli() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build -v")
+    p.payload("build -v")
         .with_status(101)
         .with_stderr(
             "\
@@ -322,21 +322,21 @@ Caused by:
         .run();
 
     p.change_file(
-        ".cargo/config",
+        ".payload/config",
         "
             [net]
             git-fetch-with-cli = true
             ",
     );
 
-    p.cargo("build -v")
+    p.payload("build -v")
         .with_status(101)
         .with_stderr_contains("[..]Unable to update[..]")
         .with_stderr_does_not_contain("[..]try enabling `git-fetch-with-cli`[..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn instead_of_url_printed() {
     let (addr, t, _connections) = setup_failed_auth_test();
     let config = paths::home().join(".gitconfig");
@@ -349,7 +349,7 @@ fn instead_of_url_printed() {
         .unwrap();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -363,7 +363,7 @@ fn instead_of_url_printed() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(&format!(
             "\

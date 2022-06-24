@@ -4,9 +4,9 @@ use std::net::TcpListener;
 use std::process::Command;
 use std::thread;
 
-use cargo_test_support::{cargo_exe, project};
+use payload_test_support::{payload_exe, project};
 
-#[cargo_test]
+#[payload_test]
 fn jobserver_exists() {
     let p = project()
         .file(
@@ -15,7 +15,7 @@ fn jobserver_exists() {
                 use std::env;
 
                 fn main() {
-                    let var = env::var("CARGO_MAKEFLAGS").unwrap();
+                    let var = env::var("PAYLOAD_MAKEFLAGS").unwrap();
                     let arg = var.split(' ')
                                  .find(|p| p.starts_with("--jobserver"))
                                  .unwrap();
@@ -54,10 +54,10 @@ fn jobserver_exists() {
     // Explicitly use `-j2` to ensure that there's eventually going to be a
     // token to read from `validate` above, since running the build script
     // itself consumes a token.
-    p.cargo("build -j2").run();
+    p.payload("build -j2").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn makes_jobserver_used() {
     let make = if cfg!(windows) {
         "mingw32-make"
@@ -70,7 +70,7 @@ fn makes_jobserver_used() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -85,7 +85,7 @@ fn makes_jobserver_used() {
         )
         .file("src/lib.rs", "")
         .file(
-            "d1/Cargo.toml",
+            "d1/Payload.toml",
             r#"
                 [package]
                 name = "d1"
@@ -96,7 +96,7 @@ fn makes_jobserver_used() {
         )
         .file("d1/src/lib.rs", "")
         .file(
-            "d2/Cargo.toml",
+            "d2/Payload.toml",
             r#"
                 [package]
                 name = "d2"
@@ -107,7 +107,7 @@ fn makes_jobserver_used() {
         )
         .file("d2/src/lib.rs", "")
         .file(
-            "d3/Cargo.toml",
+            "d3/Payload.toml",
             r#"
                 [package]
                 name = "d3"
@@ -136,7 +136,7 @@ fn makes_jobserver_used() {
             "Makefile",
             "\
 all:
-\t+$(CARGO) build
+\t+$(PAYLOAD) build
 ",
         )
         .build();
@@ -162,14 +162,14 @@ all:
     });
 
     p.process(make)
-        .env("CARGO", cargo_exe())
+        .env("PAYLOAD", payload_exe())
         .env("ADDR", addr.to_string())
         .arg("-j2")
         .run();
     child.join().unwrap();
 }
 
-#[cargo_test]
+#[payload_test]
 fn jobserver_and_j() {
     let make = if cfg!(windows) {
         "mingw32-make"
@@ -186,17 +186,17 @@ fn jobserver_and_j() {
             "Makefile",
             "\
 all:
-\t+$(CARGO) build -j2
+\t+$(PAYLOAD) build -j2
 ",
         )
         .build();
 
     p.process(make)
-        .env("CARGO", cargo_exe())
+        .env("PAYLOAD", payload_exe())
         .arg("-j2")
         .with_stderr(
             "\
-warning: a `-j` argument was passed to Cargo but Cargo is also configured \
+warning: a `-j` argument was passed to Payload but Payload is also configured \
 with an external jobserver in its environment, ignoring the `-j` parameter
 [COMPILING] [..]
 [FINISHED] [..]

@@ -33,15 +33,15 @@ rust-latest:
   stage: build
   image: rust:latest
   script:
-    - cargo build --verbose
-    - cargo test --verbose
+    - payload build --verbose
+    - payload test --verbose
 
 rust-nightly:
   stage: build
   image: rustlang/rust:nightly
   script:
-    - cargo build --verbose
-    - cargo test --verbose
+    - payload build --verbose
+    - payload test --verbose
   allow_failure: true
 ```
 
@@ -66,21 +66,21 @@ tasks:
   - setup: |
       rustup toolchain install nightly stable
       cd <your project>/
-      rustup run stable cargo fetch
+      rustup run stable payload fetch
   - stable: |
       rustup default stable
       cd <your project>/
-      cargo build --verbose
-      cargo test --verbose
+      payload build --verbose
+      payload test --verbose
   - nightly: |
       rustup default nightly
       cd <your project>/
-      cargo build --verbose ||:
-      cargo test --verbose  ||:
+      payload build --verbose ||:
+      payload test --verbose  ||:
   - docs: |
       cd <your project>/
-      rustup run stable cargo doc --no-deps
-      rustup run nightly cargo doc --no-deps ||:
+      rustup run stable payload doc --no-deps
+      rustup run nightly payload doc --no-deps ||:
 ```
 
 This will test and build documentation on the stable channel and nightly

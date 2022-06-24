@@ -2,16 +2,16 @@
 
 [crates.io] is the Rust community's central [*package registry*][def-package-registry]
 that serves as a location to discover and download
-[packages][def-package]. `cargo` is configured to use it by default to find
+[packages][def-package]. `payload` is configured to use it by default to find
 requested packages.
 
-To depend on a library hosted on [crates.io], add it to your `Cargo.toml`.
+To depend on a library hosted on [crates.io], add it to your `Payload.toml`.
 
 [crates.io]: https://crates.io/
 
 ### Adding a dependency
 
-If your `Cargo.toml` doesn't already have a `[dependencies]` section, add
+If your `Payload.toml` doesn't already have a `[dependencies]` section, add
 that, then list the [crate][def-crate] name and version that you would like to
 use. This example adds a dependency of the `time` crate:
 
@@ -28,7 +28,7 @@ the options you have here.
 
 If we also wanted to add a dependency on the `regex` crate, we would not need
 to add `[dependencies]` for each crate listed. Here's what your whole
-`Cargo.toml` file would look like with dependencies on the `time` and `regex`
+`Payload.toml` file would look like with dependencies on the `time` and `regex`
 crates:
 
 ```toml
@@ -43,11 +43,11 @@ time = "0.1.12"
 regex = "0.1.41"
 ```
 
-Re-run `cargo build`, and Cargo will fetch the new dependencies and all of
-their dependencies, compile them all, and update the `Cargo.lock`:
+Re-run `payload build`, and Payload will fetch the new dependencies and all of
+their dependencies, compile them all, and update the `Payload.lock`:
 
 ```console
-$ cargo build
+$ payload build
       Updating crates.io index
    Downloading memchr v0.1.5
    Downloading libc v0.1.10
@@ -64,11 +64,11 @@ $ cargo build
      Compiling hello_world v0.1.0 (file:///path/to/package/hello_world)
 ```
 
-Our `Cargo.lock` contains the exact information about which revision of all of
+Our `Payload.lock` contains the exact information about which revision of all of
 these dependencies we used.
 
 Now, if `regex` gets updated, we will still build with the same revision until
-we choose to `cargo update`.
+we choose to `payload update`.
 
 You can now use the `regex` library in `main.rs`.
 
@@ -84,7 +84,7 @@ fn main() {
 Running it will show:
 
 ```console
-$ cargo run
+$ payload run
    Running `target/hello_world`
 Did our date match? true
 ```

@@ -1,10 +1,10 @@
-//! Tests for the `cargo yank` command.
+//! Tests for the `payload yank` command.
 
 use std::fs;
 
-use cargo_test_support::paths::CargoPathExt;
-use cargo_test_support::project;
-use cargo_test_support::registry;
+use payload_test_support::paths::PayloadPathExt;
+use payload_test_support::project;
+use payload_test_support::registry;
 
 fn setup(name: &str, version: &str) {
     let dir = registry::api_path().join(format!("api/v1/crates/{}/{}", name, version));
@@ -12,14 +12,14 @@ fn setup(name: &str, version: &str) {
     fs::write(dir.join("yank"), r#"{"ok": true}"#).unwrap();
 }
 
-#[cargo_test]
+#[payload_test]
 fn simple() {
     registry::init();
     setup("foo", "0.0.1");
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -32,9 +32,9 @@ fn simple() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("yank --vers 0.0.1 --token sekrit").run();
+    p.payload("yank --vers 0.0.1 --token sekrit").run();
 
-    p.cargo("yank --undo --vers 0.0.1 --token sekrit")
+    p.payload("yank --undo --vers 0.0.1 --token sekrit")
         .with_status(101)
         .with_stderr(
             "    Updating `[..]` index

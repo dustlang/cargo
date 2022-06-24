@@ -2,13 +2,13 @@
 
 This chapter provides details on what is conventionally considered a
 compatible or breaking SemVer change for new releases of a package. See the
-[SemVer compatibility] section for details on what SemVer is, and how Cargo
+[SemVer compatibility] section for details on what SemVer is, and how Payload
 uses it to ensure compatibility of libraries.
 
 These are only *guidelines*, and not necessarily hard-and-fast rules that all
 projects will obey. The [Change categories] section details how this guide
 classifies the level and severity of a change. Most of this guide focuses on
-changes that will cause `cargo` and `rustc` to fail to build something that
+changes that will cause `payload` and `rustc` to fail to build something that
 previously worked. Almost every change carries some risk that it will
 negatively affect the runtime behavior, and for those cases it is usually a
 judgment call by the project maintainers whether or not it is a
@@ -51,7 +51,7 @@ Rust, or is specifically discouraged from use.
 This guide uses the terms "major" and "minor" assuming this relates to a
 "1.0.0" release or later. Initial development releases starting with "0.y.z"
 can treat changes in "y" as a major release, and "z" as a minor release.
-"0.0.z" releases are always major changes. This is because Cargo uses the
+"0.0.z" releases are always major changes. This is because Payload uses the
 convention that only changes in the left-most non-zero component are
 considered incompatible.
 
@@ -93,13 +93,13 @@ considered incompatible.
 * Tooling and environment compatibility
     * [Possibly-breaking: changing the minimum version of Rust required](#env-new-rust)
     * [Possibly-breaking: changing the platform and environment requirements](#env-change-requirements)
-    * Cargo
-        * [Minor: adding a new Cargo feature](#cargo-feature-add)
-        * [Major: removing a Cargo feature](#cargo-feature-remove)
-        * [Major: removing a feature from a feature list if that changes functionality or public items](#cargo-feature-remove-another)
-        * [Possibly-breaking: removing an optional dependency](#cargo-remove-opt-dep)
-        * [Minor: changing dependency features](#cargo-change-dep-feature)
-        * [Minor: adding dependencies](#cargo-dep-add)
+    * Payload
+        * [Minor: adding a new Payload feature](#payload-feature-add)
+        * [Major: removing a Payload feature](#payload-feature-remove)
+        * [Major: removing a feature from a feature list if that changes functionality or public items](#payload-feature-remove-another)
+        * [Possibly-breaking: removing an optional dependency](#payload-remove-opt-dep)
+        * [Minor: changing dependency features](#payload-change-dep-feature)
+        * [Minor: adding dependencies](#payload-dep-add)
 * [Application compatibility](#application-compatibility)
 
 ## API compatibility
@@ -1110,7 +1110,7 @@ fn example() {
 ```
 
 Mitigation strategies:
-* A common idiom to avoid this is to include a `std` [Cargo feature] that
+* A common idiom to avoid this is to include a `std` [Payload feature] that
   optionally enables `std` support, and when the feature is off, the library
   can be used in a `no_std` environment.
 
@@ -1121,7 +1121,7 @@ Mitigation strategies:
 
 Introducing the use of new features in a new release of Rust can break
 projects that are using older versions of Rust. This also includes using new
-features in a new release of Cargo, and requiring the use of a nightly-only
+features in a new release of Payload, and requiring the use of a nightly-only
 feature in a crate that previously worked on stable.
 
 Some projects choose to allow this in a minor release for various reasons. It
@@ -1132,7 +1132,7 @@ previous releases). Just keep in mind that some large projects may not be able
 to update their Rust toolchain rapidly.
 
 Mitigation strategies:
-* Use [Cargo features] to make the new features opt-in.
+* Use [Payload features] to make the new features opt-in.
 * Provide a large window of support for older releases.
 * Copy the source of new standard library items if possible so that you
   can continue to use an older version but take advantage of the new feature.
@@ -1164,12 +1164,12 @@ Mitigation strategies:
 * Document the platforms and environments you specifically support.
 * Test your code on a wide range of environments in CI.
 
-### Cargo
+### Payload
 
-<a id="cargo-feature-add"></a>
-#### Minor: adding a new Cargo feature
+<a id="payload-feature-add"></a>
+#### Minor: adding a new Payload feature
 
-It is usually safe to add new [Cargo features]. If the feature introduces new
+It is usually safe to add new [Payload features]. If the feature introduces new
 changes that cause a breaking change, this can cause difficulties for projects
 that have stricter backwards-compatibility needs. In that scenario, avoid
 adding the feature to the "default" list, and possibly document the
@@ -1189,10 +1189,10 @@ consequences of enabling the feature.
 std = []
 ```
 
-<a id="cargo-feature-remove"></a>
-#### Major: removing a Cargo feature
+<a id="payload-feature-remove"></a>
+#### Major: removing a Payload feature
 
-It is usually a breaking change to remove [Cargo features]. This will cause
+It is usually a breaking change to remove [Payload features]. This will cause
 an error for any project that enabled the feature.
 
 ```toml
@@ -1212,11 +1212,11 @@ logging = []
 Mitigation strategies:
 * Clearly document your features. If there is an internal or experimental
   feature, mark it as such, so that users know the status of the feature.
-* Leave the old feature in `Cargo.toml`, but otherwise remove its
+* Leave the old feature in `Payload.toml`, but otherwise remove its
   functionality. Document that the feature is deprecated, and remove it in a
   future major SemVer release.
 
-<a id="cargo-feature-remove-another"></a>
+<a id="payload-feature-remove-another"></a>
 #### Major: removing a feature from a feature list if that changes functionality or public items
 
 If removing a feature from another feature, this can break existing users if
@@ -1238,11 +1238,11 @@ default = []  # This may cause packages to fail if they are expecting std to be 
 std = []
 ```
 
-<a id="cargo-remove-opt-dep"></a>
+<a id="payload-remove-opt-dep"></a>
 #### Possibly-breaking: removing an optional dependency
 
 Removing an optional dependency can break a project using your library because
-another project may be enabling that dependency via [Cargo features].
+another project may be enabling that dependency via [Payload features].
 
 ```toml
 # Breaking change example
@@ -1263,7 +1263,7 @@ Mitigation strategies:
   in the documented list of features, then you may decide to consider it safe
   to change undocumented entries.
 * Leave the optional dependency, and just don't use it within your library.
-* Replace the optional dependency with a [Cargo feature] that does nothing,
+* Replace the optional dependency with a [Payload feature] that does nothing,
   and document that it is deprecated.
 * Use high-level features which enable optional dependencies, and document
   those as the preferred way to enable the extended functionality. For
@@ -1272,7 +1272,7 @@ Mitigation strategies:
   optional dependencies necessary to implement "networking". Then document the
   "networking" feature.
 
-<a id="cargo-change-dep-feature"></a>
+<a id="payload-change-dep-feature"></a>
 #### Minor: changing dependency features
 
 It is usually safe to change the features on a dependency, as long as the
@@ -1293,7 +1293,7 @@ rand = { version = "0.7.3", features = ["small_rng"] }
 rand = "0.7.3"
 ```
 
-<a id="cargo-dep-add"></a>
+<a id="payload-dep-add"></a>
 #### Minor: adding dependencies
 
 It is usually safe to add new dependencies, as long as the new dependency
@@ -1317,9 +1317,9 @@ log = "0.4.11"
 
 ## Application compatibility
 
-Cargo projects may also include executable binaries which have their own
+Payload projects may also include executable binaries which have their own
 interfaces (such as a CLI interface, OS-level interaction, etc.). Since these
-are part of the Cargo package, they often use and share the same version as
+are part of the Payload package, they often use and share the same version as
 the package. You will need to decide if and how you want to employ a SemVer
 contract with your users in the changes you make to your application. The
 potential breaking and compatible changes to an application are too numerous
@@ -1330,10 +1330,10 @@ document what your commitments are.
 [`cfg` attribute]: ../../reference/conditional-compilation.md#the-cfg-attribute
 [`no_std`]: ../../reference/names/preludes.html#the-no_std-attribute
 [`pub use`]: ../../reference/items/use-declarations.html
-[Cargo feature]: features.md
-[Cargo features]: features.md
-[cfg-accessible]: https://github.com/rust-lang/rust/issues/64797
-[cfg-version]: https://github.com/rust-lang/rust/issues/64796
+[Payload feature]: features.md
+[Payload features]: features.md
+[cfg-accessible]: https://github.com/dustlang/rust/issues/64797
+[cfg-version]: https://github.com/dustlang/rust/issues/64796
 [conditional compilation]: ../../reference/conditional-compilation.md
 [Default]: ../../std/default/trait.Default.html
 [deprecated]: ../../reference/attributes/diagnostics.html#the-deprecated-attribute
@@ -1342,8 +1342,8 @@ document what your commitments are.
 [items]: ../../reference/items.html
 [non_exhaustive]: ../../reference/attributes/type_system.html#the-non_exhaustive-attribute
 [object safe]: ../../reference/items/traits.html#object-safety
-[rust-feature]: https://doc.rust-lang.org/nightly/unstable-book/
-[sealed trait]: https://rust-lang.github.io/api-guidelines/future-proofing.html#sealed-traits-protect-against-downstream-implementations-c-sealed
+[rust-feature]: https://doc.dustlang.com/nightly/unstable-book/
+[sealed trait]: https://dustlang.github.io/api-guidelines/future-proofing.html#sealed-traits-protect-against-downstream-implementations-c-sealed
 [SemVer]: https://semver.org/
 [struct literal]: ../../reference/expressions/struct-expr.html
 [wildcard patterns]: ../../reference/patterns.html#wildcard-pattern

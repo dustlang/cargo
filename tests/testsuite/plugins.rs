@@ -1,9 +1,9 @@
 //! Tests for rustc plugins.
 
-use cargo_test_support::{basic_manifest, project};
-use cargo_test_support::{is_nightly, rustc_host};
+use payload_test_support::{basic_manifest, project};
+use payload_test_support::{is_nightly, rustc_host};
 
-#[cargo_test]
+#[payload_test]
 fn plugin_to_the_max() {
     if !is_nightly() {
         // plugins are unstable
@@ -12,7 +12,7 @@ fn plugin_to_the_max() {
 
     let foo = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -49,7 +49,7 @@ fn plugin_to_the_max() {
     let _bar = project()
         .at("bar")
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -84,7 +84,7 @@ fn plugin_to_the_max() {
     let _baz = project()
         .at("baz")
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "baz"
@@ -99,11 +99,11 @@ fn plugin_to_the_max() {
         .file("src/lib.rs", "pub fn baz() -> i32 { 1 }")
         .build();
 
-    foo.cargo("build").run();
-    foo.cargo("doc").run();
+    foo.payload("build").run();
+    foo.payload("doc").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn plugin_with_dynamic_native_dependency() {
     if !is_nightly() {
         // plugins are unstable
@@ -113,7 +113,7 @@ fn plugin_with_dynamic_native_dependency() {
     let build = project()
         .at("builder")
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "builder"
@@ -130,7 +130,7 @@ fn plugin_with_dynamic_native_dependency() {
 
     let foo = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -151,7 +151,7 @@ fn plugin_with_dynamic_native_dependency() {
             "#,
         )
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -184,7 +184,7 @@ fn plugin_with_dynamic_native_dependency() {
                         fs::copy(root.join("builder.dll.lib"),
                                  out_dir.join("builder.dll.lib")).unwrap();
                     }
-                    println!("cargo:rustc-flags=-L {}", out_dir.display());
+                    println!("payload:rustc-flags=-L {}", out_dir.display());
                 }
             "#,
         )
@@ -208,17 +208,17 @@ fn plugin_with_dynamic_native_dependency() {
         )
         .build();
 
-    build.cargo("build").run();
+    build.payload("build").run();
 
     let root = build.root().join("target").join("debug");
-    foo.cargo("build -v").env("BUILDER_ROOT", root).run();
+    foo.payload("build -v").env("BUILDER_ROOT", root).run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn plugin_integration() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -237,14 +237,14 @@ fn plugin_integration() {
         .file("tests/it_works.rs", "")
         .build();
 
-    p.cargo("test -v").run();
+    p.payload("test -v").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn doctest_a_plugin() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -257,7 +257,7 @@ fn doctest_a_plugin() {
         )
         .file("src/lib.rs", "#[macro_use] extern crate bar;")
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -272,17 +272,17 @@ fn doctest_a_plugin() {
         .file("bar/src/lib.rs", "pub fn bar() {}")
         .build();
 
-    p.cargo("test -v").run();
+    p.payload("test -v").run();
 }
 
 // See #1515
-#[cargo_test]
+#[payload_test]
 fn native_plugin_dependency_with_custom_linker() {
     let target = rustc_host();
 
     let _foo = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -299,7 +299,7 @@ fn native_plugin_dependency_with_custom_linker() {
     let bar = project()
         .at("bar")
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -312,7 +312,7 @@ fn native_plugin_dependency_with_custom_linker() {
         )
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".payload/config",
             &format!(
                 r#"
                     [target.{}]
@@ -323,7 +323,7 @@ fn native_plugin_dependency_with_custom_linker() {
         )
         .build();
 
-    bar.cargo("build --verbose")
+    bar.payload("build --verbose")
         .with_status(101)
         .with_stderr_contains(
             "\
@@ -335,7 +335,7 @@ fn native_plugin_dependency_with_custom_linker() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn panic_abort_plugins() {
     if !is_nightly() {
         // requires rustc_private
@@ -344,7 +344,7 @@ fn panic_abort_plugins() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -360,7 +360,7 @@ fn panic_abort_plugins() {
         )
         .file("src/lib.rs", "")
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -380,10 +380,10 @@ fn panic_abort_plugins() {
         )
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn shared_panic_abort_plugins() {
     if !is_nightly() {
         // requires rustc_private
@@ -392,7 +392,7 @@ fn shared_panic_abort_plugins() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -409,7 +409,7 @@ fn shared_panic_abort_plugins() {
         )
         .file("src/lib.rs", "extern crate baz;")
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -431,9 +431,9 @@ fn shared_panic_abort_plugins() {
                 extern crate baz;
             "#,
         )
-        .file("baz/Cargo.toml", &basic_manifest("baz", "0.0.1"))
+        .file("baz/Payload.toml", &basic_manifest("baz", "0.0.1"))
         .file("baz/src/lib.rs", "")
         .build();
 
-    p.cargo("build -v").run();
+    p.payload("build -v").run();
 }

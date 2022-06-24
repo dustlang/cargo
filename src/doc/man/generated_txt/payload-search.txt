@@ -1,0 +1,84 @@
+PAYLOAD-SEARCH(1)
+
+NAME
+       payload-search - Search packages in crates.io
+
+SYNOPSIS
+       payload search [options] [query...]
+
+DESCRIPTION
+       This performs a textual search for crates on <https://crates.io>. The
+       matching crates will be displayed along with their description in TOML
+       format suitable for copying into a Payload.toml manifest.
+
+OPTIONS
+   Search Options
+       --limit limit
+           Limit the number of results (default: 10, max: 100).
+
+       --index index
+           The URL of the registry index to use.
+
+       --registry registry
+           Name of the registry to use. Registry names are defined in Payload
+           config files
+           <https://doc.dustlang.com/payload/reference/config.html>. If not
+           specified, the default registry is used, which is defined by the
+           registry.default config key which defaults to crates-io.
+
+   Display Options
+       -v, --verbose
+           Use verbose output. May be specified twice for "very verbose" output
+           which includes extra output such as dependency warnings and build
+           script output. May also be specified with the term.verbose config
+           value <https://doc.dustlang.com/payload/reference/config.html>.
+
+       -q, --quiet
+           No output printed to stdout.
+
+       --color when
+           Control when colored output is used. Valid values:
+
+           o  auto (default): Automatically detect if color support is
+              available on the terminal.
+
+           o  always: Always display colors.
+
+           o  never: Never display colors.
+
+           May also be specified with the term.color config value
+           <https://doc.dustlang.com/payload/reference/config.html>.
+
+   Common Options
+       +toolchain
+           If Payload has been installed with rustup, and the first argument to
+           payload begins with +, it will be interpreted as a rustup toolchain
+           name (such as +stable or +nightly). See the rustup documentation
+           <https://dustlang.github.io/rustup/overrides.html> for more
+           information about how toolchain overrides work.
+
+       -h, --help
+           Prints help information.
+
+       -Z flag
+           Unstable (nightly-only) flags to Payload. Run payload -Z help for
+           details.
+
+ENVIRONMENT
+       See the reference
+       <https://doc.dustlang.com/payload/reference/environment-variables.html>
+       for details on environment variables that Payload reads.
+
+EXIT STATUS
+       o  0: Payload succeeded.
+
+       o  101: Payload failed to complete.
+
+EXAMPLES
+       1. Search for a package from crates.io:
+
+              payload search serde
+
+SEE ALSO
+       payload(1), payload-install(1), payload-publish(1)
+

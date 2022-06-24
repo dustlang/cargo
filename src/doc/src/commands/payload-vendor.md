@@ -1,0 +1,175 @@
+# payload-vendor(1)
+
+## NAME
+
+payload-vendor - Vendor all dependencies locally
+
+## SYNOPSIS
+
+`payload vendor` [_options_] [_path_]
+
+## DESCRIPTION
+
+This payload subcommand will vendor all crates.io and git dependencies for a
+project into the specified directory at `<path>`. After this command completes
+the vendor directory specified by `<path>` will contain all remote sources from
+dependencies specified. Additional manifests beyond the default one can be
+specified with the `-s` option.
+
+The `payload vendor` command will also print out the configuration necessary
+to use the vendored sources, which you will need to add to `.payload/config.toml`.
+
+## OPTIONS
+
+### Vendor Options
+
+<dl>
+
+<dt class="option-term" id="option-payload-vendor--s"><a class="option-anchor" href="#option-payload-vendor--s"></a><code>-s</code> <em>manifest</em></dt>
+<dt class="option-term" id="option-payload-vendor---sync"><a class="option-anchor" href="#option-payload-vendor---sync"></a><code>--sync</code> <em>manifest</em></dt>
+<dd class="option-desc">Specify extra <code>Payload.toml</code> manifests to workspaces which should also be
+vendored and synced to the output.</dd>
+
+
+<dt class="option-term" id="option-payload-vendor---no-delete"><a class="option-anchor" href="#option-payload-vendor---no-delete"></a><code>--no-delete</code></dt>
+<dd class="option-desc">Don't delete the &quot;vendor&quot; directory when vendoring, but rather keep all
+existing contents of the vendor directory</dd>
+
+
+<dt class="option-term" id="option-payload-vendor---respect-source-config"><a class="option-anchor" href="#option-payload-vendor---respect-source-config"></a><code>--respect-source-config</code></dt>
+<dd class="option-desc">Instead of ignoring <code>[source]</code> configuration by default in <code>.payload/config.toml</code>
+read it and use it when downloading crates from crates.io, for example</dd>
+
+
+<dt class="option-term" id="option-payload-vendor---versioned-dirs"><a class="option-anchor" href="#option-payload-vendor---versioned-dirs"></a><code>--versioned-dirs</code></dt>
+<dd class="option-desc">Normally versions are only added to disambiguate multiple versions of the
+same package. This option causes all directories in the &quot;vendor&quot; directory
+to be versioned, which makes it easier to track the history of vendored
+packages over time, and can help with the performance of re-vendoring when
+only a subset of the packages have changed.</dd>
+
+
+</dl>
+
+### Manifest Options
+
+<dl>
+
+<dt class="option-term" id="option-payload-vendor---manifest-path"><a class="option-anchor" href="#option-payload-vendor---manifest-path"></a><code>--manifest-path</code> <em>path</em></dt>
+<dd class="option-desc">Path to the <code>Payload.toml</code> file. By default, Payload searches for the
+<code>Payload.toml</code> file in the current directory or any parent directory.</dd>
+
+
+
+<dt class="option-term" id="option-payload-vendor---frozen"><a class="option-anchor" href="#option-payload-vendor---frozen"></a><code>--frozen</code></dt>
+<dt class="option-term" id="option-payload-vendor---locked"><a class="option-anchor" href="#option-payload-vendor---locked"></a><code>--locked</code></dt>
+<dd class="option-desc">Either of these flags requires that the <code>Payload.lock</code> file is
+up-to-date. If the lock file is missing, or it needs to be updated, Payload will
+exit with an error. The <code>--frozen</code> flag also prevents Payload from
+attempting to access the network to determine if it is out-of-date.</p>
+<p>These may be used in environments where you want to assert that the
+<code>Payload.lock</code> file is up-to-date (such as a CI build) or want to avoid network
+access.</dd>
+
+
+<dt class="option-term" id="option-payload-vendor---offline"><a class="option-anchor" href="#option-payload-vendor---offline"></a><code>--offline</code></dt>
+<dd class="option-desc">Prevents Payload from accessing the network for any reason. Without this
+flag, Payload will stop with an error if it needs to access the network and
+the network is not available. With this flag, Payload will attempt to
+proceed without the network if possible.</p>
+<p>Beware that this may result in different dependency resolution than online
+mode. Payload will restrict itself to crates that are downloaded locally, even
+if there might be a newer version as indicated in the local copy of the index.
+See the <a href="payload-fetch.html">payload-fetch(1)</a> command to download dependencies before going
+offline.</p>
+<p>May also be specified with the <code>net.offline</code> <a href="../reference/config.html">config value</a>.</dd>
+
+
+
+</dl>
+
+### Display Options
+
+<dl>
+
+<dt class="option-term" id="option-payload-vendor--v"><a class="option-anchor" href="#option-payload-vendor--v"></a><code>-v</code></dt>
+<dt class="option-term" id="option-payload-vendor---verbose"><a class="option-anchor" href="#option-payload-vendor---verbose"></a><code>--verbose</code></dt>
+<dd class="option-desc">Use verbose output. May be specified twice for &quot;very verbose&quot; output which
+includes extra output such as dependency warnings and build script output.
+May also be specified with the <code>term.verbose</code>
+<a href="../reference/config.html">config value</a>.</dd>
+
+
+<dt class="option-term" id="option-payload-vendor--q"><a class="option-anchor" href="#option-payload-vendor--q"></a><code>-q</code></dt>
+<dt class="option-term" id="option-payload-vendor---quiet"><a class="option-anchor" href="#option-payload-vendor---quiet"></a><code>--quiet</code></dt>
+<dd class="option-desc">No output printed to stdout.</dd>
+
+
+<dt class="option-term" id="option-payload-vendor---color"><a class="option-anchor" href="#option-payload-vendor---color"></a><code>--color</code> <em>when</em></dt>
+<dd class="option-desc">Control when colored output is used. Valid values:</p>
+<ul>
+<li><code>auto</code> (default): Automatically detect if color support is available on the
+terminal.</li>
+<li><code>always</code>: Always display colors.</li>
+<li><code>never</code>: Never display colors.</li>
+</ul>
+<p>May also be specified with the <code>term.color</code>
+<a href="../reference/config.html">config value</a>.</dd>
+
+
+
+</dl>
+
+### Common Options
+
+<dl>
+
+<dt class="option-term" id="option-payload-vendor-+toolchain"><a class="option-anchor" href="#option-payload-vendor-+toolchain"></a><code>+</code><em>toolchain</em></dt>
+<dd class="option-desc">If Payload has been installed with rustup, and the first argument to <code>payload</code>
+begins with <code>+</code>, it will be interpreted as a rustup toolchain name (such
+as <code>+stable</code> or <code>+nightly</code>).
+See the <a href="https://dustlang.github.io/rustup/overrides.html">rustup documentation</a>
+for more information about how toolchain overrides work.</dd>
+
+
+<dt class="option-term" id="option-payload-vendor--h"><a class="option-anchor" href="#option-payload-vendor--h"></a><code>-h</code></dt>
+<dt class="option-term" id="option-payload-vendor---help"><a class="option-anchor" href="#option-payload-vendor---help"></a><code>--help</code></dt>
+<dd class="option-desc">Prints help information.</dd>
+
+
+<dt class="option-term" id="option-payload-vendor--Z"><a class="option-anchor" href="#option-payload-vendor--Z"></a><code>-Z</code> <em>flag</em></dt>
+<dd class="option-desc">Unstable (nightly-only) flags to Payload. Run <code>payload -Z help</code> for details.</dd>
+
+
+</dl>
+
+
+## ENVIRONMENT
+
+See [the reference](../reference/environment-variables.html) for
+details on environment variables that Payload reads.
+
+
+## EXIT STATUS
+
+* `0`: Payload succeeded.
+* `101`: Payload failed to complete.
+
+
+## EXAMPLES
+
+1. Vendor all dependencies into a local "vendor" folder
+
+       payload vendor
+
+2. Vendor all dependencies into a local "third-party/vendor" folder
+
+       payload vendor third-party/vendor
+
+3. Vendor the current workspace as well as another to "vendor"
+
+       payload vendor -s ../path/to/Payload.toml
+
+## SEE ALSO
+[payload(1)](payload.html)
+

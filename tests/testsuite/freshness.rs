@@ -11,18 +11,18 @@ use std::thread;
 use std::time::SystemTime;
 
 use super::death;
-use cargo_test_support::paths::{self, CargoPathExt};
-use cargo_test_support::registry::Package;
-use cargo_test_support::{basic_manifest, is_coarse_mtime, project, rustc_host, sleep_ms};
+use payload_test_support::paths::{self, PayloadPathExt};
+use payload_test_support::registry::Package;
+use payload_test_support::{basic_manifest, is_coarse_mtime, project, rustc_host, sleep_ms};
 
-#[cargo_test]
+#[payload_test]
 fn modifying_and_moving() {
     let p = project()
         .file("src/main.rs", "mod a; fn main() {}")
         .file("src/a.rs", "")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
@@ -31,12 +31,12 @@ fn modifying_and_moving() {
         )
         .run();
 
-    p.cargo("build").with_stdout("").run();
+    p.payload("build").with_stdout("").run();
     p.root().move_into_the_past();
     p.root().join("target").move_into_the_past();
 
     p.change_file("src/a.rs", "#[allow(unused)]fn main() {}");
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
@@ -46,13 +46,13 @@ fn modifying_and_moving() {
         .run();
 
     fs::rename(&p.root().join("src/a.rs"), &p.root().join("src/b.rs")).unwrap();
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr_contains("[..]file not found[..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn modify_only_some_files() {
     let p = project()
         .file("src/lib.rs", "mod a;")
@@ -62,7 +62,7 @@ fn modify_only_some_files() {
         .file("tests/test.rs", "")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
@@ -70,7 +70,7 @@ fn modify_only_some_files() {
 ",
         )
         .run();
-    p.cargo("test").run();
+    p.payload("test").run();
     sleep_ms(1000);
 
     assert!(p.bin("foo").is_file());
@@ -81,7 +81,7 @@ fn modify_only_some_files() {
     lib.move_into_the_past();
 
     // Make sure the binary is rebuilt, not the lib
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
@@ -92,11 +92,11 @@ fn modify_only_some_files() {
     assert!(p.bin("foo").is_file());
 }
 
-#[cargo_test]
+#[payload_test]
 fn rebuild_sub_package_then_while_package() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -111,7 +111,7 @@ fn rebuild_sub_package_then_while_package() {
         )
         .file("src/lib.rs", "extern crate a; extern crate b;")
         .file(
-            "a/Cargo.toml",
+            "a/Payload.toml",
             r#"
                 [package]
                 name = "a"
@@ -122,11 +122,11 @@ fn rebuild_sub_package_then_while_package() {
             "#,
         )
         .file("a/src/lib.rs", "extern crate b;")
-        .file("b/Cargo.toml", &basic_manifest("b", "0.0.1"))
+        .file("b/Payload.toml", &basic_manifest("b", "0.0.1"))
         .file("b/src/lib.rs", "")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [COMPILING] b [..]
@@ -142,7 +142,7 @@ fn rebuild_sub_package_then_while_package() {
     }
     p.change_file("b/src/lib.rs", "pub fn b() {}");
 
-    p.cargo("build -pb -v")
+    p.payload("build -pb -v")
         .with_stderr(
             "\
 [COMPILING] b [..]
@@ -157,7 +157,7 @@ fn rebuild_sub_package_then_while_package() {
         "extern crate a; extern crate b; pub fn toplevel() {}",
     );
 
-    p.cargo("build -v")
+    p.payload("build -v")
         .with_stderr(
             "\
 [FRESH] b [..]
@@ -171,11 +171,11 @@ fn rebuild_sub_package_then_while_package() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn changing_lib_features_caches_targets() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -189,7 +189,7 @@ fn changing_lib_features_caches_targets() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [..]Compiling foo v0.0.1 ([..])
@@ -198,7 +198,7 @@ fn changing_lib_features_caches_targets() {
         )
         .run();
 
-    p.cargo("build --features foo")
+    p.payload("build --features foo")
         .with_stderr(
             "\
 [..]Compiling foo v0.0.1 ([..])
@@ -209,22 +209,22 @@ fn changing_lib_features_caches_targets() {
 
     /* Targets should be cached from the first build */
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr("[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]")
         .run();
 
-    p.cargo("build").with_stdout("").run();
+    p.payload("build").with_stdout("").run();
 
-    p.cargo("build --features foo")
+    p.payload("build --features foo")
         .with_stderr("[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn changing_profiles_caches_targets() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -238,7 +238,7 @@ fn changing_profiles_caches_targets() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [..]Compiling foo v0.0.1 ([..])
@@ -247,7 +247,7 @@ fn changing_profiles_caches_targets() {
         )
         .run();
 
-    p.cargo("test")
+    p.payload("test")
         .with_stderr(
             "\
 [..]Compiling foo v0.0.1 ([..])
@@ -260,11 +260,11 @@ fn changing_profiles_caches_targets() {
 
     /* Targets should be cached from the first build */
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr("[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]")
         .run();
 
-    p.cargo("test foo")
+    p.payload("test foo")
         .with_stderr(
             "\
 [FINISHED] test [unoptimized + debuginfo] target(s) in [..]
@@ -274,20 +274,20 @@ fn changing_profiles_caches_targets() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn changing_bin_paths_common_target_features_caches_targets() {
     // Make sure dep_cache crate is built once per feature
     let p = project()
         .no_manifest()
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
                 [build]
                 target-dir = "./target"
             "#,
         )
         .file(
-            "dep_crate/Cargo.toml",
+            "dep_crate/Payload.toml",
             r#"
                 [package]
                 name    = "dep_crate"
@@ -312,7 +312,7 @@ fn changing_bin_paths_common_target_features_caches_targets() {
             "#,
         )
         .file(
-            "a/Cargo.toml",
+            "a/Payload.toml",
             r#"
                 [package]
                 name    = "a"
@@ -335,7 +335,7 @@ fn changing_bin_paths_common_target_features_caches_targets() {
             "#,
         )
         .file(
-            "b/Cargo.toml",
+            "b/Payload.toml",
             r#"
                 [package]
                 name    = "b"
@@ -360,7 +360,7 @@ fn changing_bin_paths_common_target_features_caches_targets() {
         .build();
 
     /* Build and rebuild a/. Ensure dep_crate only builds once */
-    p.cargo("run")
+    p.payload("run")
         .cwd("a")
         .with_stdout("ftest off")
         .with_stderr(
@@ -372,8 +372,8 @@ fn changing_bin_paths_common_target_features_caches_targets() {
 ",
         )
         .run();
-    p.cargo("clean -p a").cwd("a").run();
-    p.cargo("run")
+    p.payload("clean -p a").cwd("a").run();
+    p.payload("run")
         .cwd("a")
         .with_stdout("ftest off")
         .with_stderr(
@@ -386,7 +386,7 @@ fn changing_bin_paths_common_target_features_caches_targets() {
         .run();
 
     /* Build and rebuild b/. Ensure dep_crate only builds once */
-    p.cargo("run")
+    p.payload("run")
         .cwd("b")
         .with_stdout("ftest on")
         .with_stderr(
@@ -398,8 +398,8 @@ fn changing_bin_paths_common_target_features_caches_targets() {
 ",
         )
         .run();
-    p.cargo("clean -p b").cwd("b").run();
-    p.cargo("run")
+    p.payload("clean -p b").cwd("b").run();
+    p.payload("run")
         .cwd("b")
         .with_stdout("ftest on")
         .with_stderr(
@@ -413,8 +413,8 @@ fn changing_bin_paths_common_target_features_caches_targets() {
 
     /* Build a/ package again. If we cache different feature dep builds correctly,
      * this should not cause a rebuild of dep_crate */
-    p.cargo("clean -p a").cwd("a").run();
-    p.cargo("run")
+    p.payload("clean -p a").cwd("a").run();
+    p.payload("run")
         .cwd("a")
         .with_stdout("ftest off")
         .with_stderr(
@@ -428,8 +428,8 @@ fn changing_bin_paths_common_target_features_caches_targets() {
 
     /* Build b/ package again. If we cache different feature dep builds correctly,
      * this should not cause a rebuild */
-    p.cargo("clean -p b").cwd("b").run();
-    p.cargo("run")
+    p.payload("clean -p b").cwd("b").run();
+    p.payload("run")
         .cwd("b")
         .with_stdout("ftest on")
         .with_stderr(
@@ -442,11 +442,11 @@ fn changing_bin_paths_common_target_features_caches_targets() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn changing_bin_features_caches_targets() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -468,7 +468,7 @@ fn changing_bin_features_caches_targets() {
         )
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([..])
@@ -478,7 +478,7 @@ fn changing_bin_features_caches_targets() {
         .run();
     p.rename_run("foo", "off1").with_stdout("feature off").run();
 
-    p.cargo("build --features foo")
+    p.payload("build --features foo")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([..])
@@ -490,7 +490,7 @@ fn changing_bin_features_caches_targets() {
 
     /* Targets should be cached from the first build */
 
-    let mut e = p.cargo("build");
+    let mut e = p.payload("build");
     // MSVC/apple does not include hash in binary filename, so it gets recompiled.
     if cfg!(any(target_env = "msvc", target_vendor = "apple")) {
         e.with_stderr("[COMPILING] foo[..]\n[FINISHED] dev[..]");
@@ -500,7 +500,7 @@ fn changing_bin_features_caches_targets() {
     e.run();
     p.rename_run("foo", "off2").with_stdout("feature off").run();
 
-    let mut e = p.cargo("build --features foo");
+    let mut e = p.payload("build --features foo");
     if cfg!(any(target_env = "msvc", target_vendor = "apple")) {
         e.with_stderr("[COMPILING] foo[..]\n[FINISHED] dev[..]");
     } else {
@@ -510,7 +510,7 @@ fn changing_bin_features_caches_targets() {
     p.rename_run("foo", "on2").with_stdout("feature on").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn rebuild_tests_if_lib_changes() {
     let p = project()
         .file("src/lib.rs", "pub fn foo() {}")
@@ -524,24 +524,24 @@ fn rebuild_tests_if_lib_changes() {
         )
         .build();
 
-    p.cargo("build").run();
-    p.cargo("test").run();
+    p.payload("build").run();
+    p.payload("test").run();
 
     sleep_ms(1000);
     p.change_file("src/lib.rs", "");
 
-    p.cargo("build -v").run();
-    p.cargo("test -v")
+    p.payload("build -v").run();
+    p.payload("test -v")
         .with_status(101)
         .with_stderr_contains("[..]cannot find function `foo`[..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn no_rebuild_transitive_target_deps() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -557,7 +557,7 @@ fn no_rebuild_transitive_target_deps() {
         .file("src/lib.rs", "")
         .file("tests/foo.rs", "")
         .file(
-            "a/Cargo.toml",
+            "a/Payload.toml",
             r#"
                 [package]
                 name = "a"
@@ -570,7 +570,7 @@ fn no_rebuild_transitive_target_deps() {
         )
         .file("a/src/lib.rs", "")
         .file(
-            "b/Cargo.toml",
+            "b/Payload.toml",
             r#"
                 [package]
                 name = "b"
@@ -582,12 +582,12 @@ fn no_rebuild_transitive_target_deps() {
             "#,
         )
         .file("b/src/lib.rs", "")
-        .file("c/Cargo.toml", &basic_manifest("c", "0.0.1"))
+        .file("c/Payload.toml", &basic_manifest("c", "0.0.1"))
         .file("c/src/lib.rs", "")
         .build();
 
-    p.cargo("build").run();
-    p.cargo("test --no-run")
+    p.payload("build").run();
+    p.payload("test --no-run")
         .with_stderr(
             "\
 [COMPILING] c v0.0.1 ([..])
@@ -599,11 +599,11 @@ fn no_rebuild_transitive_target_deps() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn rerun_if_changed_in_dep() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -616,7 +616,7 @@ fn rerun_if_changed_in_dep() {
         )
         .file("src/lib.rs", "")
         .file(
-            "a/Cargo.toml",
+            "a/Payload.toml",
             r#"
                 [package]
                 name = "a"
@@ -629,23 +629,23 @@ fn rerun_if_changed_in_dep() {
             "a/build.rs",
             r#"
                 fn main() {
-                    println!("cargo:rerun-if-changed=build.rs");
+                    println!("payload:rerun-if-changed=build.rs");
                 }
             "#,
         )
         .file("a/src/lib.rs", "")
         .build();
 
-    p.cargo("build").run();
-    p.cargo("build").with_stdout("").run();
+    p.payload("build").run();
+    p.payload("build").with_stdout("").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn same_build_dir_cached_packages() {
     let p = project()
         .no_manifest()
         .file(
-            "a1/Cargo.toml",
+            "a1/Payload.toml",
             r#"
                 [package]
                 name = "a1"
@@ -657,7 +657,7 @@ fn same_build_dir_cached_packages() {
         )
         .file("a1/src/lib.rs", "")
         .file(
-            "a2/Cargo.toml",
+            "a2/Payload.toml",
             r#"
                 [package]
                 name = "a2"
@@ -669,7 +669,7 @@ fn same_build_dir_cached_packages() {
         )
         .file("a2/src/lib.rs", "")
         .file(
-            "b/Cargo.toml",
+            "b/Payload.toml",
             r#"
                 [package]
                 name = "b"
@@ -681,7 +681,7 @@ fn same_build_dir_cached_packages() {
         )
         .file("b/src/lib.rs", "")
         .file(
-            "c/Cargo.toml",
+            "c/Payload.toml",
             r#"
                 [package]
                 name = "c"
@@ -692,10 +692,10 @@ fn same_build_dir_cached_packages() {
             "#,
         )
         .file("c/src/lib.rs", "")
-        .file("d/Cargo.toml", &basic_manifest("d", "0.0.1"))
+        .file("d/Payload.toml", &basic_manifest("d", "0.0.1"))
         .file("d/src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
                 [build]
                 target-dir = "./target"
@@ -703,7 +703,7 @@ fn same_build_dir_cached_packages() {
         )
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .cwd("a1")
         .with_stderr(&format!(
             "\
@@ -716,7 +716,7 @@ fn same_build_dir_cached_packages() {
             dir = p.url().to_file_path().unwrap().to_str().unwrap()
         ))
         .run();
-    p.cargo("build")
+    p.payload("build")
         .cwd("a2")
         .with_stderr(
             "\
@@ -727,11 +727,11 @@ fn same_build_dir_cached_packages() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn no_rebuild_if_build_artifacts_move_backwards_in_time() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -743,25 +743,25 @@ fn no_rebuild_if_build_artifacts_move_backwards_in_time() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("a/Cargo.toml", &basic_manifest("a", "0.0.1"))
+        .file("a/Payload.toml", &basic_manifest("a", "0.0.1"))
         .file("a/src/lib.rs", "")
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 
     p.root().move_into_the_past();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stdout("")
         .with_stderr("[FINISHED] [..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn rebuild_if_build_artifacts_move_forward_in_time() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -773,16 +773,16 @@ fn rebuild_if_build_artifacts_move_forward_in_time() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("a/Cargo.toml", &basic_manifest("a", "0.0.1"))
+        .file("a/Payload.toml", &basic_manifest("a", "0.0.1"))
         .file("a/src/lib.rs", "")
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 
     p.root().move_into_the_future();
 
-    p.cargo("build")
-        .env("CARGO_LOG", "")
+    p.payload("build")
+        .env("PAYLOAD_LOG", "")
         .with_stdout("")
         .with_stderr(
             "\
@@ -794,11 +794,11 @@ fn rebuild_if_build_artifacts_move_forward_in_time() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn rebuild_if_environment_changes() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -811,13 +811,13 @@ fn rebuild_if_environment_changes() {
             "src/main.rs",
             r#"
                 fn main() {
-                    println!("{}", env!("CARGO_PKG_DESCRIPTION"));
+                    println!("{}", env!("PAYLOAD_PKG_DESCRIPTION"));
                 }
             "#,
         )
         .build();
 
-    p.cargo("run")
+    p.payload("run")
         .with_stdout("old desc")
         .with_stderr(
             "\
@@ -829,7 +829,7 @@ fn rebuild_if_environment_changes() {
         .run();
 
     p.change_file(
-        "Cargo.toml",
+        "Payload.toml",
         r#"
             [package]
             name = "foo"
@@ -839,7 +839,7 @@ fn rebuild_if_environment_changes() {
         "#,
     );
 
-    p.cargo("run")
+    p.payload("run")
         .with_stdout("new desc")
         .with_stderr(
             "\
@@ -851,11 +851,11 @@ fn rebuild_if_environment_changes() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn no_rebuild_when_rename_dir() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -870,30 +870,30 @@ fn no_rebuild_when_rename_dir() {
         )
         .file("src/_unused.rs", "")
         .file("build.rs", "fn main() {}")
-        .file("foo/Cargo.toml", &basic_manifest("foo", "0.0.1"))
+        .file("foo/Payload.toml", &basic_manifest("foo", "0.0.1"))
         .file("foo/src/lib.rs", "")
         .file("foo/build.rs", "fn main() {}")
         .build();
 
     // make sure the most recently modified file is `src/lib.rs`, not
-    // `Cargo.toml`, to expose a historical bug where we forgot to strip the
-    // `Cargo.toml` path from looking for the package root.
-    cargo_test_support::sleep_ms(100);
+    // `Payload.toml`, to expose a historical bug where we forgot to strip the
+    // `Payload.toml` path from looking for the package root.
+    payload_test_support::sleep_ms(100);
     fs::write(p.root().join("src/lib.rs"), "").unwrap();
 
-    p.cargo("build").run();
+    p.payload("build").run();
     let mut new = p.root();
     new.pop();
     new.push("bar");
     fs::rename(p.root(), &new).unwrap();
 
-    p.cargo("build")
+    p.payload("build")
         .cwd(&new)
         .with_stderr("[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn unused_optional_dep() {
     Package::new("registry1", "0.1.0").publish();
     Package::new("registry2", "0.1.0").publish();
@@ -901,7 +901,7 @@ fn unused_optional_dep() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "p"
@@ -916,7 +916,7 @@ fn unused_optional_dep() {
         )
         .file("src/lib.rs", "")
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -929,7 +929,7 @@ fn unused_optional_dep() {
         )
         .file("bar/src/lib.rs", "")
         .file(
-            "baz/Cargo.toml",
+            "baz/Payload.toml",
             r#"
                 [package]
                 name = "baz"
@@ -943,18 +943,18 @@ fn unused_optional_dep() {
         .file("baz/src/lib.rs", "")
         .build();
 
-    p.cargo("build").run();
-    p.cargo("build").with_stderr("[FINISHED] [..]").run();
+    p.payload("build").run();
+    p.payload("build").with_stderr("[FINISHED] [..]").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn path_dev_dep_registry_updates() {
     Package::new("registry1", "0.1.0").publish();
     Package::new("registry2", "0.1.0").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "p"
@@ -967,7 +967,7 @@ fn path_dev_dep_registry_updates() {
         )
         .file("src/lib.rs", "")
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -983,7 +983,7 @@ fn path_dev_dep_registry_updates() {
         )
         .file("bar/src/lib.rs", "")
         .file(
-            "baz/Cargo.toml",
+            "baz/Payload.toml",
             r#"
                 [package]
                 name = "baz"
@@ -997,15 +997,15 @@ fn path_dev_dep_registry_updates() {
         .file("baz/src/lib.rs", "")
         .build();
 
-    p.cargo("build").run();
-    p.cargo("build").with_stderr("[FINISHED] [..]").run();
+    p.payload("build").run();
+    p.payload("build").with_stderr("[FINISHED] [..]").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn change_panic_mode() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ['bar', 'baz']
@@ -1014,10 +1014,10 @@ fn change_panic_mode() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.1"))
         .file("bar/src/lib.rs", "")
         .file(
-            "baz/Cargo.toml",
+            "baz/Payload.toml",
             r#"
                 [package]
                 name = "baz"
@@ -1034,15 +1034,15 @@ fn change_panic_mode() {
         .file("baz/src/lib.rs", "extern crate bar;")
         .build();
 
-    p.cargo("build -p bar").run();
-    p.cargo("build -p baz").run();
+    p.payload("build -p bar").run();
+    p.payload("build -p baz").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn dont_rebuild_based_on_plugins() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -1057,7 +1057,7 @@ fn dont_rebuild_based_on_plugins() {
         )
         .file("src/lib.rs", "")
         .file(
-            "proc-macro-thing/Cargo.toml",
+            "proc-macro-thing/Payload.toml",
             r#"
                 [package]
                 name = "proc-macro-thing"
@@ -1072,7 +1072,7 @@ fn dont_rebuild_based_on_plugins() {
         )
         .file("proc-macro-thing/src/lib.rs", "")
         .file(
-            "baz/Cargo.toml",
+            "baz/Payload.toml",
             r#"
                 [package]
                 name = "baz"
@@ -1083,23 +1083,23 @@ fn dont_rebuild_based_on_plugins() {
             "#,
         )
         .file("baz/src/main.rs", "fn main() {}")
-        .file("qux/Cargo.toml", &basic_manifest("qux", "0.1.1"))
+        .file("qux/Payload.toml", &basic_manifest("qux", "0.1.1"))
         .file("qux/src/lib.rs", "")
         .build();
 
-    p.cargo("build").run();
-    p.cargo("build -p baz").run();
-    p.cargo("build").with_stderr("[FINISHED] [..]\n").run();
-    p.cargo("build -p bar")
+    p.payload("build").run();
+    p.payload("build -p baz").run();
+    p.payload("build").with_stderr("[FINISHED] [..]\n").run();
+    p.payload("build -p bar")
         .with_stderr("[FINISHED] [..]\n")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn reuse_workspace_lib() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -1112,12 +1112,12 @@ fn reuse_workspace_lib() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("baz/Cargo.toml", &basic_manifest("baz", "0.1.1"))
+        .file("baz/Payload.toml", &basic_manifest("baz", "0.1.1"))
         .file("baz/src/lib.rs", "")
         .build();
 
-    p.cargo("build").run();
-    p.cargo("test -p baz -v --no-run")
+    p.payload("build").run();
+    p.payload("test -p baz -v --no-run")
         .with_stderr(
             "\
 [COMPILING] baz v0.1.1 ([..])
@@ -1128,11 +1128,11 @@ fn reuse_workspace_lib() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn reuse_shared_build_dep() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1146,10 +1146,10 @@ fn reuse_shared_build_dep() {
             "#,
         )
         .file("src/main.rs", "fn main() {}")
-        .file("shared/Cargo.toml", &basic_manifest("shared", "0.0.1"))
+        .file("shared/Payload.toml", &basic_manifest("shared", "0.0.1"))
         .file("shared/src/lib.rs", "")
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -1163,9 +1163,9 @@ fn reuse_shared_build_dep() {
         .file("bar/build.rs", "fn main() {}")
         .build();
 
-    p.cargo("build --workspace").run();
+    p.payload("build --workspace").run();
     // This should not recompile!
-    p.cargo("build -p foo -v")
+    p.payload("build -p foo -v")
         .with_stderr(
             "\
 [FRESH] shared [..]
@@ -1176,20 +1176,20 @@ fn reuse_shared_build_dep() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn changing_rustflags_is_cached() {
     let p = project().file("src/lib.rs", "").build();
 
     // This isn't ever cached, we always have to recompile
     for _ in 0..2 {
-        p.cargo("build")
+        p.payload("build")
             .with_stderr(
                 "\
 [COMPILING] foo v0.0.1 ([..])
 [FINISHED] dev [unoptimized + debuginfo] target(s) in [..]",
             )
             .run();
-        p.cargo("build")
+        p.payload("build")
             .env("RUSTFLAGS", "-C linker=cc")
             .with_stderr(
                 "\
@@ -1200,11 +1200,11 @@ fn changing_rustflags_is_cached() {
     }
 }
 
-#[cargo_test]
+#[payload_test]
 fn update_dependency_mtime_does_not_rebuild() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1215,12 +1215,12 @@ fn update_dependency_mtime_does_not_rebuild() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.0.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.0.1"))
         .file("bar/src/lib.rs", "")
         .build();
 
-    p.cargo("build -Z mtime-on-use")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -Z mtime-on-use")
+        .masquerade_as_nightly_payload()
         .env("RUSTFLAGS", "-C linker=cc")
         .with_stderr(
             "\
@@ -1230,23 +1230,23 @@ fn update_dependency_mtime_does_not_rebuild() {
         )
         .run();
     // This does not make new files, but it does update the mtime of the dependency.
-    p.cargo("build -p bar -Z mtime-on-use")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -p bar -Z mtime-on-use")
+        .masquerade_as_nightly_payload()
         .env("RUSTFLAGS", "-C linker=cc")
         .with_stderr("[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]")
         .run();
     // This should not recompile!
-    p.cargo("build -Z mtime-on-use")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -Z mtime-on-use")
+        .masquerade_as_nightly_payload()
         .env("RUSTFLAGS", "-C linker=cc")
         .with_stderr("[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]")
         .run();
 }
 
 fn fingerprint_cleaner(mut dir: PathBuf, timestamp: filetime::FileTime) {
-    // Cargo is experimenting with letting outside projects develop some
+    // Payload is experimenting with letting outside projects develop some
     // limited forms of GC for target_dir. This is one of the forms.
-    // Specifically, Cargo is updating the mtime of a file in
+    // Specifically, Payload is updating the mtime of a file in
     // target/profile/.fingerprint each time it uses the fingerprint.
     // So a cleaner can remove files associated with a fingerprint
     // if all the files in the fingerprint's folder are older then a time stamp without
@@ -1275,11 +1275,11 @@ fn fingerprint_cleaner(mut dir: PathBuf, timestamp: filetime::FileTime) {
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn fingerprint_cleaner_does_not_rebuild() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1293,15 +1293,15 @@ fn fingerprint_cleaner_does_not_rebuild() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.0.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.0.1"))
         .file("bar/src/lib.rs", "")
         .build();
 
-    p.cargo("build -Z mtime-on-use")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -Z mtime-on-use")
+        .masquerade_as_nightly_payload()
         .run();
-    p.cargo("build -Z mtime-on-use --features a")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -Z mtime-on-use --features a")
+        .masquerade_as_nightly_payload()
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([..])
@@ -1316,19 +1316,19 @@ fn fingerprint_cleaner_does_not_rebuild() {
         sleep_ms(1000);
     }
     // This does not make new files, but it does update the mtime.
-    p.cargo("build -Z mtime-on-use --features a")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -Z mtime-on-use --features a")
+        .masquerade_as_nightly_payload()
         .with_stderr("[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]")
         .run();
     fingerprint_cleaner(p.target_debug_dir(), timestamp);
     // This should not recompile!
-    p.cargo("build -Z mtime-on-use --features a")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -Z mtime-on-use --features a")
+        .masquerade_as_nightly_payload()
         .with_stderr("[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]")
         .run();
     // But this should be cleaned and so need a rebuild
-    p.cargo("build -Z mtime-on-use")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -Z mtime-on-use")
+        .masquerade_as_nightly_payload()
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([..])
@@ -1337,11 +1337,11 @@ fn fingerprint_cleaner_does_not_rebuild() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn reuse_panic_build_dep_test() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1359,12 +1359,12 @@ fn reuse_panic_build_dep_test() {
         )
         .file("src/lib.rs", "")
         .file("build.rs", "fn main() {}")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.0.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.0.1"))
         .file("bar/src/lib.rs", "")
         .build();
 
     // Check that `bar` is not built twice. It is only needed once (without `panic`).
-    p.cargo("test --lib --no-run -v")
+    p.payload("test --lib --no-run -v")
         .with_stderr(
             "\
 [COMPILING] bar [..]
@@ -1379,13 +1379,13 @@ fn reuse_panic_build_dep_test() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn reuse_panic_pm() {
     // foo(panic) -> bar(panic)
     // somepm(nopanic) -> bar(nopanic)
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1400,10 +1400,10 @@ fn reuse_panic_pm() {
             "#,
         )
         .file("src/lib.rs", "extern crate bar;")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.0.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.0.1"))
         .file("bar/src/lib.rs", "")
         .file(
-            "somepm/Cargo.toml",
+            "somepm/Payload.toml",
             r#"
                 [package]
                 name = "somepm"
@@ -1421,7 +1421,7 @@ fn reuse_panic_pm() {
 
     // bar is built once without panic (for proc-macro) and once with (for the
     // normal dependency).
-    p.cargo("build -v")
+    p.payload("build -v")
         .with_stderr_unordered(
             "\
 [COMPILING] bar [..]
@@ -1437,7 +1437,7 @@ fn reuse_panic_pm() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bust_patched_dep() {
     Package::new("registry1", "0.1.0").publish();
     Package::new("registry2", "0.1.0")
@@ -1446,7 +1446,7 @@ fn bust_patched_dep() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1460,11 +1460,11 @@ fn bust_patched_dep() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("reg1new/Cargo.toml", &basic_manifest("registry1", "0.1.0"))
+        .file("reg1new/Payload.toml", &basic_manifest("registry1", "0.1.0"))
         .file("reg1new/src/lib.rs", "")
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
     if is_coarse_mtime() {
         sleep_ms(1000);
     }
@@ -1474,7 +1474,7 @@ fn bust_patched_dep() {
         sleep_ms(1000);
     }
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [COMPILING] registry1 v0.1.0 ([..])
@@ -1485,7 +1485,7 @@ fn bust_patched_dep() {
         )
         .run();
 
-    p.cargo("build -v")
+    p.payload("build -v")
         .with_stderr(
             "\
 [FRESH] registry1 v0.1.0 ([..])
@@ -1497,21 +1497,21 @@ fn bust_patched_dep() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn rebuild_on_mid_build_file_modification() {
     let server = TcpListener::bind("127.0.0.1:0").unwrap();
     let addr = server.local_addr().unwrap();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["root", "proc_macro_dep"]
             "#,
         )
         .file(
-            "root/Cargo.toml",
+            "root/Payload.toml",
             r#"
                 [package]
                 name = "root"
@@ -1533,7 +1533,7 @@ fn rebuild_on_mid_build_file_modification() {
             "#,
         )
         .file(
-            "proc_macro_dep/Cargo.toml",
+            "proc_macro_dep/Payload.toml",
             r#"
                 [package]
                 name = "proc_macro_dep"
@@ -1582,7 +1582,7 @@ fn rebuild_on_mid_build_file_modification() {
         drop(server.accept().unwrap());
     });
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [COMPILING] proc_macro_dep v0.1.0 ([..]/proc_macro_dep)
@@ -1592,7 +1592,7 @@ fn rebuild_on_mid_build_file_modification() {
         )
         .run();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [COMPILING] root v0.1.0 ([..]/root)
@@ -1604,7 +1604,7 @@ fn rebuild_on_mid_build_file_modification() {
     t.join().ok().unwrap();
 }
 
-#[cargo_test]
+#[payload_test]
 fn dirty_both_lib_and_test() {
     // This tests that all artifacts that depend on the results of a build
     // script will get rebuilt when the build script reruns, even for separate
@@ -1668,18 +1668,18 @@ fn dirty_both_lib_and_test() {
                             .success(),
                         "slib build failed"
                     );
-                    println!("cargo:rustc-link-lib=slib");
-                    println!("cargo:rustc-link-search={}", out_dir.display());
+                    println!("payload:rustc-link-lib=slib");
+                    println!("payload:rustc-link-search={}", out_dir.display());
                 }
             "#,
         )
         .file("slib.rs", &slib(2))
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 
     // 2 != 1
-    p.cargo("test --lib")
+    p.payload("test --lib")
         .with_status(101)
         .with_stdout_contains("[..]doit assert failure[..]")
         .run();
@@ -1691,12 +1691,12 @@ fn dirty_both_lib_and_test() {
     // Fix the mistake.
     p.change_file("slib.rs", &slib(1));
 
-    p.cargo("build").run();
+    p.payload("build").run();
     // This should recompile with the new static lib, and the test should pass.
-    p.cargo("test --lib").run();
+    p.payload("test --lib").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn script_fails_stay_dirty() {
     // Check if a script is aborted (such as hitting Ctrl-C) that it will re-run.
     // Steps:
@@ -1710,7 +1710,7 @@ fn script_fails_stay_dirty() {
             r#"
                 mod helper;
                 fn main() {
-                    println!("cargo:rerun-if-changed=build.rs");
+                    println!("payload:rerun-if-changed=build.rs");
                     helper::doit();
                 }
             "#,
@@ -1719,23 +1719,23 @@ fn script_fails_stay_dirty() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
     if is_coarse_mtime() {
         sleep_ms(1000);
     }
     p.change_file("helper.rs", r#"pub fn doit() {panic!("Crash!");}"#);
-    p.cargo("build")
+    p.payload("build")
         .with_stderr_contains("[..]Crash![..]")
         .with_status(101)
         .run();
     // There was a bug where this second call would be "fresh".
-    p.cargo("build")
+    p.payload("build")
         .with_stderr_contains("[..]Crash![..]")
         .with_status(101)
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn simulated_docker_deps_stay_cached() {
     // Test what happens in docker where the nanoseconds are zeroed out.
     Package::new("regdep", "1.0.0").publish();
@@ -1748,7 +1748,7 @@ fn simulated_docker_deps_stay_cached() {
             "build.rs",
             r#"
             fn main() {
-                println!("cargo:rerun-if-env-changed=SOMEVAR");
+                println!("payload:rerun-if-env-changed=SOMEVAR");
             }
             "#,
         )
@@ -1759,7 +1759,7 @@ fn simulated_docker_deps_stay_cached() {
             "build.rs",
             r#"
             fn main() {
-                println!("cargo:rerun-if-changed=build.rs");
+                println!("payload:rerun-if-changed=build.rs");
             }
             "#,
         )
@@ -1768,7 +1768,7 @@ fn simulated_docker_deps_stay_cached() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -1793,11 +1793,11 @@ fn simulated_docker_deps_stay_cached() {
             ",
         )
         .file("build.rs", "fn main() {}")
-        .file("pathdep/Cargo.toml", &basic_manifest("pathdep", "1.0.0"))
+        .file("pathdep/Payload.toml", &basic_manifest("pathdep", "1.0.0"))
         .file("pathdep/src/lib.rs", "")
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 
     let already_zero = {
         // This happens on HFS with 1-second timestamp resolution,
@@ -1839,7 +1839,7 @@ fn simulated_docker_deps_stay_cached() {
     if already_zero {
         println!("already zero");
         // If it was already truncated, then everything stays fresh.
-        p.cargo("build -v")
+        p.payload("build -v")
             .with_stderr_unordered(
                 "\
 [FRESH] pathdep [..]
@@ -1863,7 +1863,7 @@ fn simulated_docker_deps_stay_cached() {
         // `Precalculated` is an opaque string which has the most recent mtime
         // in it. It differs between builds because one has nsec=0 and the other
         // likely has a nonzero nsec. Hence, the rebuild.
-        p.cargo("build -v")
+        p.payload("build -v")
             .with_stderr_unordered(
                 "\
 [FRESH] pathdep [..]
@@ -1881,11 +1881,11 @@ fn simulated_docker_deps_stay_cached() {
     }
 }
 
-#[cargo_test]
+#[payload_test]
 fn metadata_change_invalidates() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -1895,7 +1895,7 @@ fn metadata_change_invalidates() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 
     for attr in &[
         "authors = [\"foo\"]",
@@ -1906,20 +1906,20 @@ fn metadata_change_invalidates() {
         let mut file = OpenOptions::new()
             .write(true)
             .append(true)
-            .open(p.root().join("Cargo.toml"))
+            .open(p.root().join("Payload.toml"))
             .unwrap();
         writeln!(file, "{}", attr).unwrap();
-        p.cargo("build")
+        p.payload("build")
             .with_stderr_contains("[COMPILING] foo [..]")
             .run();
     }
-    p.cargo("build -v")
+    p.payload("build -v")
         .with_stderr_contains("[FRESH] foo[..]")
         .run();
     assert_eq!(p.glob("target/debug/deps/libfoo-*.rlib").count(), 1);
 }
 
-#[cargo_test]
+#[payload_test]
 fn edition_change_invalidates() {
     const MANIFEST: &str = r#"
         [package]
@@ -1927,16 +1927,16 @@ fn edition_change_invalidates() {
         version = "0.1.0"
     "#;
     let p = project()
-        .file("Cargo.toml", MANIFEST)
+        .file("Payload.toml", MANIFEST)
         .file("src/lib.rs", "")
         .build();
-    p.cargo("build").run();
-    p.change_file("Cargo.toml", &format!("{}edition = \"2018\"", MANIFEST));
-    p.cargo("build")
+    p.payload("build").run();
+    p.change_file("Payload.toml", &format!("{}edition = \"2018\"", MANIFEST));
+    p.payload("build")
         .with_stderr_contains("[COMPILING] foo [..]")
         .run();
     p.change_file(
-        "Cargo.toml",
+        "Payload.toml",
         &format!(
             r#"{}edition = "2018"
             [lib]
@@ -1945,20 +1945,20 @@ fn edition_change_invalidates() {
             MANIFEST
         ),
     );
-    p.cargo("build")
+    p.payload("build")
         .with_stderr_contains("[COMPILING] foo [..]")
         .run();
-    p.cargo("build -v")
+    p.payload("build -v")
         .with_stderr_contains("[FRESH] foo[..]")
         .run();
     assert_eq!(p.glob("target/debug/deps/libfoo-*.rlib").count(), 1);
 }
 
-#[cargo_test]
+#[payload_test]
 fn rename_with_path_deps() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1971,7 +1971,7 @@ fn rename_with_path_deps() {
         )
         .file("src/lib.rs", "extern crate a; pub fn foo() { a::foo(); }")
         .file(
-            "a/Cargo.toml",
+            "a/Payload.toml",
             r#"
                 [project]
                 name = "a"
@@ -1984,7 +1984,7 @@ fn rename_with_path_deps() {
         )
         .file("a/src/lib.rs", "extern crate b; pub fn foo() { b::foo() }")
         .file(
-            "a/b/Cargo.toml",
+            "a/b/Payload.toml",
             r#"
                 [project]
                 name = "b"
@@ -1995,9 +1995,9 @@ fn rename_with_path_deps() {
         .file("a/b/src/lib.rs", "pub fn foo() { }");
     let p = p.build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 
-    // Now rename the root directory and rerun `cargo run`. Not only should we
+    // Now rename the root directory and rerun `payload run`. Not only should we
     // not build anything but we also shouldn't crash.
     let mut new = p.root();
     new.pop();
@@ -2005,17 +2005,17 @@ fn rename_with_path_deps() {
 
     fs::rename(p.root(), &new).unwrap();
 
-    p.cargo("build")
+    p.payload("build")
         .cwd(&new)
         .with_stderr("[FINISHED] [..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn move_target_directory_with_path_deps() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -2027,7 +2027,7 @@ fn move_target_directory_with_path_deps() {
             "#,
         )
         .file(
-            "a/Cargo.toml",
+            "a/Payload.toml",
             r#"
                 [project]
                 name = "a"
@@ -2044,7 +2044,7 @@ fn move_target_directory_with_path_deps() {
                 use std::path::Path;
 
                 fn main() {
-                    println!("cargo:rerun-if-changed=build.rs");
+                    println!("payload:rerun-if-changed=build.rs");
                     let out_dir = env::var("OUT_DIR").unwrap();
                     let dest_path = Path::new(&out_dir).join("hello.rs");
                     fs::write(&dest_path, r#"
@@ -2067,27 +2067,27 @@ fn move_target_directory_with_path_deps() {
     let mut parent = p.root();
     parent.pop();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 
     let new_target = p.root().join("target2");
     fs::rename(p.root().join("target"), &new_target).unwrap();
 
-    p.cargo("build")
-        .env("CARGO_TARGET_DIR", &new_target)
+    p.payload("build")
+        .env("PAYLOAD_TARGET_DIR", &new_target)
         .with_stderr("[FINISHED] [..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn rerun_if_changes() {
     let p = project()
         .file(
             "build.rs",
             r#"
                 fn main() {
-                    println!("cargo:rerun-if-env-changed=FOO");
+                    println!("payload:rerun-if-env-changed=FOO");
                     if std::env::var("FOO").is_ok() {
-                        println!("cargo:rerun-if-env-changed=BAR");
+                        println!("payload:rerun-if-env-changed=BAR");
                     }
                 }
             "#,
@@ -2095,10 +2095,10 @@ fn rerun_if_changes() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build").run();
-    p.cargo("build").with_stderr("[FINISHED] [..]").run();
+    p.payload("build").run();
+    p.payload("build").with_stderr("[FINISHED] [..]").run();
 
-    p.cargo("build -v")
+    p.payload("build -v")
         .env("FOO", "1")
         .with_stderr(
             "\
@@ -2109,12 +2109,12 @@ fn rerun_if_changes() {
 ",
         )
         .run();
-    p.cargo("build")
+    p.payload("build")
         .env("FOO", "1")
         .with_stderr("[FINISHED] [..]")
         .run();
 
-    p.cargo("build -v")
+    p.payload("build -v")
         .env("FOO", "1")
         .env("BAR", "1")
         .with_stderr(
@@ -2126,13 +2126,13 @@ fn rerun_if_changes() {
 ",
         )
         .run();
-    p.cargo("build")
+    p.payload("build")
         .env("FOO", "1")
         .env("BAR", "1")
         .with_stderr("[FINISHED] [..]")
         .run();
 
-    p.cargo("build -v")
+    p.payload("build -v")
         .env("BAR", "2")
         .with_stderr(
             "\
@@ -2143,13 +2143,13 @@ fn rerun_if_changes() {
 ",
         )
         .run();
-    p.cargo("build")
+    p.payload("build")
         .env("BAR", "2")
         .with_stderr("[FINISHED] [..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn channel_shares_filenames() {
     // Test that different "nightly" releases use the same output filename.
 
@@ -2234,7 +2234,7 @@ LLVM version: 9.0
 
     let compiler = project()
         .at("compiler")
-        .file("Cargo.toml", &basic_manifest("compiler", "0.1.0"))
+        .file("Payload.toml", &basic_manifest("compiler", "0.1.0"))
         .file(
             "src/main.rs",
             r#"
@@ -2254,7 +2254,7 @@ LLVM version: 9.0
     let makeit = |version, vv| {
         // Force a rebuild.
         compiler.target_debug_dir().join("deps").rm_rf();
-        compiler.cargo("build").env("FUNKY_VERSION_TEST", vv).run();
+        compiler.payload("build").env("FUNKY_VERSION_TEST", vv).run();
         fs::rename(compiler.bin("compiler"), compiler.bin(version)).unwrap();
     };
     makeit("nightly1", nightly1);
@@ -2264,14 +2264,14 @@ LLVM version: 9.0
     makeit("stable1", stable1);
     makeit("stable2", stable2);
 
-    // Run `cargo check` with different rustc versions to observe its behavior.
+    // Run `payload check` with different rustc versions to observe its behavior.
     let p = project().file("src/lib.rs", "").build();
 
-    // Runs `cargo check` and returns the rmeta filename created.
+    // Runs `payload check` and returns the rmeta filename created.
     // Checks that the freshness matches the given value.
     let check = |version, fresh| -> String {
         let output = p
-            .cargo("check --message-format=json")
+            .payload("check --message-format=json")
             .env("RUSTC", compiler.bin(version))
             .exec_with_output()
             .unwrap();
@@ -2323,12 +2323,12 @@ LLVM version: 9.0
     assert_eq!(check("nightly1", true), nightly1_name);
 }
 
-#[cargo_test]
+#[payload_test]
 fn linking_interrupted() {
     // Interrupt during the linking phase shouldn't leave test executable as "fresh".
 
     // This is used to detect when linking starts, then to pause the linker so
-    // that the test can kill cargo.
+    // that the test can kill payload.
     let link_listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let link_addr = link_listener.local_addr().unwrap();
 
@@ -2339,7 +2339,7 @@ fn linking_interrupted() {
     // Create a linker that we can interrupt.
     let linker = project()
         .at("linker")
-        .file("Cargo.toml", &basic_manifest("linker", "1.0.0"))
+        .file("Payload.toml", &basic_manifest("linker", "1.0.0"))
         .file(
             "src/main.rs",
             &r#"
@@ -2368,12 +2368,12 @@ fn linking_interrupted() {
             .replace("__ADDR__", &link_addr.to_string()),
         )
         .build();
-    linker.cargo("build").run();
+    linker.payload("build").run();
 
     // Create a wrapper around rustc that will tell us when rustc is finished.
     let rustc = project()
         .at("rustc-waiter")
-        .file("Cargo.toml", &basic_manifest("rustc-waiter", "1.0.0"))
+        .file("Payload.toml", &basic_manifest("rustc-waiter", "1.0.0"))
         .file(
             "src/main.rs",
             &r#"
@@ -2394,32 +2394,32 @@ fn linking_interrupted() {
             .replace("__ADDR__", &rustc_addr.to_string()),
         )
         .build();
-    rustc.cargo("build").run();
+    rustc.payload("build").run();
 
     // Build it once so that the fingerprint gets saved to disk.
     let p = project()
         .file("src/lib.rs", "")
         .file("tests/t1.rs", "")
         .build();
-    p.cargo("test --test t1 --no-run").run();
+    p.payload("test --test t1 --no-run").run();
 
     // Make a change, start a build, then interrupt it.
     p.change_file("src/lib.rs", "// modified");
     let linker_env = format!(
-        "CARGO_TARGET_{}_LINKER",
+        "PAYLOAD_TARGET_{}_LINKER",
         rustc_host().to_uppercase().replace('-', "_")
     );
     // NOTE: This assumes that the paths to the linker or rustc are not in the
     // fingerprint. But maybe they should be?
     let mut cmd = p
-        .cargo("test --test t1 --no-run")
+        .payload("test --test t1 --no-run")
         .env(&linker_env, linker.bin("linker"))
         .env("RUSTC", rustc.bin("rustc-waiter"))
         .build_command();
     let mut child = cmd
         .stdout(Stdio::null())
         .stderr(Stdio::null())
-        .env("__CARGO_TEST_SETSID_PLEASE_DONT_USE_ELSEWHERE", "1")
+        .env("__PAYLOAD_TEST_SETSID_PLEASE_DONT_USE_ELSEWHERE", "1")
         .spawn()
         .unwrap();
     // Wait for rustc to start.
@@ -2436,7 +2436,7 @@ fn linking_interrupted() {
     drop(rustc_conn.read_exact(&mut buf));
 
     // Build again, shouldn't be fresh.
-    p.cargo("test --test t1")
+    p.payload("test --test t1")
         .with_stderr(
             "\
 [COMPILING] foo [..]
@@ -2447,7 +2447,7 @@ fn linking_interrupted() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 #[cfg_attr(
     not(all(target_arch = "x86_64", target_os = "windows", target_env = "msvc")),
     ignore
@@ -2456,7 +2456,7 @@ fn lld_is_fresh() {
     // Check for bug when using lld linker that it remains fresh with dylib.
     let p = project()
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
                 [target.x86_64-pc-windows-msvc]
                 linker = "rust-lld"
@@ -2464,7 +2464,7 @@ fn lld_is_fresh() {
             "#,
         )
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -2477,17 +2477,17 @@ fn lld_is_fresh() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build").run();
-    p.cargo("build -v")
+    p.payload("build").run();
+    p.payload("build -v")
         .with_stderr("[FRESH] foo [..]\n[FINISHED] [..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn env_in_code_causes_rebuild() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -2505,55 +2505,55 @@ fn env_in_code_causes_rebuild() {
         )
         .build();
 
-    p.cargo("build").env_remove("FOO").run();
-    p.cargo("build")
+    p.payload("build").env_remove("FOO").run();
+    p.payload("build")
         .env_remove("FOO")
         .with_stderr("[FINISHED] [..]")
         .run();
-    p.cargo("build")
+    p.payload("build")
         .env("FOO", "bar")
         .with_stderr("[COMPILING][..]\n[FINISHED][..]")
         .run();
-    p.cargo("build")
+    p.payload("build")
         .env("FOO", "bar")
         .with_stderr("[FINISHED][..]")
         .run();
-    p.cargo("build")
+    p.payload("build")
         .env("FOO", "baz")
         .with_stderr("[COMPILING][..]\n[FINISHED][..]")
         .run();
-    p.cargo("build")
+    p.payload("build")
         .env("FOO", "baz")
         .with_stderr("[FINISHED][..]")
         .run();
-    p.cargo("build")
+    p.payload("build")
         .env_remove("FOO")
         .with_stderr("[COMPILING][..]\n[FINISHED][..]")
         .run();
-    p.cargo("build")
+    p.payload("build")
         .env_remove("FOO")
         .with_stderr("[FINISHED][..]")
         .run();
 
     let interesting = " #!$\nabc\r\\\t\u{8}\r\n";
-    p.cargo("build").env("FOO", interesting).run();
-    p.cargo("build")
+    p.payload("build").env("FOO", interesting).run();
+    p.payload("build")
         .env("FOO", interesting)
         .with_stderr("[FINISHED][..]")
         .run();
 
-    p.cargo("build").env("FOO\nBAR", interesting).run();
-    p.cargo("build")
+    p.payload("build").env("FOO\nBAR", interesting).run();
+    p.payload("build")
         .env("FOO\nBAR", interesting)
         .with_stderr("[FINISHED][..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn env_build_script_no_rebuild() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -2564,7 +2564,7 @@ fn env_build_script_no_rebuild() {
             "build.rs",
             r#"
                 fn main() {
-                    println!("cargo:rustc-env=FOO=bar");
+                    println!("payload:rustc-env=FOO=bar");
                 }
             "#,
         )
@@ -2578,6 +2578,6 @@ fn env_build_script_no_rebuild() {
         )
         .build();
 
-    p.cargo("build").run();
-    p.cargo("build").with_stderr("[FINISHED] [..]").run();
+    p.payload("build").run();
+    p.payload("build").with_stderr("[FINISHED] [..]").run();
 }

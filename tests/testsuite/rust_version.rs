@@ -1,12 +1,12 @@
 //! Tests for targets with `rust-version`.
 
-use cargo_test_support::{project, registry::Package};
+use payload_test_support::{project, registry::Package};
 
-#[cargo_test]
+#[payload_test]
 fn rust_version_gated() {
     project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -16,17 +16,17 @@ fn rust_version_gated() {
         )
         .file("src/lib.rs", "")
         .build()
-        .cargo("build")
-        .masquerade_as_nightly_cargo()
+        .payload("build")
+        .masquerade_as_nightly_payload()
         .with_stderr_contains(
-            "warning: `rust-version` is not supported on this version of Cargo and will be ignored\
-            \n\nconsider adding `cargo-features = [\"rust-version\"]` to the manifest",
+            "warning: `rust-version` is not supported on this version of Payload and will be ignored\
+            \n\nconsider adding `payload-features = [\"rust-version\"]` to the manifest",
         )
         .run();
 
     project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -36,23 +36,23 @@ fn rust_version_gated() {
         )
         .file("src/lib.rs", "")
         .build()
-        .cargo("build")
+        .payload("build")
         .with_stderr_contains(
-            "warning: `rust-version` is not supported on this version of Cargo and will be ignored\
-            \n\nthis Cargo does not support nightly features, but if you\n\
+            "warning: `rust-version` is not supported on this version of Payload and will be ignored\
+            \n\nthis Payload does not support nightly features, but if you\n\
             switch to nightly channel you can add\n\
-            `cargo-features = [\"rust-version\"]` to enable this feature",
+            `payload-features = [\"rust-version\"]` to enable this feature",
         )
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn rust_version_satisfied() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-            cargo-features = ["rust-version"]
+            payload-features = ["rust-version"]
 
             [project]
             name = "foo"
@@ -66,19 +66,19 @@ fn rust_version_satisfied() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("build").masquerade_as_nightly_cargo().run();
-    p.cargo("build --ignore-rust-version -Zunstable-options")
-        .masquerade_as_nightly_cargo()
+    p.payload("build").masquerade_as_nightly_payload().run();
+    p.payload("build --ignore-rust-version -Zunstable-options")
+        .masquerade_as_nightly_payload()
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn rust_version_bad_caret() {
     project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-            cargo-features = ["rust-version"]
+            payload-features = ["rust-version"]
 
             [project]
             name = "foo"
@@ -91,8 +91,8 @@ fn rust_version_bad_caret() {
         )
         .file("src/main.rs", "fn main() {}")
         .build()
-        .cargo("build")
-        .masquerade_as_nightly_cargo()
+        .payload("build")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_stderr(
             "error: failed to parse manifest at `[..]`\n\n\
@@ -101,13 +101,13 @@ fn rust_version_bad_caret() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn rust_version_bad_pre_release() {
     project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-            cargo-features = ["rust-version"]
+            payload-features = ["rust-version"]
 
             [project]
             name = "foo"
@@ -120,8 +120,8 @@ fn rust_version_bad_pre_release() {
         )
         .file("src/main.rs", "fn main() {}")
         .build()
-        .cargo("build")
-        .masquerade_as_nightly_cargo()
+        .payload("build")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_stderr(
             "error: failed to parse manifest at `[..]`\n\n\
@@ -130,13 +130,13 @@ fn rust_version_bad_pre_release() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn rust_version_bad_nonsense() {
     project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-            cargo-features = ["rust-version"]
+            payload-features = ["rust-version"]
 
             [project]
             name = "foo"
@@ -149,8 +149,8 @@ fn rust_version_bad_nonsense() {
         )
         .file("src/main.rs", "fn main() {}")
         .build()
-        .cargo("build")
-        .masquerade_as_nightly_cargo()
+        .payload("build")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_stderr(
             "error: failed to parse manifest at `[..]`\n\n\
@@ -159,13 +159,13 @@ fn rust_version_bad_nonsense() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn rust_version_too_high() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-            cargo-features = ["rust-version"]
+            payload-features = ["rust-version"]
 
             [project]
             name = "foo"
@@ -179,30 +179,30 @@ fn rust_version_too_high() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("build")
-        .masquerade_as_nightly_cargo()
+    p.payload("build")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_stderr(
             "error: package `foo v0.0.1 ([..])` cannot be built because it requires \
              rustc 1.9876.0 or newer, while the currently active rustc version is [..]",
         )
         .run();
-    p.cargo("build --ignore-rust-version -Zunstable-options")
-        .masquerade_as_nightly_cargo()
+    p.payload("build --ignore-rust-version -Zunstable-options")
+        .masquerade_as_nightly_payload()
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn rust_version_dependency_fails() {
     Package::new("bar", "0.0.1")
-        .cargo_feature("rust-version")
+        .payload_feature("rust-version")
         .rust_version("1.2345.0")
         .file("src/lib.rs", "fn other_stuff() {}")
         .publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -215,8 +215,8 @@ fn rust_version_dependency_fails() {
         .file("src/main.rs", "fn main(){}")
         .build();
 
-    p.cargo("build")
-        .masquerade_as_nightly_cargo()
+    p.payload("build")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_stderr(
             "    Updating `[..]` index\n \
@@ -226,18 +226,18 @@ fn rust_version_dependency_fails() {
              rustc 1.2345.0 or newer, while the currently active rustc version is [..]",
         )
         .run();
-    p.cargo("build --ignore-rust-version -Zunstable-options")
-        .masquerade_as_nightly_cargo()
+    p.payload("build --ignore-rust-version -Zunstable-options")
+        .masquerade_as_nightly_payload()
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn rust_version_older_than_edition() {
     project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-            cargo-features = ["rust-version"]
+            payload-features = ["rust-version"]
 
             [project]
             name = "foo"
@@ -251,8 +251,8 @@ fn rust_version_older_than_edition() {
         )
         .file("src/main.rs", "fn main() {}")
         .build()
-        .cargo("build")
-        .masquerade_as_nightly_cargo()
+        .payload("build")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_stderr_contains("  rust-version 1.1 is older than first version (1.31.0) required by the specified edition (2018)",
         )

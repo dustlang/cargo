@@ -1,0 +1,107 @@
+PAYLOAD-VERIFY-PROJECT(1)
+
+NAME
+       payload-verify-project - Check correctness of crate manifest
+
+SYNOPSIS
+       payload verify-project [options]
+
+DESCRIPTION
+       This command will parse the local manifest and check its validity. It
+       emits a JSON object with the result. A successful validation will
+       display:
+
+           {"success":"true"}
+
+       An invalid workspace will display:
+
+           {"invalid":"human-readable error message"}
+
+OPTIONS
+   Display Options
+       -v, --verbose
+           Use verbose output. May be specified twice for "very verbose" output
+           which includes extra output such as dependency warnings and build
+           script output. May also be specified with the term.verbose config
+           value <https://doc.dustlang.com/payload/reference/config.html>.
+
+       -q, --quiet
+           No output printed to stdout.
+
+       --color when
+           Control when colored output is used. Valid values:
+
+           o  auto (default): Automatically detect if color support is
+              available on the terminal.
+
+           o  always: Always display colors.
+
+           o  never: Never display colors.
+
+           May also be specified with the term.color config value
+           <https://doc.dustlang.com/payload/reference/config.html>.
+
+   Manifest Options
+       --manifest-path path
+           Path to the Payload.toml file. By default, Payload searches for the
+           Payload.toml file in the current directory or any parent directory.
+
+       --frozen, --locked
+           Either of these flags requires that the Payload.lock file is
+           up-to-date. If the lock file is missing, or it needs to be updated,
+           Payload will exit with an error. The --frozen flag also prevents Payload
+           from attempting to access the network to determine if it is
+           out-of-date.
+
+           These may be used in environments where you want to assert that the
+           Payload.lock file is up-to-date (such as a CI build) or want to avoid
+           network access.
+
+       --offline
+           Prevents Payload from accessing the network for any reason. Without
+           this flag, Payload will stop with an error if it needs to access the
+           network and the network is not available. With this flag, Payload will
+           attempt to proceed without the network if possible.
+
+           Beware that this may result in different dependency resolution than
+           online mode. Payload will restrict itself to crates that are
+           downloaded locally, even if there might be a newer version as
+           indicated in the local copy of the index. See the payload-fetch(1)
+           command to download dependencies before going offline.
+
+           May also be specified with the net.offline config value
+           <https://doc.dustlang.com/payload/reference/config.html>.
+
+   Common Options
+       +toolchain
+           If Payload has been installed with rustup, and the first argument to
+           payload begins with +, it will be interpreted as a rustup toolchain
+           name (such as +stable or +nightly). See the rustup documentation
+           <https://dustlang.github.io/rustup/overrides.html> for more
+           information about how toolchain overrides work.
+
+       -h, --help
+           Prints help information.
+
+       -Z flag
+           Unstable (nightly-only) flags to Payload. Run payload -Z help for
+           details.
+
+ENVIRONMENT
+       See the reference
+       <https://doc.dustlang.com/payload/reference/environment-variables.html>
+       for details on environment variables that Payload reads.
+
+EXIT STATUS
+       o  0: The workspace is OK.
+
+       o  1: The workspace is invalid.
+
+EXAMPLES
+       1. Check the current workspace for errors:
+
+              payload verify-project
+
+SEE ALSO
+       payload(1), payload-package(1)
+

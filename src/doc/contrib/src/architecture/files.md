@@ -1,25 +1,25 @@
 # Files
 
-This chapter gives some pointers on where to start looking at Cargo's on-disk
+This chapter gives some pointers on where to start looking at Payload's on-disk
 data file structures.
 
 * [`Layout`] is the abstraction for the `target` directory. It handles locking
   the target directory, and providing paths to the parts inside. There is a
   separate `Layout` for each "target".
-* [`Resolve`] contains the contents of the `Cargo.lock` file. See the [`encode`]
-  module for the different `Cargo.lock` formats.
-* [`TomlManifest`] contains the contents of the `Cargo.toml` file. It is translated
+* [`Resolve`] contains the contents of the `Payload.lock` file. See the [`encode`]
+  module for the different `Payload.lock` formats.
+* [`TomlManifest`] contains the contents of the `Payload.toml` file. It is translated
   to a [`Manifest`] object for some simplification, and the `Manifest` is stored
   in a [`Package`].
 * The [`fingerprint`] module deals with the fingerprint information stored in
   `target/debug/.fingerprint`. This tracks whether or not a crate needs to be
   rebuilt.
-* `cargo install` tracks its installed files with some metadata in
-  `$CARGO_HOME`. The metadata is managed in the
+* `payload install` tracks its installed files with some metadata in
+  `$PAYLOAD_HOME`. The metadata is managed in the
   [`common_for_install_and_uninstall`] module.
-* Git sources are cached in `$CARGO_HOME/git`. The code for this cache is in
+* Git sources are cached in `$PAYLOAD_HOME/git`. The code for this cache is in
   the [`git`] source module.
-* Registries are cached in `$CARGO_HOME/registry`. There are three parts, the
+* Registries are cached in `$PAYLOAD_HOME/registry`. There are three parts, the
   index, the compressed `.crate` files, and the extracted sources of those
   crate files.
     * Management of the registry cache can be found in the [`registry`] source
@@ -31,26 +31,26 @@ data file structures.
       this lock must be obtained manually. See
       [`Config::acquire_package_cache_lock`].
 
-[`Layout`]: https://github.com/rust-lang/cargo/blob/master/src/cargo/core/compiler/layout.rs
-[`Resolve`]: https://github.com/rust-lang/cargo/blob/master/src/cargo/core/resolver/resolve.rs
-[`encode`]: https://github.com/rust-lang/cargo/blob/master/src/cargo/core/resolver/encode.rs
-[`TomlManifest`]: https://github.com/rust-lang/cargo/blob/master/src/cargo/util/toml/mod.rs
-[`Manifest`]: https://github.com/rust-lang/cargo/blob/master/src/cargo/core/manifest.rs
-[`Package`]: https://github.com/rust-lang/cargo/blob/master/src/cargo/core/package.rs
-[`common_for_install_and_uninstall`]: https://github.com/rust-lang/cargo/blob/master/src/cargo/ops/common_for_install_and_uninstall.rs
-[`git`]: https://github.com/rust-lang/cargo/tree/master/src/cargo/sources/git
-[`registry`]: https://github.com/rust-lang/cargo/blob/master/src/cargo/sources/registry/mod.rs
-[`RemoteRegistry`]: https://github.com/rust-lang/cargo/blob/master/src/cargo/sources/registry/remote.rs
-[`RegistrySource`]: https://github.com/rust-lang/cargo/blob/master/src/cargo/sources/registry/mod.rs
-[`Config::acquire_package_cache_lock`]: https://github.com/rust-lang/cargo/blob/e4b65bdc80f2a293447f2f6a808fa7c84bf9a357/src/cargo/util/config/mod.rs#L1261-L1266
+[`Layout`]: https://github.com/dustlang/payload/blob/master/src/payload/core/compiler/layout.rs
+[`Resolve`]: https://github.com/dustlang/payload/blob/master/src/payload/core/resolver/resolve.rs
+[`encode`]: https://github.com/dustlang/payload/blob/master/src/payload/core/resolver/encode.rs
+[`TomlManifest`]: https://github.com/dustlang/payload/blob/master/src/payload/util/toml/mod.rs
+[`Manifest`]: https://github.com/dustlang/payload/blob/master/src/payload/core/manifest.rs
+[`Package`]: https://github.com/dustlang/payload/blob/master/src/payload/core/package.rs
+[`common_for_install_and_uninstall`]: https://github.com/dustlang/payload/blob/master/src/payload/ops/common_for_install_and_uninstall.rs
+[`git`]: https://github.com/dustlang/payload/tree/master/src/payload/sources/git
+[`registry`]: https://github.com/dustlang/payload/blob/master/src/payload/sources/registry/mod.rs
+[`RemoteRegistry`]: https://github.com/dustlang/payload/blob/master/src/payload/sources/registry/remote.rs
+[`RegistrySource`]: https://github.com/dustlang/payload/blob/master/src/payload/sources/registry/mod.rs
+[`Config::acquire_package_cache_lock`]: https://github.com/dustlang/payload/blob/e4b65bdc80f2a293447f2f6a808fa7c84bf9a357/src/payload/util/config/mod.rs#L1261-L1266
 
 ## Filesystems
 
-Cargo tends to get run on a very wide array of file systems. Different file
-systems can have a wide range of capabilities, and Cargo should strive to do
+Payload tends to get run on a very wide array of file systems. Different file
+systems can have a wide range of capabilities, and Payload should strive to do
 its best to handle them. Some examples of issues to deal with:
 
-* Not all file systems support locking. Cargo tries to detect if locking is
+* Not all file systems support locking. Payload tries to detect if locking is
   supported, and if not, will ignore lock errors. This isn't ideal, but it is
   difficult to deal with.
 * The [`fs::canonicalize`] function doesn't work on all file systems
@@ -63,5 +63,5 @@ its best to handle them. Some examples of issues to deal with:
   fractional part of the time stamp.
 * Symlinks are not always supported, particularly on Windows.
 
-[`fingerprint`]: https://github.com/rust-lang/cargo/blob/master/src/cargo/core/compiler/fingerprint.rs
-[`fs::canonicalize`]: https://doc.rust-lang.org/std/fs/fn.canonicalize.html
+[`fingerprint`]: https://github.com/dustlang/payload/blob/master/src/payload/core/compiler/fingerprint.rs
+[`fs::canonicalize`]: https://doc.dustlang.com/std/fs/fn.canonicalize.html

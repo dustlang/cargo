@@ -1,13 +1,13 @@
 //! Tests for edition setting.
 
-use cargo::core::Edition;
-use cargo_test_support::{basic_lib_manifest, is_nightly, project};
+use payload::core::Edition;
+use payload_test_support::{basic_lib_manifest, is_nightly, project};
 
-#[cargo_test]
+#[payload_test]
 fn edition_works_for_build_script() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = 'foo'
@@ -27,14 +27,14 @@ fn edition_works_for_build_script() {
                 }
             "#,
         )
-        .file("a/Cargo.toml", &basic_lib_manifest("a"))
+        .file("a/Payload.toml", &basic_lib_manifest("a"))
         .file("a/src/lib.rs", "pub fn foo() {}")
         .build();
 
-    p.cargo("build -v").run();
+    p.payload("build -v").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn edition_unstable_gated() {
     // During the period where a new edition is coming up, but not yet stable,
     // this test will verify that it cannot be used on stable. If there is no
@@ -48,7 +48,7 @@ fn edition_unstable_gated() {
     };
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                 [package]
@@ -62,28 +62,28 @@ fn edition_unstable_gated() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("check")
+    p.payload("check")
         .with_status(101)
         .with_stderr(&format!(
             "\
-[ERROR] failed to parse manifest at `[..]/foo/Cargo.toml`
+[ERROR] failed to parse manifest at `[..]/foo/Payload.toml`
 
 Caused by:
   feature `edition{next}` is required
 
-  this Cargo does not support nightly features, but if you
+  this Payload does not support nightly features, but if you
   switch to nightly channel you can add
-  `cargo-features = [\"edition{next}\"]` to enable this feature
+  `payload-features = [\"edition{next}\"]` to enable this feature
 ",
             next = next
         ))
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn edition_unstable() {
     // During the period where a new edition is coming up, but not yet stable,
-    // this test will verify that it can be used with `cargo-features`. If
+    // this test will verify that it can be used with `payload-features`. If
     // there is no next edition, it does nothing.
     if !is_nightly() {
         // This test is fundamentally always nightly.
@@ -98,10 +98,10 @@ fn edition_unstable() {
     };
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
-                cargo-features = ["edition{next}"]
+                payload-features = ["edition{next}"]
 
                 [package]
                 name = "foo"
@@ -114,8 +114,8 @@ fn edition_unstable() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("check")
-        .masquerade_as_nightly_cargo()
+    p.payload("check")
+        .masquerade_as_nightly_payload()
         .with_stderr(
             "\
 [CHECKING] foo [..]

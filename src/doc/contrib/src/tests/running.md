@@ -1,8 +1,8 @@
 # Running Tests
 
-Using `cargo test` is usually sufficient for running the full test suite. This
+Using `payload test` is usually sufficient for running the full test suite. This
 can take a few minutes, so you may want to use more targeted flags to pick the
-specific test you want to run, such as `cargo test --test testsuite
+specific test you want to run, such as `payload test --test testsuite
 -- check::check_success`.
 
 ## Running nightly tests
@@ -35,7 +35,7 @@ Windows cross tests only support the MSVC toolchain.
 ## Running build-std tests
 
 The `build-std` tests are disabled by default, but you can run them by setting
-the `CARGO_RUN_BUILD_STD_TESTS=1` environment variable and running `cargo test
+the `PAYLOAD_RUN_BUILD_STD_TESTS=1` environment variable and running `payload test
 --test build-std`. This requires the nightly channel, and also requires the
 `rust-src` component installed with `rustup component add rust-src
 --toolchain=nightly`.

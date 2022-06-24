@@ -1,9 +1,9 @@
-//! Tests for the `cargo tree` command.
+//! Tests for the `payload tree` command.
 
 use super::features2::switch_to_resolver_2;
-use cargo_test_support::cross_compile::{self, alternate};
-use cargo_test_support::registry::{Dependency, Package};
-use cargo_test_support::{basic_manifest, git, project, rustc_host, Project};
+use payload_test_support::cross_compile::{self, alternate};
+use payload_test_support::registry::{Dependency, Package};
+use payload_test_support::{basic_manifest, git, project, rustc_host, Project};
 
 fn make_simple_proj() -> Project {
     Package::new("c", "1.0.0").publish();
@@ -14,7 +14,7 @@ fn make_simple_proj() -> Project {
 
     project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -36,12 +36,12 @@ fn make_simple_proj() -> Project {
         .build()
 }
 
-#[cargo_test]
+#[payload_test]
 fn simple() {
     // A simple test with a few different dependencies.
     let p = make_simple_proj();
 
-    p.cargo("tree")
+    p.payload("tree")
         .with_stdout(
             "\
 foo v0.1.0 ([..]/foo)
@@ -59,7 +59,7 @@ foo v0.1.0 ([..]/foo)
         )
         .run();
 
-    p.cargo("tree -p bdep")
+    p.payload("tree -p bdep")
         .with_stdout(
             "\
 bdep v1.0.0
@@ -70,22 +70,22 @@ bdep v1.0.0
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn virtual_workspace() {
     // Multiple packages in a virtual workspace.
     Package::new("somedep", "1.0.0").publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [workspace]
             members = ["a", "baz", "c"]
             "#,
         )
-        .file("a/Cargo.toml", &basic_manifest("a", "1.0.0"))
+        .file("a/Payload.toml", &basic_manifest("a", "1.0.0"))
         .file("a/src/lib.rs", "")
         .file(
-            "baz/Cargo.toml",
+            "baz/Payload.toml",
             r#"
             [package]
             name = "baz"
@@ -97,11 +97,11 @@ fn virtual_workspace() {
             "#,
         )
         .file("baz/src/lib.rs", "")
-        .file("c/Cargo.toml", &basic_manifest("c", "1.0.0"))
+        .file("c/Payload.toml", &basic_manifest("c", "1.0.0"))
         .file("c/src/lib.rs", "")
         .build();
 
-    p.cargo("tree")
+    p.payload("tree")
         .with_stdout(
             "\
 a v1.0.0 ([..]/foo/a)
@@ -115,9 +115,9 @@ c v1.0.0 ([..]/foo/c)
         )
         .run();
 
-    p.cargo("tree -p a").with_stdout("a v1.0.0 [..]").run();
+    p.payload("tree -p a").with_stdout("a v1.0.0 [..]").run();
 
-    p.cargo("tree")
+    p.payload("tree")
         .cwd("baz")
         .with_stdout(
             "\
@@ -129,7 +129,7 @@ baz v0.1.0 ([..]/foo/baz)
         .run();
 
     // exclude baz
-    p.cargo("tree --workspace --exclude baz")
+    p.payload("tree --workspace --exclude baz")
         .with_stdout(
             "\
 a v1.0.0 ([..]/foo/a)
@@ -140,7 +140,7 @@ c v1.0.0 ([..]/foo/c)
         .run();
 
     // exclude glob '*z'
-    p.cargo("tree --workspace --exclude '*z'")
+    p.payload("tree --workspace --exclude '*z'")
         .with_stdout(
             "\
 a v1.0.0 ([..]/foo/a)
@@ -151,7 +151,7 @@ c v1.0.0 ([..]/foo/c)
         .run();
 
     // include glob '*z'
-    p.cargo("tree -p '*z'")
+    p.payload("tree -p '*z'")
         .with_stdout(
             "\
 baz v0.1.0 ([..]/foo/baz)
@@ -162,9 +162,9 @@ baz v0.1.0 ([..]/foo/baz)
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn dedupe_edges() {
-    // Works around https://github.com/rust-lang/cargo/issues/7985
+    // Works around https://github.com/dustlang/payload/issues/7985
     Package::new("bitflags", "1.0.0").publish();
     Package::new("manyfeat", "1.0.0")
         .feature("f1", &[])
@@ -184,7 +184,7 @@ fn dedupe_edges() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -199,7 +199,7 @@ fn dedupe_edges() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("tree")
+    p.payload("tree")
         .with_stdout(
             "\
 foo v0.1.0 ([..]/foo)
@@ -215,7 +215,7 @@ foo v0.1.0 ([..]/foo)
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn renamed_deps() {
     // Handles renamed dependencies.
     Package::new("one", "1.0.0").publish();
@@ -224,7 +224,7 @@ fn renamed_deps() {
     Package::new("bar", "2.0.0").dep("two", "1.0").publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -238,7 +238,7 @@ fn renamed_deps() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("tree")
+    p.payload("tree")
         .with_stdout(
             "\
 foo v1.0.0 ([..]/foo)
@@ -251,17 +251,17 @@ foo v1.0.0 ([..]/foo)
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn source_kinds() {
     // Handles git and path sources.
     Package::new("regdep", "1.0.0").publish();
     let git_project = git::new("gitdep", |p| {
-        p.file("Cargo.toml", &basic_manifest("gitdep", "1.0.0"))
+        p.file("Payload.toml", &basic_manifest("gitdep", "1.0.0"))
             .file("src/lib.rs", "")
     });
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                 [package]
@@ -277,11 +277,11 @@ fn source_kinds() {
             ),
         )
         .file("src/lib.rs", "")
-        .file("pathdep/Cargo.toml", &basic_manifest("pathdep", "1.0.0"))
+        .file("pathdep/Payload.toml", &basic_manifest("pathdep", "1.0.0"))
         .file("pathdep/src/lib.rs", "")
         .build();
 
-    p.cargo("tree")
+    p.payload("tree")
         .with_stdout(
             "\
 foo v0.1.0 ([..]/foo)
@@ -293,14 +293,14 @@ foo v0.1.0 ([..]/foo)
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn features() {
     // Exercises a variety of feature behaviors.
     Package::new("optdep_default", "1.0.0").publish();
     Package::new("optdep", "1.0.0").publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "a"
@@ -317,7 +317,7 @@ fn features() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("tree")
+    p.payload("tree")
         .with_stdout(
             "\
 a v0.1.0 ([..]/foo)
@@ -326,7 +326,7 @@ a v0.1.0 ([..]/foo)
         )
         .run();
 
-    p.cargo("tree --no-default-features")
+    p.payload("tree --no-default-features")
         .with_stdout(
             "\
 a v0.1.0 ([..]/foo)
@@ -334,7 +334,7 @@ a v0.1.0 ([..]/foo)
         )
         .run();
 
-    p.cargo("tree --all-features")
+    p.payload("tree --all-features")
         .with_stdout(
             "\
 a v0.1.0 ([..]/foo)
@@ -344,7 +344,7 @@ a v0.1.0 ([..]/foo)
         )
         .run();
 
-    p.cargo("tree --features optdep")
+    p.payload("tree --features optdep")
         .with_stdout(
             "\
 a v0.1.0 ([..]/foo)
@@ -355,7 +355,7 @@ a v0.1.0 ([..]/foo)
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn filters_target() {
     // --target flag
     if cross_compile::disabled() {
@@ -376,7 +376,7 @@ fn filters_target() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                 [package]
@@ -408,7 +408,7 @@ fn filters_target() {
         .file("build.rs", "fn main() {}")
         .build();
 
-    p.cargo("tree")
+    p.payload("tree")
         .with_stdout(
             "\
 foo v0.1.0 ([..]/foo)
@@ -421,7 +421,7 @@ foo v0.1.0 ([..]/foo)
         )
         .run();
 
-    p.cargo("tree --target")
+    p.payload("tree --target")
         .arg(alternate())
         .with_stdout(
             "\
@@ -437,7 +437,7 @@ foo v0.1.0 ([..]/foo)
         )
         .run();
 
-    p.cargo("tree --target")
+    p.payload("tree --target")
         .arg(rustc_host())
         .with_stdout(
             "\
@@ -451,7 +451,7 @@ foo v0.1.0 ([..]/foo)
         )
         .run();
 
-    p.cargo("tree --target=all")
+    p.payload("tree --target=all")
         .with_stdout(
             "\
 foo v0.1.0 ([..]/foo)
@@ -471,7 +471,7 @@ foo v0.1.0 ([..]/foo)
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn dep_kinds() {
     Package::new("inner-devdep", "1.0.0").publish();
     Package::new("inner-builddep", "1.0.0").publish();
@@ -493,7 +493,7 @@ fn dep_kinds() {
         .publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -512,7 +512,7 @@ fn dep_kinds() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("tree")
+    p.payload("tree")
         .with_stdout(
             "\
 foo v0.1.0 ([..]/foo)
@@ -534,7 +534,7 @@ foo v0.1.0 ([..]/foo)
         )
         .run();
 
-    p.cargo("tree -e no-dev")
+    p.payload("tree -e no-dev")
         .with_stdout(
             "\
 foo v0.1.0 ([..]/foo)
@@ -551,7 +551,7 @@ foo v0.1.0 ([..]/foo)
         )
         .run();
 
-    p.cargo("tree -e normal")
+    p.payload("tree -e normal")
         .with_stdout(
             "\
 foo v0.1.0 ([..]/foo)
@@ -561,7 +561,7 @@ foo v0.1.0 ([..]/foo)
         )
         .run();
 
-    p.cargo("tree -e dev,build")
+    p.payload("tree -e dev,build")
         .with_stdout(
             "\
 foo v0.1.0 ([..]/foo)
@@ -578,12 +578,12 @@ foo v0.1.0 ([..]/foo)
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn cyclic_dev_dep() {
     // Cyclical dev-dependency and inverse flag.
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -595,7 +595,7 @@ fn cyclic_dev_dep() {
         )
         .file("src/lib.rs", "")
         .file(
-            "dev-dep/Cargo.toml",
+            "dev-dep/Payload.toml",
             r#"
             [package]
             name = "dev-dep"
@@ -608,7 +608,7 @@ fn cyclic_dev_dep() {
         .file("dev-dep/src/lib.rs", "")
         .build();
 
-    p.cargo("tree")
+    p.payload("tree")
         .with_stdout(
             "\
 foo v0.1.0 ([..]/foo)
@@ -619,7 +619,7 @@ foo v0.1.0 ([..]/foo)
         )
         .run();
 
-    p.cargo("tree --invert foo")
+    p.payload("tree --invert foo")
         .with_stdout(
             "\
 foo v0.1.0 ([..]/foo)
@@ -631,7 +631,7 @@ foo v0.1.0 ([..]/foo)
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn invert() {
     Package::new("b1", "1.0.0").dep("c", "1.0").publish();
     Package::new("b2", "1.0.0").dep("d", "1.0").publish();
@@ -639,7 +639,7 @@ fn invert() {
     Package::new("d", "1.0.0").publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -654,7 +654,7 @@ fn invert() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("tree")
+    p.payload("tree")
         .with_stdout(
             "\
 foo v0.1.0 ([..]/foo)
@@ -667,7 +667,7 @@ foo v0.1.0 ([..]/foo)
         )
         .run();
 
-    p.cargo("tree --invert c")
+    p.payload("tree --invert c")
         .with_stdout(
             "\
 c v1.0.0
@@ -679,14 +679,14 @@ c v1.0.0
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn invert_with_build_dep() {
     // -i for a common dependency between normal and build deps.
     Package::new("common", "1.0.0").publish();
     Package::new("bdep", "1.0.0").dep("common", "1.0").publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -702,7 +702,7 @@ fn invert_with_build_dep() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("tree")
+    p.payload("tree")
         .with_stdout(
             "\
 foo v0.1.0 ([..]/foo)
@@ -714,7 +714,7 @@ foo v0.1.0 ([..]/foo)
         )
         .run();
 
-    p.cargo("tree -i common")
+    p.payload("tree -i common")
         .with_stdout(
             "\
 common v1.0.0
@@ -727,11 +727,11 @@ common v1.0.0
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn no_indent() {
     let p = make_simple_proj();
 
-    p.cargo("tree --prefix=none")
+    p.payload("tree --prefix=none")
         .with_stdout(
             "\
 foo v0.1.0 ([..]/foo)
@@ -748,11 +748,11 @@ b v1.0.0 (*)
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn prefix_depth() {
     let p = make_simple_proj();
 
-    p.cargo("tree --prefix=depth")
+    p.payload("tree --prefix=depth")
         .with_stdout(
             "\
 0foo v0.1.0 ([..]/foo)
@@ -769,11 +769,11 @@ fn prefix_depth() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn no_dedupe() {
     let p = make_simple_proj();
 
-    p.cargo("tree --no-dedupe")
+    p.payload("tree --no-dedupe")
         .with_stdout(
             "\
 foo v0.1.0 ([..]/foo)
@@ -794,12 +794,12 @@ foo v0.1.0 ([..]/foo)
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn no_dedupe_cycle() {
     // --no-dedupe with a dependency cycle
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -811,7 +811,7 @@ fn no_dedupe_cycle() {
         )
         .file("src/lib.rs", "")
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
             [package]
             name = "bar"
@@ -824,7 +824,7 @@ fn no_dedupe_cycle() {
         .file("bar/src/lib.rs", "")
         .build();
 
-    p.cargo("tree")
+    p.payload("tree")
         .with_stdout(
             "\
 foo v0.1.0 ([..]/foo)
@@ -835,7 +835,7 @@ foo v0.1.0 ([..]/foo)
         )
         .run();
 
-    p.cargo("tree --no-dedupe")
+    p.payload("tree --no-dedupe")
         .with_stdout(
             "\
 foo v0.1.0 ([..]/foo)
@@ -847,7 +847,7 @@ foo v0.1.0 ([..]/foo)
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn duplicates() {
     Package::new("dog", "1.0.0").publish();
     Package::new("dog", "2.0.0").publish();
@@ -859,14 +859,14 @@ fn duplicates() {
         .publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [workspace]
             members = ["a", "b"]
             "#,
         )
         .file(
-            "a/Cargo.toml",
+            "a/Payload.toml",
             r#"
             [package]
             name = "a"
@@ -879,7 +879,7 @@ fn duplicates() {
         )
         .file("a/src/lib.rs", "")
         .file(
-            "b/Cargo.toml",
+            "b/Payload.toml",
             r#"
             [package]
             name = "b"
@@ -893,7 +893,7 @@ fn duplicates() {
         .file("b/src/lib.rs", "")
         .build();
 
-    p.cargo("tree -p a")
+    p.payload("tree -p a")
         .with_stdout(
             "\
 a v0.1.0 ([..]/foo/a)
@@ -903,7 +903,7 @@ a v0.1.0 ([..]/foo/a)
         )
         .run();
 
-    p.cargo("tree -p b")
+    p.payload("tree -p b")
         .with_stdout(
             "\
 b v0.1.0 ([..]/foo/b)
@@ -915,7 +915,7 @@ b v0.1.0 ([..]/foo/b)
         )
         .run();
 
-    p.cargo("tree -p a -d")
+    p.payload("tree -p a -d")
         .with_stdout(
             "\
 dog v1.0.0
@@ -927,7 +927,7 @@ dog v2.0.0
         )
         .run();
 
-    p.cargo("tree -p b -d")
+    p.payload("tree -p b -d")
         .with_stdout(
             "\
 cat v1.0.0
@@ -941,10 +941,10 @@ cat v2.0.0
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn charset() {
     let p = make_simple_proj();
-    p.cargo("tree --charset ascii")
+    p.payload("tree --charset ascii")
         .with_stdout(
             "\
 foo v0.1.0 ([..]/foo)
@@ -963,18 +963,18 @@ foo v0.1.0 ([..]/foo)
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn format() {
     Package::new("dep", "1.0.0").publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
             version = "0.1.0"
             license = "MIT"
-            repository = "https://github.com/rust-lang/cargo"
+            repository = "https://github.com/dustlang/payload"
 
             [dependencies]
             dep = {version="1.0", optional=true}
@@ -988,11 +988,11 @@ fn format() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("tree --format <<<{p}>>>")
+    p.payload("tree --format <<<{p}>>>")
         .with_stdout("<<<foo v0.1.0 ([..]/foo)>>>")
         .run();
 
-    p.cargo("tree --format {}")
+    p.payload("tree --format {}")
         .with_stderr(
             "\
 [ERROR] tree format `{}` not valid
@@ -1004,21 +1004,21 @@ Caused by:
         .with_status(101)
         .run();
 
-    p.cargo("tree --format {p}-{{hello}}")
+    p.payload("tree --format {p}-{{hello}}")
         .with_stdout("foo v0.1.0 ([..]/foo)-{hello}")
         .run();
 
-    p.cargo("tree --format")
+    p.payload("tree --format")
         .arg("{p} {l} {r}")
-        .with_stdout("foo v0.1.0 ([..]/foo) MIT https://github.com/rust-lang/cargo")
+        .with_stdout("foo v0.1.0 ([..]/foo) MIT https://github.com/dustlang/payload")
         .run();
 
-    p.cargo("tree --format")
+    p.payload("tree --format")
         .arg("{p} {f}")
         .with_stdout("foo v0.1.0 ([..]/foo) bar,default,foo")
         .run();
 
-    p.cargo("tree --all-features --format")
+    p.payload("tree --all-features --format")
         .arg("{p} [{f}]")
         .with_stdout(
             "\
@@ -1029,7 +1029,7 @@ foo v0.1.0 ([..]/foo) [bar,default,dep,foo]
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn dev_dep_feature() {
     // New feature resolver with optional dep
     Package::new("optdep", "1.0.0").publish();
@@ -1038,7 +1038,7 @@ fn dev_dep_feature() {
         .publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -1055,7 +1055,7 @@ fn dev_dep_feature() {
         .build();
 
     // Old behavior.
-    p.cargo("tree")
+    p.payload("tree")
         .with_stdout(
             "\
 foo v0.1.0 ([..]/foo)
@@ -1067,7 +1067,7 @@ foo v0.1.0 ([..]/foo)
         )
         .run();
 
-    p.cargo("tree -e normal")
+    p.payload("tree -e normal")
         .with_stdout(
             "\
 foo v0.1.0 ([..]/foo)
@@ -1080,7 +1080,7 @@ foo v0.1.0 ([..]/foo)
     // New behavior.
     switch_to_resolver_2(&p);
 
-    p.cargo("tree")
+    p.payload("tree")
         .with_stdout(
             "\
 foo v0.1.0 ([..]/foo)
@@ -1092,7 +1092,7 @@ foo v0.1.0 ([..]/foo)
         )
         .run();
 
-    p.cargo("tree -e normal")
+    p.payload("tree -e normal")
         .with_stdout(
             "\
 foo v0.1.0 ([..]/foo)
@@ -1102,7 +1102,7 @@ foo v0.1.0 ([..]/foo)
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn host_dep_feature() {
     // New feature resolver with optional build dep
     Package::new("optdep", "1.0.0").publish();
@@ -1111,7 +1111,7 @@ fn host_dep_feature() {
         .publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -1129,7 +1129,7 @@ fn host_dep_feature() {
         .build();
 
     // Old behavior
-    p.cargo("tree")
+    p.payload("tree")
         .with_stdout(
             "\
 foo v0.1.0 ([..]/foo)
@@ -1142,7 +1142,7 @@ foo v0.1.0 ([..]/foo)
         .run();
 
     // -p
-    p.cargo("tree -p bar")
+    p.payload("tree -p bar")
         .with_stdout(
             "\
 bar v1.0.0
@@ -1152,7 +1152,7 @@ bar v1.0.0
         .run();
 
     // invert
-    p.cargo("tree -i optdep")
+    p.payload("tree -i optdep")
         .with_stdout(
             "\
 optdep v1.0.0
@@ -1167,7 +1167,7 @@ optdep v1.0.0
     // New behavior.
     switch_to_resolver_2(&p);
 
-    p.cargo("tree")
+    p.payload("tree")
         .with_stdout(
             "\
 foo v0.1.0 ([..]/foo)
@@ -1179,7 +1179,7 @@ foo v0.1.0 ([..]/foo)
         )
         .run();
 
-    p.cargo("tree -p bar")
+    p.payload("tree -p bar")
         .with_stdout(
             "\
 bar v1.0.0
@@ -1190,7 +1190,7 @@ bar v1.0.0
         )
         .run();
 
-    p.cargo("tree -i optdep")
+    p.payload("tree -i optdep")
         .with_stdout(
             "\
 optdep v1.0.0
@@ -1202,7 +1202,7 @@ optdep v1.0.0
         .run();
 
     // Check that -d handles duplicates with features.
-    p.cargo("tree -d")
+    p.payload("tree -d")
         .with_stdout(
             "\
 bar v1.0.0
@@ -1216,7 +1216,7 @@ bar v1.0.0
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn proc_macro_features() {
     // New feature resolver with a proc-macro
     Package::new("optdep", "1.0.0").publish();
@@ -1229,7 +1229,7 @@ fn proc_macro_features() {
         .publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -1244,7 +1244,7 @@ fn proc_macro_features() {
         .build();
 
     // Old behavior
-    p.cargo("tree")
+    p.payload("tree")
         .with_stdout(
             "\
 foo v0.1.0 ([..]/foo)
@@ -1257,7 +1257,7 @@ foo v0.1.0 ([..]/foo)
         .run();
 
     // -p
-    p.cargo("tree -p somedep")
+    p.payload("tree -p somedep")
         .with_stdout(
             "\
 somedep v1.0.0
@@ -1267,7 +1267,7 @@ somedep v1.0.0
         .run();
 
     // invert
-    p.cargo("tree -i somedep")
+    p.payload("tree -i somedep")
         .with_stdout(
             "\
 somedep v1.0.0
@@ -1282,7 +1282,7 @@ somedep v1.0.0
     switch_to_resolver_2(&p);
 
     // Note the missing (*)
-    p.cargo("tree")
+    p.payload("tree")
         .with_stdout(
             "\
 foo v0.1.0 ([..]/foo)
@@ -1294,7 +1294,7 @@ foo v0.1.0 ([..]/foo)
         )
         .run();
 
-    p.cargo("tree -p somedep")
+    p.payload("tree -p somedep")
         .with_stdout(
             "\
 somedep v1.0.0
@@ -1305,7 +1305,7 @@ somedep v1.0.0
         )
         .run();
 
-    p.cargo("tree -i somedep")
+    p.payload("tree -i somedep")
         .with_stdout(
             "\
 somedep v1.0.0
@@ -1319,7 +1319,7 @@ somedep v1.0.0
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn itarget_opt_dep() {
     // New feature resolver with optional target dep
     Package::new("optdep", "1.0.0").publish();
@@ -1329,7 +1329,7 @@ fn itarget_opt_dep() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -1347,7 +1347,7 @@ fn itarget_opt_dep() {
         .build();
 
     // Old behavior
-    p.cargo("tree")
+    p.payload("tree")
         .with_stdout(
             "\
 foo v1.0.0 ([..]/foo)
@@ -1360,7 +1360,7 @@ foo v1.0.0 ([..]/foo)
     // New behavior.
     switch_to_resolver_2(&p);
 
-    p.cargo("tree")
+    p.payload("tree")
         .with_stdout(
             "\
 foo v1.0.0 ([..]/foo)
@@ -1370,7 +1370,7 @@ foo v1.0.0 ([..]/foo)
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn ambiguous_name() {
     // -p that is ambiguous.
     Package::new("dep", "1.0.0").publish();
@@ -1378,7 +1378,7 @@ fn ambiguous_name() {
     Package::new("bar", "1.0.0").dep("dep", "2.0").publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -1392,7 +1392,7 @@ fn ambiguous_name() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("tree -p dep")
+    p.payload("tree -p dep")
         .with_stderr_contains(
             "\
 error: There are multiple `dep` packages in your project, and the specification `dep` is ambiguous.
@@ -1405,9 +1405,9 @@ Please re-run this command with `-p <spec>` where `<spec>` is one of the followi
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn workspace_features_are_local() {
-    // The features for workspace packages should be the same as `cargo build`
+    // The features for workspace packages should be the same as `payload build`
     // (i.e., the features selected depend on the "current" package).
     Package::new("optdep", "1.0.0").publish();
     Package::new("somedep", "1.0.0")
@@ -1415,14 +1415,14 @@ fn workspace_features_are_local() {
         .publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [workspace]
             members = ["a", "b"]
             "#,
         )
         .file(
-            "a/Cargo.toml",
+            "a/Payload.toml",
             r#"
             [package]
             name = "a"
@@ -1434,7 +1434,7 @@ fn workspace_features_are_local() {
         )
         .file("a/src/lib.rs", "")
         .file(
-            "b/Cargo.toml",
+            "b/Payload.toml",
             r#"
             [package]
             name = "b"
@@ -1447,7 +1447,7 @@ fn workspace_features_are_local() {
         .file("b/src/lib.rs", "")
         .build();
 
-    p.cargo("tree")
+    p.payload("tree")
         .with_stdout(
             "\
 a v0.1.0 ([..]/foo/a)
@@ -1460,7 +1460,7 @@ b v0.1.0 ([..]/foo/b)
         )
         .run();
 
-    p.cargo("tree -p a")
+    p.payload("tree -p a")
         .with_stdout(
             "\
 a v0.1.0 ([..]/foo/a)
@@ -1470,7 +1470,7 @@ a v0.1.0 ([..]/foo/a)
         )
         .run();
 
-    p.cargo("tree -p b")
+    p.payload("tree -p b")
         .with_stdout(
             "\
 b v0.1.0 ([..]/foo/b)

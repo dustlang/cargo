@@ -2,13 +2,13 @@
 //! in the output, their arguments are quoted properly
 //! so that the command can be run in a terminal.
 
-use cargo_test_support::project;
+use payload_test_support::project;
 
-#[cargo_test]
+#[payload_test]
 fn features_are_quoted() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [project]
             name = "foo"
@@ -23,7 +23,7 @@ fn features_are_quoted() {
         .file("src/main.rs", "fn main() {error}")
         .build();
 
-    p.cargo("check -v")
+    p.payload("check -v")
             .env("MSYSTEM", "1")
             .with_status(101)
             .with_stderr_contains(

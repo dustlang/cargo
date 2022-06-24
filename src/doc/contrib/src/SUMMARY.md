@@ -3,7 +3,7 @@
 - [Introduction](./index.md)
 - [Issue Tracker](./issues.md)
 - [Process](./process/index.md)
-    - [Working on Cargo](./process/working-on-cargo.md)
+    - [Working on Payload](./process/working-on-payload.md)
     - [Release process](./process/release.md)
     - [Unstable features](./process/unstable.md)
 - [Architecture](./architecture/index.md)

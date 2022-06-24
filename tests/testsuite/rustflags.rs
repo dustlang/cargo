@@ -1,12 +1,12 @@
 //! Tests for setting custom rustc flags.
 
-use cargo_test_support::registry::Package;
-use cargo_test_support::{
+use payload_test_support::registry::Package;
+use payload_test_support::{
     basic_lib_manifest, basic_manifest, paths, project, project_in_home, rustc_host,
 };
 use std::fs;
 
-#[cargo_test]
+#[payload_test]
 fn env_rustflags_normal_source() {
     let p = project()
         .file("src/lib.rs", "")
@@ -24,41 +24,41 @@ fn env_rustflags_normal_source() {
         .build();
 
     // Use RUSTFLAGS to pass an argument that will generate an error
-    p.cargo("build --lib")
+    p.payload("build --lib")
         .env("RUSTFLAGS", "-Z bogus")
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
-    p.cargo("build --bin=a")
+    p.payload("build --bin=a")
         .env("RUSTFLAGS", "-Z bogus")
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
-    p.cargo("build --example=b")
+    p.payload("build --example=b")
         .env("RUSTFLAGS", "-Z bogus")
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
-    p.cargo("test")
+    p.payload("test")
         .env("RUSTFLAGS", "-Z bogus")
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
-    p.cargo("bench")
+    p.payload("bench")
         .env("RUSTFLAGS", "-Z bogus")
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn env_rustflags_build_script() {
     // RUSTFLAGS should be passed to rustc for build scripts
     // when --target is not specified.
     // In this test if --cfg foo is passed the build will fail.
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -77,17 +77,17 @@ fn env_rustflags_build_script() {
         )
         .build();
 
-    p.cargo("build").env("RUSTFLAGS", "--cfg foo").run();
+    p.payload("build").env("RUSTFLAGS", "--cfg foo").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn env_rustflags_build_script_dep() {
     // RUSTFLAGS should be passed to rustc for build scripts
     // when --target is not specified.
     // In this test if --cfg foo is not passed the build will fail.
     let foo = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -103,7 +103,7 @@ fn env_rustflags_build_script_dep() {
         .build();
     let _bar = project()
         .at("bar")
-        .file("Cargo.toml", &basic_manifest("bar", "0.0.1"))
+        .file("Payload.toml", &basic_manifest("bar", "0.0.1"))
         .file(
             "src/lib.rs",
             r#"
@@ -114,17 +114,17 @@ fn env_rustflags_build_script_dep() {
         )
         .build();
 
-    foo.cargo("build").env("RUSTFLAGS", "--cfg foo").run();
+    foo.payload("build").env("RUSTFLAGS", "--cfg foo").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn env_rustflags_plugin() {
     // RUSTFLAGS should be passed to rustc for plugins
     // when --target is not specified.
     // In this test if --cfg foo is not passed the build will fail.
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -145,17 +145,17 @@ fn env_rustflags_plugin() {
         )
         .build();
 
-    p.cargo("build").env("RUSTFLAGS", "--cfg foo").run();
+    p.payload("build").env("RUSTFLAGS", "--cfg foo").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn env_rustflags_plugin_dep() {
     // RUSTFLAGS should be passed to rustc for plugins
     // when --target is not specified.
     // In this test if --cfg foo is not passed the build will fail.
     let foo = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -173,7 +173,7 @@ fn env_rustflags_plugin_dep() {
         .build();
     let _bar = project()
         .at("bar")
-        .file("Cargo.toml", &basic_lib_manifest("bar"))
+        .file("Payload.toml", &basic_lib_manifest("bar"))
         .file(
             "src/lib.rs",
             r#"
@@ -184,10 +184,10 @@ fn env_rustflags_plugin_dep() {
         )
         .build();
 
-    foo.cargo("build").env("RUSTFLAGS", "--cfg foo").run();
+    foo.payload("build").env("RUSTFLAGS", "--cfg foo").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn env_rustflags_normal_source_with_target() {
     let p = project()
         .file("src/lib.rs", "")
@@ -207,31 +207,31 @@ fn env_rustflags_normal_source_with_target() {
     let host = &rustc_host();
 
     // Use RUSTFLAGS to pass an argument that will generate an error
-    p.cargo("build --lib --target")
+    p.payload("build --lib --target")
         .arg(host)
         .env("RUSTFLAGS", "-Z bogus")
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
-    p.cargo("build --bin=a --target")
+    p.payload("build --bin=a --target")
         .arg(host)
         .env("RUSTFLAGS", "-Z bogus")
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
-    p.cargo("build --example=b --target")
+    p.payload("build --example=b --target")
         .arg(host)
         .env("RUSTFLAGS", "-Z bogus")
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
-    p.cargo("test --target")
+    p.payload("test --target")
         .arg(host)
         .env("RUSTFLAGS", "-Z bogus")
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
-    p.cargo("bench --target")
+    p.payload("bench --target")
         .arg(host)
         .env("RUSTFLAGS", "-Z bogus")
         .with_status(101)
@@ -239,14 +239,14 @@ fn env_rustflags_normal_source_with_target() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn env_rustflags_build_script_with_target() {
     // RUSTFLAGS should not be passed to rustc for build scripts
     // when --target is specified.
     // In this test if --cfg foo is passed the build will fail.
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -266,20 +266,20 @@ fn env_rustflags_build_script_with_target() {
         .build();
 
     let host = rustc_host();
-    p.cargo("build --target")
+    p.payload("build --target")
         .arg(host)
         .env("RUSTFLAGS", "--cfg foo")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn env_rustflags_build_script_dep_with_target() {
     // RUSTFLAGS should not be passed to rustc for build scripts
     // when --target is specified.
     // In this test if --cfg foo is passed the build will fail.
     let foo = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -295,7 +295,7 @@ fn env_rustflags_build_script_dep_with_target() {
         .build();
     let _bar = project()
         .at("bar")
-        .file("Cargo.toml", &basic_manifest("bar", "0.0.1"))
+        .file("Payload.toml", &basic_manifest("bar", "0.0.1"))
         .file(
             "src/lib.rs",
             r#"
@@ -307,20 +307,20 @@ fn env_rustflags_build_script_dep_with_target() {
         .build();
 
     let host = rustc_host();
-    foo.cargo("build --target")
+    foo.payload("build --target")
         .arg(host)
         .env("RUSTFLAGS", "--cfg foo")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn env_rustflags_plugin_with_target() {
     // RUSTFLAGS should not be passed to rustc for plugins
     // when --target is specified.
     // In this test if --cfg foo is passed the build will fail.
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -342,20 +342,20 @@ fn env_rustflags_plugin_with_target() {
         .build();
 
     let host = rustc_host();
-    p.cargo("build --target")
+    p.payload("build --target")
         .arg(host)
         .env("RUSTFLAGS", "--cfg foo")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn env_rustflags_plugin_dep_with_target() {
     // RUSTFLAGS should not be passed to rustc for plugins
     // when --target is specified.
     // In this test if --cfg foo is passed the build will fail.
     let foo = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -373,7 +373,7 @@ fn env_rustflags_plugin_dep_with_target() {
         .build();
     let _bar = project()
         .at("bar")
-        .file("Cargo.toml", &basic_lib_manifest("bar"))
+        .file("Payload.toml", &basic_lib_manifest("bar"))
         .file(
             "src/lib.rs",
             r#"
@@ -385,50 +385,50 @@ fn env_rustflags_plugin_dep_with_target() {
         .build();
 
     let host = rustc_host();
-    foo.cargo("build --target")
+    foo.payload("build --target")
         .arg(host)
         .env("RUSTFLAGS", "--cfg foo")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn env_rustflags_recompile() {
     let p = project().file("src/lib.rs", "").build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
     // Setting RUSTFLAGS forces a recompile
-    p.cargo("build")
+    p.payload("build")
         .env("RUSTFLAGS", "-Z bogus")
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn env_rustflags_recompile2() {
     let p = project().file("src/lib.rs", "").build();
 
-    p.cargo("build").env("RUSTFLAGS", "--cfg foo").run();
+    p.payload("build").env("RUSTFLAGS", "--cfg foo").run();
     // Setting RUSTFLAGS forces a recompile
-    p.cargo("build")
+    p.payload("build")
         .env("RUSTFLAGS", "-Z bogus")
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn env_rustflags_no_recompile() {
     let p = project().file("src/lib.rs", "").build();
 
-    p.cargo("build").env("RUSTFLAGS", "--cfg foo").run();
-    p.cargo("build")
+    p.payload("build").env("RUSTFLAGS", "--cfg foo").run();
+    p.payload("build")
         .env("RUSTFLAGS", "--cfg foo")
         .with_stdout("")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn build_rustflags_normal_source() {
     let p = project()
         .file("src/lib.rs", "")
@@ -444,7 +444,7 @@ fn build_rustflags_normal_source() {
             "#,
         )
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
             [build]
             rustflags = ["-Z", "bogus"]
@@ -452,36 +452,36 @@ fn build_rustflags_normal_source() {
         )
         .build();
 
-    p.cargo("build --lib")
+    p.payload("build --lib")
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
-    p.cargo("build --bin=a")
+    p.payload("build --bin=a")
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
-    p.cargo("build --example=b")
+    p.payload("build --example=b")
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
-    p.cargo("test")
+    p.payload("test")
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
-    p.cargo("bench")
+    p.payload("bench")
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn build_rustflags_build_script() {
     // RUSTFLAGS should be passed to rustc for build scripts
     // when --target is not specified.
     // In this test if --cfg foo is passed the build will fail.
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -499,7 +499,7 @@ fn build_rustflags_build_script() {
             "#,
         )
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
             [build]
             rustflags = ["--cfg", "foo"]
@@ -507,17 +507,17 @@ fn build_rustflags_build_script() {
         )
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn build_rustflags_build_script_dep() {
     // RUSTFLAGS should be passed to rustc for build scripts
     // when --target is not specified.
     // In this test if --cfg foo is not passed the build will fail.
     let foo = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -531,7 +531,7 @@ fn build_rustflags_build_script_dep() {
         .file("src/lib.rs", "")
         .file("build.rs", "fn main() {}")
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
             [build]
             rustflags = ["--cfg", "foo"]
@@ -540,7 +540,7 @@ fn build_rustflags_build_script_dep() {
         .build();
     let _bar = project()
         .at("bar")
-        .file("Cargo.toml", &basic_manifest("bar", "0.0.1"))
+        .file("Payload.toml", &basic_manifest("bar", "0.0.1"))
         .file(
             "src/lib.rs",
             r#"
@@ -551,17 +551,17 @@ fn build_rustflags_build_script_dep() {
         )
         .build();
 
-    foo.cargo("build").run();
+    foo.payload("build").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn build_rustflags_plugin() {
     // RUSTFLAGS should be passed to rustc for plugins
     // when --target is not specified.
     // In this test if --cfg foo is not passed the build will fail.
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -581,7 +581,7 @@ fn build_rustflags_plugin() {
             "#,
         )
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
             [build]
             rustflags = ["--cfg", "foo"]
@@ -589,17 +589,17 @@ fn build_rustflags_plugin() {
         )
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn build_rustflags_plugin_dep() {
     // RUSTFLAGS should be passed to rustc for plugins
     // when --target is not specified.
     // In this test if --cfg foo is not passed the build will fail.
     let foo = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -615,7 +615,7 @@ fn build_rustflags_plugin_dep() {
         )
         .file("src/lib.rs", "fn foo() {}")
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
             [build]
             rustflags = ["--cfg", "foo"]
@@ -624,7 +624,7 @@ fn build_rustflags_plugin_dep() {
         .build();
     let _bar = project()
         .at("bar")
-        .file("Cargo.toml", &basic_lib_manifest("bar"))
+        .file("Payload.toml", &basic_lib_manifest("bar"))
         .file(
             "src/lib.rs",
             r#"
@@ -635,10 +635,10 @@ fn build_rustflags_plugin_dep() {
         )
         .build();
 
-    foo.cargo("build").run();
+    foo.payload("build").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn build_rustflags_normal_source_with_target() {
     let p = project()
         .file("src/lib.rs", "")
@@ -654,7 +654,7 @@ fn build_rustflags_normal_source_with_target() {
             "#,
         )
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
             [build]
             rustflags = ["-Z", "bogus"]
@@ -665,41 +665,41 @@ fn build_rustflags_normal_source_with_target() {
     let host = &rustc_host();
 
     // Use RUSTFLAGS to pass an argument that will generate an error
-    p.cargo("build --lib --target")
+    p.payload("build --lib --target")
         .arg(host)
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
-    p.cargo("build --bin=a --target")
+    p.payload("build --bin=a --target")
         .arg(host)
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
-    p.cargo("build --example=b --target")
+    p.payload("build --example=b --target")
         .arg(host)
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
-    p.cargo("test --target")
+    p.payload("test --target")
         .arg(host)
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
-    p.cargo("bench --target")
+    p.payload("bench --target")
         .arg(host)
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn build_rustflags_build_script_with_target() {
     // RUSTFLAGS should not be passed to rustc for build scripts
     // when --target is specified.
     // In this test if --cfg foo is passed the build will fail.
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -717,7 +717,7 @@ fn build_rustflags_build_script_with_target() {
             "#,
         )
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
             [build]
             rustflags = ["--cfg", "foo"]
@@ -726,17 +726,17 @@ fn build_rustflags_build_script_with_target() {
         .build();
 
     let host = rustc_host();
-    p.cargo("build --target").arg(host).run();
+    p.payload("build --target").arg(host).run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn build_rustflags_build_script_dep_with_target() {
     // RUSTFLAGS should not be passed to rustc for build scripts
     // when --target is specified.
     // In this test if --cfg foo is passed the build will fail.
     let foo = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -750,7 +750,7 @@ fn build_rustflags_build_script_dep_with_target() {
         .file("src/lib.rs", "")
         .file("build.rs", "fn main() {}")
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
             [build]
             rustflags = ["--cfg", "foo"]
@@ -759,7 +759,7 @@ fn build_rustflags_build_script_dep_with_target() {
         .build();
     let _bar = project()
         .at("bar")
-        .file("Cargo.toml", &basic_manifest("bar", "0.0.1"))
+        .file("Payload.toml", &basic_manifest("bar", "0.0.1"))
         .file(
             "src/lib.rs",
             r#"
@@ -771,17 +771,17 @@ fn build_rustflags_build_script_dep_with_target() {
         .build();
 
     let host = rustc_host();
-    foo.cargo("build --target").arg(host).run();
+    foo.payload("build --target").arg(host).run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn build_rustflags_plugin_with_target() {
     // RUSTFLAGS should not be passed to rustc for plugins
     // when --target is specified.
     // In this test if --cfg foo is passed the build will fail.
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -801,7 +801,7 @@ fn build_rustflags_plugin_with_target() {
             "#,
         )
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
             [build]
             rustflags = ["--cfg", "foo"]
@@ -810,17 +810,17 @@ fn build_rustflags_plugin_with_target() {
         .build();
 
     let host = rustc_host();
-    p.cargo("build --target").arg(host).run();
+    p.payload("build --target").arg(host).run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn build_rustflags_plugin_dep_with_target() {
     // RUSTFLAGS should not be passed to rustc for plugins
     // when --target is specified.
     // In this test if --cfg foo is passed the build will fail.
     let foo = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -836,7 +836,7 @@ fn build_rustflags_plugin_dep_with_target() {
         )
         .file("src/lib.rs", "fn foo() {}")
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
             [build]
             rustflags = ["--cfg", "foo"]
@@ -845,7 +845,7 @@ fn build_rustflags_plugin_dep_with_target() {
         .build();
     let _bar = project()
         .at("bar")
-        .file("Cargo.toml", &basic_lib_manifest("bar"))
+        .file("Payload.toml", &basic_lib_manifest("bar"))
         .file(
             "src/lib.rs",
             r#"
@@ -857,57 +857,57 @@ fn build_rustflags_plugin_dep_with_target() {
         .build();
 
     let host = rustc_host();
-    foo.cargo("build --target").arg(host).run();
+    foo.payload("build --target").arg(host).run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn build_rustflags_recompile() {
     let p = project().file("src/lib.rs", "").build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 
     // Setting RUSTFLAGS forces a recompile
     let config = r#"
         [build]
         rustflags = ["-Z", "bogus"]
         "#;
-    let config_file = paths::root().join("foo/.cargo/config");
+    let config_file = paths::root().join("foo/.payload/config");
     fs::create_dir_all(config_file.parent().unwrap()).unwrap();
     fs::write(config_file, config).unwrap();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn build_rustflags_recompile2() {
     let p = project().file("src/lib.rs", "").build();
 
-    p.cargo("build").env("RUSTFLAGS", "--cfg foo").run();
+    p.payload("build").env("RUSTFLAGS", "--cfg foo").run();
 
     // Setting RUSTFLAGS forces a recompile
     let config = r#"
         [build]
         rustflags = ["-Z", "bogus"]
         "#;
-    let config_file = paths::root().join("foo/.cargo/config");
+    let config_file = paths::root().join("foo/.payload/config");
     fs::create_dir_all(config_file.parent().unwrap()).unwrap();
     fs::write(config_file, config).unwrap();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn build_rustflags_no_recompile() {
     let p = project()
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
             [build]
             rustflags = ["--cfg", "foo"]
@@ -915,18 +915,18 @@ fn build_rustflags_no_recompile() {
         )
         .build();
 
-    p.cargo("build").env("RUSTFLAGS", "--cfg foo").run();
-    p.cargo("build")
+    p.payload("build").env("RUSTFLAGS", "--cfg foo").run();
+    p.payload("build")
         .env("RUSTFLAGS", "--cfg foo")
         .with_stdout("")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn build_rustflags_with_home_config() {
     // We need a config file inside the home directory
     let home = paths::home();
-    let home_config = home.join(".cargo");
+    let home_config = home.join(".payload");
     fs::create_dir(&home_config).unwrap();
     fs::write(
         &home_config.join("config"),
@@ -941,10 +941,10 @@ fn build_rustflags_with_home_config() {
     // so the walking process finds the home project twice.
     let p = project_in_home("foo").file("src/lib.rs", "").build();
 
-    p.cargo("build -v").run();
+    p.payload("build -v").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn target_rustflags_normal_source() {
     let p = project()
         .file("src/lib.rs", "")
@@ -960,7 +960,7 @@ fn target_rustflags_normal_source() {
             "#,
         )
         .file(
-            ".cargo/config",
+            ".payload/config",
             &format!(
                 "
             [target.{}]
@@ -971,30 +971,30 @@ fn target_rustflags_normal_source() {
         )
         .build();
 
-    p.cargo("build --lib")
+    p.payload("build --lib")
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
-    p.cargo("build --bin=a")
+    p.payload("build --bin=a")
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
-    p.cargo("build --example=b")
+    p.payload("build --example=b")
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
-    p.cargo("test")
+    p.payload("test")
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
-    p.cargo("bench")
+    p.payload("bench")
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
 }
 
 // target.{}.rustflags takes precedence over build.rustflags
-#[cargo_test]
+#[payload_test]
 fn target_rustflags_precedence() {
     let p = project()
         .file("src/lib.rs", "")
@@ -1002,7 +1002,7 @@ fn target_rustflags_precedence() {
         .file("examples/b.rs", "fn main() {}")
         .file("tests/c.rs", "#[test] fn f() { }")
         .file(
-            ".cargo/config",
+            ".payload/config",
             &format!(
                 "
             [build]
@@ -1016,29 +1016,29 @@ fn target_rustflags_precedence() {
         )
         .build();
 
-    p.cargo("build --lib")
+    p.payload("build --lib")
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
-    p.cargo("build --bin=a")
+    p.payload("build --bin=a")
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
-    p.cargo("build --example=b")
+    p.payload("build --example=b")
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
-    p.cargo("test")
+    p.payload("test")
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
-    p.cargo("bench")
+    p.payload("bench")
         .with_status(101)
         .with_stderr_contains("[..]bogus[..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn cfg_rustflags_normal_source() {
     let p = project()
         .file("src/lib.rs", "pub fn t() {}")
@@ -1046,7 +1046,7 @@ fn cfg_rustflags_normal_source() {
         .file("examples/b.rs", "fn main() {}")
         .file("tests/c.rs", "#[test] fn f() { }")
         .file(
-            ".cargo/config",
+            ".payload/config",
             &format!(
                 r#"
                 [target.'cfg({})']
@@ -1061,7 +1061,7 @@ fn cfg_rustflags_normal_source() {
         )
         .build();
 
-    p.cargo("build --lib -v")
+    p.payload("build --lib -v")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([..])
@@ -1071,7 +1071,7 @@ fn cfg_rustflags_normal_source() {
         )
         .run();
 
-    p.cargo("build --bin=a -v")
+    p.payload("build --bin=a -v")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([..])
@@ -1081,7 +1081,7 @@ fn cfg_rustflags_normal_source() {
         )
         .run();
 
-    p.cargo("build --example=b -v")
+    p.payload("build --example=b -v")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([..])
@@ -1091,7 +1091,7 @@ fn cfg_rustflags_normal_source() {
         )
         .run();
 
-    p.cargo("test --no-run -v")
+    p.payload("test --no-run -v")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([..])
@@ -1103,7 +1103,7 @@ fn cfg_rustflags_normal_source() {
         )
         .run();
 
-    p.cargo("bench --no-run -v")
+    p.payload("bench --no-run -v")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([..])
@@ -1117,7 +1117,7 @@ fn cfg_rustflags_normal_source() {
 }
 
 // target.'cfg(...)'.rustflags takes precedence over build.rustflags
-#[cargo_test]
+#[payload_test]
 fn cfg_rustflags_precedence() {
     let p = project()
         .file("src/lib.rs", "pub fn t() {}")
@@ -1125,7 +1125,7 @@ fn cfg_rustflags_precedence() {
         .file("examples/b.rs", "fn main() {}")
         .file("tests/c.rs", "#[test] fn f() { }")
         .file(
-            ".cargo/config",
+            ".payload/config",
             &format!(
                 r#"
                 [build]
@@ -1143,7 +1143,7 @@ fn cfg_rustflags_precedence() {
         )
         .build();
 
-    p.cargo("build --lib -v")
+    p.payload("build --lib -v")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([..])
@@ -1153,7 +1153,7 @@ fn cfg_rustflags_precedence() {
         )
         .run();
 
-    p.cargo("build --bin=a -v")
+    p.payload("build --bin=a -v")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([..])
@@ -1163,7 +1163,7 @@ fn cfg_rustflags_precedence() {
         )
         .run();
 
-    p.cargo("build --example=b -v")
+    p.payload("build --example=b -v")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([..])
@@ -1173,7 +1173,7 @@ fn cfg_rustflags_precedence() {
         )
         .run();
 
-    p.cargo("test --no-run -v")
+    p.payload("test --no-run -v")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([..])
@@ -1185,7 +1185,7 @@ fn cfg_rustflags_precedence() {
         )
         .run();
 
-    p.cargo("bench --no-run -v")
+    p.payload("bench --no-run -v")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([..])
@@ -1198,12 +1198,12 @@ fn cfg_rustflags_precedence() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn target_rustflags_string_and_array_form1() {
     let p1 = project()
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
             [build]
             rustflags = ["--cfg", "foo"]
@@ -1211,7 +1211,7 @@ fn target_rustflags_string_and_array_form1() {
         )
         .build();
 
-    p1.cargo("build -v")
+    p1.payload("build -v")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([..])
@@ -1224,7 +1224,7 @@ fn target_rustflags_string_and_array_form1() {
     let p2 = project()
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
             [build]
             rustflags = "--cfg foo"
@@ -1232,7 +1232,7 @@ fn target_rustflags_string_and_array_form1() {
         )
         .build();
 
-    p2.cargo("build -v")
+    p2.payload("build -v")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([..])
@@ -1243,11 +1243,11 @@ fn target_rustflags_string_and_array_form1() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn target_rustflags_string_and_array_form2() {
     let p1 = project()
         .file(
-            ".cargo/config",
+            ".payload/config",
             &format!(
                 r#"
                     [target.{}]
@@ -1259,7 +1259,7 @@ fn target_rustflags_string_and_array_form2() {
         .file("src/lib.rs", "")
         .build();
 
-    p1.cargo("build -v")
+    p1.payload("build -v")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([..])
@@ -1271,7 +1271,7 @@ fn target_rustflags_string_and_array_form2() {
 
     let p2 = project()
         .file(
-            ".cargo/config",
+            ".payload/config",
             &format!(
                 r#"
                     [target.{}]
@@ -1283,7 +1283,7 @@ fn target_rustflags_string_and_array_form2() {
         .file("src/lib.rs", "")
         .build();
 
-    p2.cargo("build -v")
+    p2.payload("build -v")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([..])
@@ -1294,11 +1294,11 @@ fn target_rustflags_string_and_array_form2() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn two_matching_in_config() {
     let p1 = project()
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
                 [target.'cfg(unix)']
                 rustflags = ["--cfg", 'foo="a"']
@@ -1326,27 +1326,27 @@ fn two_matching_in_config() {
         )
         .build();
 
-    p1.cargo("run").run();
-    p1.cargo("build").with_stderr("[FINISHED] [..]").run();
+    p1.payload("run").run();
+    p1.payload("build").with_stderr("[FINISHED] [..]").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn env_rustflags_misspelled() {
     let p = project().file("src/main.rs", "fn main() { }").build();
 
     for cmd in &["check", "build", "run", "test", "bench"] {
-        p.cargo(cmd)
+        p.payload(cmd)
             .env("RUST_FLAGS", "foo")
-            .with_stderr_contains("[WARNING] Cargo does not read `RUST_FLAGS` environment variable. Did you mean `RUSTFLAGS`?")
+            .with_stderr_contains("[WARNING] Payload does not read `RUST_FLAGS` environment variable. Did you mean `RUSTFLAGS`?")
             .run();
     }
 }
 
-#[cargo_test]
+#[payload_test]
 fn env_rustflags_misspelled_build_script() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1358,23 +1358,23 @@ fn env_rustflags_misspelled_build_script() {
         .file("build.rs", "fn main() { }")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .env("RUST_FLAGS", "foo")
-        .with_stderr_contains("[WARNING] Cargo does not read `RUST_FLAGS` environment variable. Did you mean `RUSTFLAGS`?")
+        .with_stderr_contains("[WARNING] Payload does not read `RUST_FLAGS` environment variable. Did you mean `RUSTFLAGS`?")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn remap_path_prefix_ignored() {
     // Ensure that --remap-path-prefix does not affect metadata hash.
     let p = project().file("src/lib.rs", "").build();
-    p.cargo("build").run();
+    p.payload("build").run();
     let rlibs = p
         .glob("target/debug/deps/*.rlib")
         .collect::<Result<Vec<_>, _>>()
         .unwrap();
     assert_eq!(rlibs.len(), 1);
-    p.cargo("clean").run();
+    p.payload("clean").run();
 
     let check_metadata_same = || {
         let rlibs2 = p
@@ -1384,7 +1384,7 @@ fn remap_path_prefix_ignored() {
         assert_eq!(rlibs, rlibs2);
     };
 
-    p.cargo("build")
+    p.payload("build")
         .env(
             "RUSTFLAGS",
             "--remap-path-prefix=/abc=/zoo --remap-path-prefix /spaced=/zoo",
@@ -1392,13 +1392,13 @@ fn remap_path_prefix_ignored() {
         .run();
     check_metadata_same();
 
-    p.cargo("clean").run();
-    p.cargo("rustc -- --remap-path-prefix=/abc=/zoo --remap-path-prefix /spaced=/zoo")
+    p.payload("clean").run();
+    p.payload("rustc -- --remap-path-prefix=/abc=/zoo --remap-path-prefix /spaced=/zoo")
         .run();
     check_metadata_same();
 }
 
-#[cargo_test]
+#[payload_test]
 fn remap_path_prefix_works() {
     // Check that remap-path-prefix works.
     Package::new("bar", "0.1.0")
@@ -1407,7 +1407,7 @@ fn remap_path_prefix_works() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -1427,11 +1427,11 @@ fn remap_path_prefix_works() {
         )
         .build();
 
-    p.cargo("run")
+    p.payload("run")
         .env(
             "RUSTFLAGS",
             format!("--remap-path-prefix={}=/foo", paths::root().display()),
         )
-        .with_stdout("/foo/home/.cargo/registry/src/[..]/bar-0.1.0/src/lib.rs")
+        .with_stdout("/foo/home/.payload/registry/src/[..]/bar-0.1.0/src/lib.rs")
         .run();
 }

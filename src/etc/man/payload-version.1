@@ -1,0 +1,52 @@
+'\" t
+.TH "PAYLOAD\-VERSION" "1"
+.nh
+.ad l
+.ss \n[.ss] 0
+.SH "NAME"
+payload\-version \- Show version information
+.SH "SYNOPSIS"
+\fBpayload version\fR [\fIoptions\fR]
+.SH "DESCRIPTION"
+Displays the version of Payload.
+.SH "OPTIONS"
+.sp
+\fB\-v\fR, 
+\fB\-\-verbose\fR
+.RS 4
+Display additional version information.
+.RE
+.SH "EXAMPLES"
+.sp
+.RS 4
+\h'-04' 1.\h'+01'Display the version:
+.sp
+.RS 4
+.nf
+payload version
+.fi
+.RE
+.RE
+.sp
+.RS 4
+\h'-04' 2.\h'+01'The version is also available via flags:
+.sp
+.RS 4
+.nf
+payload \-\-version
+payload \-V
+.fi
+.RE
+.RE
+.sp
+.RS 4
+\h'-04' 3.\h'+01'Display extra version information:
+.sp
+.RS 4
+.nf
+payload \-Vv
+.fi
+.RE
+.RE
+.SH "SEE ALSO"
+\fBpayload\fR(1)

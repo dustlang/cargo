@@ -1,13 +1,13 @@
-//! Tests for the `cargo locate-project` command.
+//! Tests for the `payload locate-project` command.
 
-use cargo_test_support::project;
+use payload_test_support::project;
 
-#[cargo_test]
+#[payload_test]
 fn simple() {
     let p = project().build();
-    let root_manifest_path = p.root().join("Cargo.toml");
+    let root_manifest_path = p.root().join("Payload.toml");
 
-    p.cargo("locate-project")
+    p.payload("locate-project")
         .with_stdout(format!(
             r#"{{"root":"{}"}}"#,
             root_manifest_path.to_str().unwrap()
@@ -15,31 +15,31 @@ fn simple() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn message_format() {
     let p = project().build();
-    let root_manifest_path = p.root().join("Cargo.toml");
+    let root_manifest_path = p.root().join("Payload.toml");
     let root_str = root_manifest_path.to_str().unwrap();
 
-    p.cargo("locate-project --message-format plain")
+    p.payload("locate-project --message-format plain")
         .with_stdout(root_str)
         .run();
 
-    p.cargo("locate-project --message-format json")
+    p.payload("locate-project --message-format json")
         .with_stdout(format!(r#"{{"root":"{}"}}"#, root_str))
         .run();
 
-    p.cargo("locate-project --message-format cryptic")
+    p.payload("locate-project --message-format cryptic")
         .with_stderr("error: invalid message format specifier: `cryptic`")
         .with_status(101)
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn workspace() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "outer"
@@ -51,7 +51,7 @@ fn workspace() {
         )
         .file("src/main.rs", "fn main() {}")
         .file(
-            "inner/Cargo.toml",
+            "inner/Payload.toml",
             r#"
                 [package]
                 name = "inner"
@@ -63,25 +63,25 @@ fn workspace() {
 
     let outer_manifest = format!(
         r#"{{"root":"{}"}}"#,
-        p.root().join("Cargo.toml").to_str().unwrap(),
+        p.root().join("Payload.toml").to_str().unwrap(),
     );
     let inner_manifest = format!(
         r#"{{"root":"{}"}}"#,
-        p.root().join("inner").join("Cargo.toml").to_str().unwrap(),
+        p.root().join("inner").join("Payload.toml").to_str().unwrap(),
     );
 
-    p.cargo("locate-project").with_stdout(&outer_manifest).run();
+    p.payload("locate-project").with_stdout(&outer_manifest).run();
 
-    p.cargo("locate-project")
+    p.payload("locate-project")
         .cwd("inner")
         .with_stdout(&inner_manifest)
         .run();
 
-    p.cargo("locate-project --workspace")
+    p.payload("locate-project --workspace")
         .with_stdout(&outer_manifest)
         .run();
 
-    p.cargo("locate-project --workspace")
+    p.payload("locate-project --workspace")
         .cwd("inner")
         .with_stdout(&outer_manifest)
         .run();

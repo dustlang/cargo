@@ -2,13 +2,13 @@
 
 ## Internal profiler
 
-Cargo has a basic, hierarchical profiler built-in. The environment variable
-`CARGO_PROFILE` can be set to an integer which specifies how deep in the
+Payload has a basic, hierarchical profiler built-in. The environment variable
+`PAYLOAD_PROFILE` can be set to an integer which specifies how deep in the
 profile stack to print results for.
 
 ```sh
 # Output first three levels of profiling info
-CARGO_PROFILE=3 cargo generate-lockfile
+PAYLOAD_PROFILE=3 payload generate-lockfile
 ```
 
 ## Informal profiling
@@ -26,7 +26,7 @@ the primary parts that affect this are:
 We currently don't have any automated systems or tools for measuring or
 tracking the startup time. We informally measure these on changes that are
 likely to affect the performance. Usually this is done by measuring the time
-for `cargo build` to finish in a large project where the build is fresh (no
+for `payload build` to finish in a large project where the build is fresh (no
 actual compilation is performed). [Hyperfine] is a command-line tool that can
 be used to roughly measure the difference between different commands and
 settings.

@@ -1,6 +1,6 @@
 # Publishing Commands
-* [cargo login](cargo-login.md)
-* [cargo owner](cargo-owner.md)
-* [cargo package](cargo-package.md)
-* [cargo publish](cargo-publish.md)
-* [cargo yank](cargo-yank.md)
+* [payload login](payload-login.md)
+* [payload owner](payload-owner.md)
+* [payload package](payload-package.md)
+* [payload publish](payload-publish.md)
+* [payload yank](payload-yank.md)

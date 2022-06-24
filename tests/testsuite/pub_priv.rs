@@ -1,9 +1,9 @@
 //! Tests for public/private dependencies.
 
-use cargo_test_support::registry::Package;
-use cargo_test_support::{is_nightly, project};
+use payload_test_support::registry::Package;
+use payload_test_support::{is_nightly, project};
 
-#[cargo_test]
+#[payload_test]
 fn exported_priv_warning() {
     if !is_nightly() {
         // exported_private_dependencies lint is unstable
@@ -15,9 +15,9 @@ fn exported_priv_warning() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-                cargo-features = ["public-dependency"]
+                payload-features = ["public-dependency"]
 
                 [package]
                 name = "foo"
@@ -36,8 +36,8 @@ fn exported_priv_warning() {
         )
         .build();
 
-    p.cargo("build --message-format=short")
-        .masquerade_as_nightly_cargo()
+    p.payload("build --message-format=short")
+        .masquerade_as_nightly_payload()
         .with_stderr_contains(
             "\
 src/lib.rs:3:13: warning: type `[..]FromPriv` from private dependency 'priv_dep' in public interface
@@ -46,7 +46,7 @@ src/lib.rs:3:13: warning: type `[..]FromPriv` from private dependency 'priv_dep'
         .run()
 }
 
-#[cargo_test]
+#[payload_test]
 fn exported_pub_dep() {
     if !is_nightly() {
         // exported_private_dependencies lint is unstable
@@ -58,9 +58,9 @@ fn exported_pub_dep() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-                cargo-features = ["public-dependency"]
+                payload-features = ["public-dependency"]
 
                 [package]
                 name = "foo"
@@ -79,8 +79,8 @@ fn exported_pub_dep() {
         )
         .build();
 
-    p.cargo("build --message-format=short")
-        .masquerade_as_nightly_cargo()
+    p.payload("build --message-format=short")
+        .masquerade_as_nightly_payload()
         .with_stderr(
             "\
 [UPDATING] `[..]` index
@@ -94,34 +94,34 @@ fn exported_pub_dep() {
         .run()
 }
 
-#[cargo_test]
-pub fn requires_nightly_cargo() {
+#[payload_test]
+pub fn requires_nightly_payload() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-                cargo-features = ["public-dependency"]
+                payload-features = ["public-dependency"]
             "#,
         )
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build --message-format=short")
+    p.payload("build --message-format=short")
         .with_status(101)
         .with_stderr(
             "\
 error: failed to parse manifest at `[..]`
 
 Caused by:
-  the cargo feature `public-dependency` requires a nightly version of Cargo, but this is the `stable` channel
-  See https://doc.rust-lang.org/book/appendix-07-nightly-rust.html for more information about Rust release channels.
-  See https://doc.rust-lang.org/[..]cargo/reference/unstable.html#public-dependency for more information about using this feature.
+  the payload feature `public-dependency` requires a nightly version of Payload, but this is the `stable` channel
+  See https://doc.dustlang.com/book/appendix-07-nightly-rust.html for more information about Rust release channels.
+  See https://doc.dustlang.com/[..]payload/reference/unstable.html#public-dependency for more information about using this feature.
 "
         )
         .run()
 }
 
-#[cargo_test]
+#[payload_test]
 fn requires_feature() {
     Package::new("pub_dep", "0.1.0")
         .file("src/lib.rs", "")
@@ -129,7 +129,7 @@ fn requires_feature() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
 
                 [package]
@@ -143,8 +143,8 @@ fn requires_feature() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build --message-format=short")
-        .masquerade_as_nightly_cargo()
+    p.payload("build --message-format=short")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_stderr(
             "\
@@ -153,13 +153,13 @@ error: failed to parse manifest at `[..]`
 Caused by:
   feature `public-dependency` is required
 
-  consider adding `cargo-features = [\"public-dependency\"]` to the manifest
+  consider adding `payload-features = [\"public-dependency\"]` to the manifest
 ",
         )
         .run()
 }
 
-#[cargo_test]
+#[payload_test]
 fn pub_dev_dependency() {
     Package::new("pub_dep", "0.1.0")
         .file("src/lib.rs", "pub struct FromPub;")
@@ -167,9 +167,9 @@ fn pub_dev_dependency() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-                cargo-features = ["public-dependency"]
+                payload-features = ["public-dependency"]
 
                 [package]
                 name = "foo"
@@ -188,8 +188,8 @@ fn pub_dev_dependency() {
         )
         .build();
 
-    p.cargo("build --message-format=short")
-        .masquerade_as_nightly_cargo()
+    p.payload("build --message-format=short")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_stderr(
             "\

@@ -1,7 +1,7 @@
-The Cargo source code itself does not bundle any third party libraries, but it
+The Payload source code itself does not bundle any third party libraries, but it
 depends on a number of libraries which carry their own copyright notices and
 license terms. These libraries are normally all linked static into the binary
-distributions of Cargo:
+distributions of Payload:
 
 * OpenSSL - https://www.openssl.org/source/license.html
 
@@ -1139,8 +1139,8 @@ distributions of Cargo:
     IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
     DEALINGS IN THE SOFTWARE.
 
-* glob - https://github.com/rust-lang/glob/blob/master/LICENSE-MIT
-* semver - https://github.com/rust-lang/semver/blob/master/LICENSE-MIT
+* glob - https://github.com/dustlang/glob/blob/master/LICENSE-MIT
+* semver - https://github.com/dustlang/semver/blob/master/LICENSE-MIT
 
     Copyright (c) 2014 The Rust Project Developers
 

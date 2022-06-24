@@ -1,9 +1,9 @@
-//! Tests for the `cargo publish` command.
+//! Tests for the `payload publish` command.
 
-use cargo_test_support::git::{self, repo};
-use cargo_test_support::paths;
-use cargo_test_support::registry::{self, registry_path, registry_url, Package};
-use cargo_test_support::{basic_manifest, no_such_file_err_msg, project, publish};
+use payload_test_support::git::{self, repo};
+use payload_test_support::paths;
+use payload_test_support::registry::{self, registry_path, registry_url, Package};
+use payload_test_support::{basic_manifest, no_such_file_err_msg, project, publish};
 use std::fs;
 
 const CLEAN_FOO_JSON: &str = r#"
@@ -52,7 +52,7 @@ fn validate_upload_foo() {
           }
         "#,
         "foo-0.0.1.crate",
-        &["Cargo.lock", "Cargo.toml", "Cargo.toml.orig", "src/main.rs"],
+        &["Payload.lock", "Payload.toml", "Payload.toml.orig", "src/main.rs"],
     );
 }
 
@@ -61,22 +61,22 @@ fn validate_upload_foo_clean() {
         CLEAN_FOO_JSON,
         "foo-0.0.1.crate",
         &[
-            "Cargo.lock",
-            "Cargo.toml",
-            "Cargo.toml.orig",
+            "Payload.lock",
+            "Payload.toml",
+            "Payload.toml.orig",
             "src/main.rs",
-            ".cargo_vcs_info.json",
+            ".payload_vcs_info.json",
         ],
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn simple() {
     registry::init();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -89,7 +89,7 @@ fn simple() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("publish --no-verify --token sekrit")
+    p.payload("publish --no-verify --token sekrit")
         .with_stderr(&format!(
             "\
 [UPDATING] `{reg}` index
@@ -105,7 +105,7 @@ See [..]
     validate_upload_foo();
 }
 
-#[cargo_test]
+#[payload_test]
 fn old_token_location() {
     // Check that the `token` key works at the root instead of under a
     // `[registry]` table.
@@ -113,7 +113,7 @@ fn old_token_location() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -126,21 +126,21 @@ fn old_token_location() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    let credentials = paths::home().join(".cargo/credentials");
+    let credentials = paths::home().join(".payload/credentials");
     fs::remove_file(&credentials).unwrap();
 
     // Verify can't publish without a token.
-    p.cargo("publish --no-verify")
+    p.payload("publish --no-verify")
         .with_status(101)
         .with_stderr_contains(
             "[ERROR] no upload token found, \
-            please run `cargo login` or pass `--token`",
+            please run `payload login` or pass `--token`",
         )
         .run();
 
     fs::write(&credentials, r#"token = "api-token""#).unwrap();
 
-    p.cargo("publish --no-verify")
+    p.payload("publish --no-verify")
         .with_stderr(&format!(
             "\
 [UPDATING] `{reg}` index
@@ -161,13 +161,13 @@ See [..]
 
 // TODO: Deprecated
 // remove once it has been decided --host can be removed
-#[cargo_test]
+#[payload_test]
 fn simple_with_host() {
     registry::init();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -180,13 +180,13 @@ fn simple_with_host() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("publish --no-verify --token sekrit --host")
+    p.payload("publish --no-verify --token sekrit --host")
         .arg(registry_url().to_string())
         .with_stderr(&format!(
             "\
 [WARNING] The flag '--host' is no longer valid.
 
-Previous versions of Cargo accepted this flag, but it is being
+Previous versions of Payload accepted this flag, but it is being
 deprecated. The flag is being renamed to 'index', as the flag
 wants the location of the index. Please use '--index' instead.
 
@@ -208,13 +208,13 @@ See [..]
 
 // TODO: Deprecated
 // remove once it has been decided --host can be removed
-#[cargo_test]
+#[payload_test]
 fn simple_with_index_and_host() {
     registry::init();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -227,7 +227,7 @@ fn simple_with_index_and_host() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("publish --no-verify --token sekrit --index")
+    p.payload("publish --no-verify --token sekrit --index")
         .arg(registry_url().to_string())
         .arg("--host")
         .arg(registry_url().to_string())
@@ -235,7 +235,7 @@ fn simple_with_index_and_host() {
             "\
 [WARNING] The flag '--host' is no longer valid.
 
-Previous versions of Cargo accepted this flag, but it is being
+Previous versions of Payload accepted this flag, but it is being
 deprecated. The flag is being renamed to 'index', as the flag
 wants the location of the index. Please use '--index' instead.
 
@@ -255,13 +255,13 @@ See [..]
     validate_upload_foo();
 }
 
-#[cargo_test]
+#[payload_test]
 fn git_deps() {
     registry::init();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -277,7 +277,7 @@ fn git_deps() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("publish -v --no-verify --token sekrit")
+    p.payload("publish -v --no-verify --token sekrit")
         .with_status(101)
         .with_stderr(
             "\
@@ -291,13 +291,13 @@ the `git` specification will be removed from the dependency declaration.
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn path_dependency_no_version() {
     registry::init();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -311,11 +311,11 @@ fn path_dependency_no_version() {
             "#,
         )
         .file("src/main.rs", "fn main() {}")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.0.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.0.1"))
         .file("bar/src/lib.rs", "")
         .build();
 
-    p.cargo("publish --token sekrit")
+    p.payload("publish --token sekrit")
         .with_status(101)
         .with_stderr(
             "\
@@ -329,13 +329,13 @@ the `path` specification will be removed from the dependency declaration.
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn unpublishable_crate() {
     registry::init();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -349,26 +349,26 @@ fn unpublishable_crate() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("publish --index")
+    p.payload("publish --index")
         .arg(registry_url().to_string())
         .with_status(101)
         .with_stderr(
             "\
 [ERROR] `foo` cannot be published.
-The registry `crates-io` is not listed in the `publish` value in Cargo.toml.
+The registry `crates-io` is not listed in the `publish` value in Payload.toml.
 ",
         )
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn dont_publish_dirty() {
     registry::init();
     let p = project().file("bar", "").build();
 
     let _ = git::repo(&paths::root().join("foo"))
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -384,7 +384,7 @@ fn dont_publish_dirty() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("publish --token sekrit")
+    p.payload("publish --token sekrit")
         .with_status(101)
         .with_stderr(
             "\
@@ -400,7 +400,7 @@ to proceed despite this and include the uncommitted changes, pass the `--allow-d
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn publish_clean() {
     registry::init();
 
@@ -408,7 +408,7 @@ fn publish_clean() {
 
     let _ = repo(&paths::root().join("foo"))
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -424,12 +424,12 @@ fn publish_clean() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("publish --token sekrit").run();
+    p.payload("publish --token sekrit").run();
 
     validate_upload_foo_clean();
 }
 
-#[cargo_test]
+#[payload_test]
 fn publish_in_sub_repo() {
     registry::init();
 
@@ -437,7 +437,7 @@ fn publish_in_sub_repo() {
 
     let _ = repo(&paths::root().join("foo"))
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -453,12 +453,12 @@ fn publish_in_sub_repo() {
         .file("bar/src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("publish --token sekrit").cwd("bar").run();
+    p.payload("publish --token sekrit").cwd("bar").run();
 
     validate_upload_foo_clean();
 }
 
-#[cargo_test]
+#[payload_test]
 fn publish_when_ignored() {
     registry::init();
 
@@ -466,7 +466,7 @@ fn publish_when_ignored() {
 
     let _ = repo(&paths::root().join("foo"))
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -483,23 +483,23 @@ fn publish_when_ignored() {
         .file(".gitignore", "baz")
         .build();
 
-    p.cargo("publish --token sekrit").run();
+    p.payload("publish --token sekrit").run();
 
     publish::validate_upload(
         CLEAN_FOO_JSON,
         "foo-0.0.1.crate",
         &[
-            "Cargo.lock",
-            "Cargo.toml",
-            "Cargo.toml.orig",
+            "Payload.lock",
+            "Payload.toml",
+            "Payload.toml.orig",
             "src/main.rs",
             ".gitignore",
-            ".cargo_vcs_info.json",
+            ".payload_vcs_info.json",
         ],
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn ignore_when_crate_ignored() {
     registry::init();
 
@@ -508,7 +508,7 @@ fn ignore_when_crate_ignored() {
     let _ = repo(&paths::root().join("foo"))
         .file(".gitignore", "bar")
         .nocommit_file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -522,22 +522,22 @@ fn ignore_when_crate_ignored() {
             "#,
         )
         .nocommit_file("bar/src/main.rs", "fn main() {}");
-    p.cargo("publish --token sekrit").cwd("bar").run();
+    p.payload("publish --token sekrit").cwd("bar").run();
 
     publish::validate_upload(
         CLEAN_FOO_JSON,
         "foo-0.0.1.crate",
         &[
-            "Cargo.lock",
-            "Cargo.toml",
-            "Cargo.toml.orig",
+            "Payload.lock",
+            "Payload.toml",
+            "Payload.toml.orig",
             "src/main.rs",
             "baz",
         ],
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn new_crate_rejected() {
     registry::init();
 
@@ -545,7 +545,7 @@ fn new_crate_rejected() {
 
     let _ = repo(&paths::root().join("foo"))
         .nocommit_file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -559,7 +559,7 @@ fn new_crate_rejected() {
             "#,
         )
         .nocommit_file("src/main.rs", "fn main() {}");
-    p.cargo("publish --token sekrit")
+    p.payload("publish --token sekrit")
         .with_status(101)
         .with_stderr_contains(
             "[ERROR] 3 files in the working directory contain \
@@ -568,13 +568,13 @@ fn new_crate_rejected() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn dry_run() {
     registry::init();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -587,7 +587,7 @@ fn dry_run() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("publish --dry-run --index")
+    p.payload("publish --dry-run --index")
         .arg(registry_url().to_string())
         .with_stderr(
             "\
@@ -609,13 +609,13 @@ See [..]
     assert!(!registry::api_path().join("api/v1/crates/new").exists());
 }
 
-#[cargo_test]
+#[payload_test]
 fn registry_not_in_publish_list() {
     registry::init();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -631,26 +631,26 @@ fn registry_not_in_publish_list() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("publish")
+    p.payload("publish")
         .arg("--registry")
         .arg("alternative")
         .with_status(101)
         .with_stderr(
             "\
 [ERROR] `foo` cannot be published.
-The registry `alternative` is not listed in the `publish` value in Cargo.toml.
+The registry `alternative` is not listed in the `publish` value in Payload.toml.
 ",
         )
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn publish_empty_list() {
     registry::init();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -664,18 +664,18 @@ fn publish_empty_list() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("publish --registry alternative")
+    p.payload("publish --registry alternative")
         .with_status(101)
         .with_stderr(
             "\
 [ERROR] `foo` cannot be published.
-The registry `alternative` is not listed in the `publish` value in Cargo.toml.
+The registry `alternative` is not listed in the `publish` value in Payload.toml.
 ",
         )
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn publish_allowed_registry() {
     registry::alt_init();
 
@@ -683,7 +683,7 @@ fn publish_allowed_registry() {
 
     let _ = repo(&paths::root().join("foo"))
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -700,22 +700,22 @@ fn publish_allowed_registry() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("publish --registry alternative").run();
+    p.payload("publish --registry alternative").run();
 
     publish::validate_alt_upload(
         CLEAN_FOO_JSON,
         "foo-0.0.1.crate",
         &[
-            "Cargo.lock",
-            "Cargo.toml",
-            "Cargo.toml.orig",
+            "Payload.lock",
+            "Payload.toml",
+            "Payload.toml.orig",
             "src/main.rs",
-            ".cargo_vcs_info.json",
+            ".payload_vcs_info.json",
         ],
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn publish_implicitly_to_only_allowed_registry() {
     registry::alt_init();
 
@@ -723,7 +723,7 @@ fn publish_implicitly_to_only_allowed_registry() {
 
     let _ = repo(&paths::root().join("foo"))
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -740,22 +740,22 @@ fn publish_implicitly_to_only_allowed_registry() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("publish").run();
+    p.payload("publish").run();
 
     publish::validate_alt_upload(
         CLEAN_FOO_JSON,
         "foo-0.0.1.crate",
         &[
-            "Cargo.lock",
-            "Cargo.toml",
-            "Cargo.toml.orig",
+            "Payload.lock",
+            "Payload.toml",
+            "Payload.toml.orig",
             "src/main.rs",
-            ".cargo_vcs_info.json",
+            ".payload_vcs_info.json",
         ],
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn publish_fail_with_no_registry_specified() {
     registry::init();
 
@@ -763,7 +763,7 @@ fn publish_fail_with_no_registry_specified() {
 
     let _ = repo(&paths::root().join("foo"))
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -780,24 +780,24 @@ fn publish_fail_with_no_registry_specified() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("publish")
+    p.payload("publish")
         .with_status(101)
         .with_stderr(
             "\
 [ERROR] `foo` cannot be published.
-The registry `crates-io` is not listed in the `publish` value in Cargo.toml.
+The registry `crates-io` is not listed in the `publish` value in Payload.toml.
 ",
         )
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn block_publish_no_registry() {
     registry::init();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -811,25 +811,25 @@ fn block_publish_no_registry() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("publish --registry alternative")
+    p.payload("publish --registry alternative")
         .with_status(101)
         .with_stderr(
             "\
 [ERROR] `foo` cannot be published.
-The registry `alternative` is not listed in the `publish` value in Cargo.toml.
+The registry `alternative` is not listed in the `publish` value in Payload.toml.
 ",
         )
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn publish_with_crates_io_explicit() {
     // Explicitly setting `crates-io` in the publish list.
     registry::init();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -843,26 +843,26 @@ fn publish_with_crates_io_explicit() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("publish --registry alternative")
+    p.payload("publish --registry alternative")
         .with_status(101)
         .with_stderr(
             "\
 [ERROR] `foo` cannot be published.
-The registry `alternative` is not listed in the `publish` value in Cargo.toml.
+The registry `alternative` is not listed in the `publish` value in Payload.toml.
 ",
         )
         .run();
 
-    p.cargo("publish").run();
+    p.payload("publish").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn publish_with_select_features() {
     registry::init();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -884,18 +884,18 @@ fn publish_with_select_features() {
         )
         .build();
 
-    p.cargo("publish --features required --token sekrit")
+    p.payload("publish --features required --token sekrit")
         .with_stderr_contains("[UPLOADING] foo v0.0.1 ([CWD])")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn publish_with_all_features() {
     registry::init();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -917,18 +917,18 @@ fn publish_with_all_features() {
         )
         .build();
 
-    p.cargo("publish --all-features --token sekrit")
+    p.payload("publish --all-features --token sekrit")
         .with_stderr_contains("[UPLOADING] foo v0.0.1 ([CWD])")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn publish_with_no_default_features() {
     registry::init();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -950,19 +950,19 @@ fn publish_with_no_default_features() {
         )
         .build();
 
-    p.cargo("publish --no-default-features --token sekrit")
+    p.payload("publish --no-default-features --token sekrit")
         .with_stderr_contains("error: This crate requires `required` feature!")
         .with_status(101)
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn publish_with_patch() {
     Package::new("bar", "1.0.0").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -983,15 +983,15 @@ fn publish_with_patch() {
                  bar::newfunc();
              }",
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "1.0.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "1.0.0"))
         .file("bar/src/lib.rs", "pub fn newfunc() {}")
         .build();
 
     // Check that it works with the patched crate.
-    p.cargo("build").run();
+    p.payload("build").run();
 
     // Check that verify fails with patched crate which has new functionality.
-    p.cargo("publish --token sekrit")
+    p.payload("publish --token sekrit")
         .with_stderr_contains("[..]newfunc[..]")
         .with_status(101)
         .run();
@@ -999,7 +999,7 @@ fn publish_with_patch() {
     // Remove the usage of new functionality and try again.
     p.change_file("src/main.rs", "extern crate bar; pub fn main() {}");
 
-    p.cargo("publish --token sekrit").run();
+    p.payload("publish --token sekrit").run();
 
     // Note, use of `registry` in the deps here is an artifact that this
     // publishes to a fake, local registry that is pretending to be crates.io.
@@ -1017,7 +1017,7 @@ fn publish_with_patch() {
               "kind": "normal",
               "name": "bar",
               "optional": false,
-              "registry": "https://github.com/rust-lang/crates.io-index",
+              "registry": "https://github.com/dustlang/crates.io-index",
               "target": null,
               "version_req": "^1.0"
             }
@@ -1038,17 +1038,17 @@ fn publish_with_patch() {
           }
         "#,
         "foo-0.0.1.crate",
-        &["Cargo.lock", "Cargo.toml", "Cargo.toml.orig", "src/main.rs"],
+        &["Payload.lock", "Payload.toml", "Payload.toml.orig", "src/main.rs"],
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn publish_checks_for_token_before_verify() {
     registry::init();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1061,31 +1061,31 @@ fn publish_checks_for_token_before_verify() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    let credentials = paths::home().join(".cargo/credentials");
+    let credentials = paths::home().join(".payload/credentials");
     fs::remove_file(&credentials).unwrap();
 
     // Assert upload token error before the package is verified
-    p.cargo("publish")
+    p.payload("publish")
         .with_status(101)
         .with_stderr_contains(
             "[ERROR] no upload token found, \
-            please run `cargo login` or pass `--token`",
+            please run `payload login` or pass `--token`",
         )
         .with_stderr_does_not_contain("[VERIFYING] foo v0.0.1 ([CWD])")
         .run();
 
     // Assert package verified successfully on dry run
-    p.cargo("publish --dry-run")
+    p.payload("publish --dry-run")
         .with_status(0)
         .with_stderr_contains("[VERIFYING] foo v0.0.1 ([CWD])")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn publish_with_bad_source() {
     let p = project()
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
             [source.crates-io]
             replace-with = 'local-registry'
@@ -1097,18 +1097,18 @@ fn publish_with_bad_source() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("publish --token sekrit")
+    p.payload("publish --token sekrit")
         .with_status(101)
         .with_stderr(
             "\
 [ERROR] registry `[..]/foo/registry` does not support API commands.
-Check for a source-replacement in .cargo/config.
+Check for a source-replacement in .payload/config.
 ",
         )
         .run();
 
     p.change_file(
-        ".cargo/config",
+        ".payload/config",
         r#"
         [source.crates-io]
         replace-with = "vendored-sources"
@@ -1118,18 +1118,18 @@ Check for a source-replacement in .cargo/config.
         "#,
     );
 
-    p.cargo("publish --token sekrit")
+    p.payload("publish --token sekrit")
         .with_status(101)
         .with_stderr(
             "\
 [ERROR] dir [..]/foo/vendor does not support API commands.
-Check for a source-replacement in .cargo/config.
+Check for a source-replacement in .payload/config.
 ",
         )
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn publish_git_with_version() {
     // A dependency with both `git` and `version`.
     Package::new("dep1", "1.0.1")
@@ -1138,13 +1138,13 @@ fn publish_git_with_version() {
 
     let git_project = git::new("dep1", |project| {
         project
-            .file("Cargo.toml", &basic_manifest("dep1", "1.0.0"))
+            .file("Payload.toml", &basic_manifest("dep1", "1.0.0"))
             .file("src/lib.rs", "pub fn f() -> i32 {2}")
     });
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                 [package]
@@ -1171,8 +1171,8 @@ fn publish_git_with_version() {
         )
         .build();
 
-    p.cargo("run").with_stdout("2").run();
-    p.cargo("publish --no-verify --token sekrit").run();
+    p.payload("run").with_stdout("2").run();
+    p.payload("publish --no-verify --token sekrit").run();
 
     publish::validate_upload_with_contents(
         r#"
@@ -1187,7 +1187,7 @@ fn publish_git_with_version() {
               "kind": "normal",
               "name": "dep1",
               "optional": false,
-              "registry": "https://github.com/rust-lang/crates.io-index",
+              "registry": "https://github.com/dustlang/crates.io-index",
               "target": null,
               "version_req": "^1.0"
             }
@@ -1208,18 +1208,18 @@ fn publish_git_with_version() {
           }
         "#,
         "foo-0.1.0.crate",
-        &["Cargo.lock", "Cargo.toml", "Cargo.toml.orig", "src/main.rs"],
+        &["Payload.lock", "Payload.toml", "Payload.toml.orig", "src/main.rs"],
         &[
             (
-                "Cargo.toml",
-                // Check that only `version` is included in Cargo.toml.
+                "Payload.toml",
+                // Check that only `version` is included in Payload.toml.
                 "[..]\n\
                  [dependencies.dep1]\n\
                  version = \"1.0\"\n\
                  ",
             ),
             (
-                "Cargo.lock",
+                "Payload.lock",
                 // The important check here is that it is 1.0.1 in the registry.
                 "[..]\n\
                  [[package]]\n\
@@ -1234,13 +1234,13 @@ fn publish_git_with_version() {
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn publish_dev_dep_no_version() {
     registry::init();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -1257,11 +1257,11 @@ fn publish_dev_dep_no_version() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.0.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.0.1"))
         .file("bar/src/lib.rs", "")
         .build();
 
-    p.cargo("publish --no-verify --token sekrit")
+    p.payload("publish --no-verify --token sekrit")
         .with_stderr(
             "\
 [UPDATING] [..]
@@ -1294,9 +1294,9 @@ fn publish_dev_dep_no_version() {
         }
         "#,
         "foo-0.1.0.crate",
-        &["Cargo.toml", "Cargo.toml.orig", "src/lib.rs"],
+        &["Payload.toml", "Payload.toml.orig", "src/lib.rs"],
         &[(
-            "Cargo.toml",
+            "Payload.toml",
             r#"[..]
 [package]
 name = "foo"
@@ -1314,16 +1314,16 @@ repository = "foo"
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn credentials_ambiguous_filename() {
     registry::init();
 
-    let credentials_toml = paths::home().join(".cargo/credentials.toml");
+    let credentials_toml = paths::home().join(".payload/credentials.toml");
     fs::write(credentials_toml, r#"token = "api-token""#).unwrap();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1336,7 +1336,7 @@ fn credentials_ambiguous_filename() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("publish --no-verify --token sekrit")
+    p.payload("publish --no-verify --token sekrit")
         .with_stderr_contains(
             "\
 [WARNING] Both `[..]/credentials` and `[..]/credentials.toml` exist. Using `[..]/credentials`
@@ -1347,17 +1347,17 @@ fn credentials_ambiguous_filename() {
     validate_upload_foo();
 }
 
-#[cargo_test]
+#[payload_test]
 fn index_requires_token() {
     // --index will not load registry.token to avoid possibly leaking
     // crates.io token to another server.
     registry::init();
-    let credentials = paths::home().join(".cargo/credentials");
+    let credentials = paths::home().join(".payload/credentials");
     fs::remove_file(&credentials).unwrap();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -1370,7 +1370,7 @@ fn index_requires_token() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("publish --no-verify --index")
+    p.payload("publish --no-verify --index")
         .arg(registry_url().to_string())
         .with_status(101)
         .with_stderr(
@@ -1382,14 +1382,14 @@ fn index_requires_token() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn registry_token_with_source_replacement() {
     // publish with source replacement without --token
     registry::init();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1402,7 +1402,7 @@ fn registry_token_with_source_replacement() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("publish --no-verify")
+    p.payload("publish --no-verify")
         .with_stderr(
             "\
 [UPDATING] [..]
@@ -1418,12 +1418,12 @@ See [..]
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn publish_with_missing_readme() {
     registry::init();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1438,7 +1438,7 @@ fn publish_with_missing_readme() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("publish --no-verify --token sekrit")
+    p.payload("publish --no-verify --token sekrit")
         .with_status(101)
         .with_stderr(&format!(
             "\
@@ -1458,7 +1458,7 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn api_error_json() {
     // Registry returns an API error.
     let t = registry::RegistryBuilder::new().build_api_server(&|_headers| {
@@ -1467,7 +1467,7 @@ fn api_error_json() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1483,7 +1483,7 @@ fn api_error_json() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("publish --no-verify --registry alternative")
+    p.payload("publish --no-verify --registry alternative")
         .with_status(101)
         .with_stderr(
             "\
@@ -1501,7 +1501,7 @@ Caused by:
     t.join().unwrap();
 }
 
-#[cargo_test]
+#[payload_test]
 fn api_error_200() {
     // Registry returns an API error with a 200 status code.
     let t = registry::RegistryBuilder::new().build_api_server(&|_headers| {
@@ -1513,7 +1513,7 @@ fn api_error_200() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1529,7 +1529,7 @@ fn api_error_200() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("publish --no-verify --registry alternative")
+    p.payload("publish --no-verify --registry alternative")
         .with_status(101)
         .with_stderr(
             "\
@@ -1547,14 +1547,14 @@ Caused by:
     t.join().unwrap();
 }
 
-#[cargo_test]
+#[payload_test]
 fn api_error_code() {
     // Registry returns an error code without a JSON message.
     let t = registry::RegistryBuilder::new().build_api_server(&|_headers| (400, &"go away"));
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1570,7 +1570,7 @@ fn api_error_code() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("publish --no-verify --registry alternative")
+    p.payload("publish --no-verify --registry alternative")
         .with_status(101)
         .with_stderr(
             "\
@@ -1594,14 +1594,14 @@ Caused by:
     t.join().unwrap();
 }
 
-#[cargo_test]
+#[payload_test]
 fn api_curl_error() {
     // Registry has a network error.
     let t = registry::RegistryBuilder::new().build_api_server(&|_headers| panic!("broke!"));
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1618,11 +1618,11 @@ fn api_curl_error() {
         .build();
 
     // This doesn't check for the exact text of the error in the remote
-    // possibility that cargo is linked with a weird version of libcurl, or
+    // possibility that payload is linked with a weird version of libcurl, or
     // curl changes the text of the message. Currently the message 52
     // (CURLE_GOT_NOTHING) is:
     //    Server returned nothing (no headers, no data) (Empty reply from server)
-    p.cargo("publish --no-verify --registry alternative")
+    p.payload("publish --no-verify --registry alternative")
         .with_status(101)
         .with_stderr(
             "\
@@ -1641,14 +1641,14 @@ Caused by:
     assert_eq!(*e.downcast::<&str>().unwrap(), "broke!");
 }
 
-#[cargo_test]
+#[payload_test]
 fn api_other_error() {
     // Registry returns an invalid response.
     let t = registry::RegistryBuilder::new().build_api_server(&|_headers| (200, b"\xff"));
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1664,7 +1664,7 @@ fn api_other_error() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("publish --no-verify --registry alternative")
+    p.payload("publish --no-verify --registry alternative")
         .with_status(101)
         .with_stderr(
             "\

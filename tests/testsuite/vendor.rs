@@ -1,4 +1,4 @@
-//! Tests for the `cargo vendor` command.
+//! Tests for the `payload vendor` command.
 //!
 //! Note that every test here uses `--respect-source-config` so that the
 //! "fake" crates.io is used. Otherwise `vendor` would download the crates.io
@@ -6,15 +6,15 @@
 
 use std::fs;
 
-use cargo_test_support::git;
-use cargo_test_support::registry::{self, Package};
-use cargo_test_support::{basic_lib_manifest, paths, project, Project};
+use payload_test_support::git;
+use payload_test_support::registry::{self, Package};
+use payload_test_support::{basic_lib_manifest, paths, project, Project};
 
-#[cargo_test]
+#[payload_test]
 fn vendor_simple() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -29,17 +29,17 @@ fn vendor_simple() {
 
     Package::new("log", "0.3.5").publish();
 
-    p.cargo("vendor --respect-source-config").run();
-    let lock = p.read_file("vendor/log/Cargo.toml");
+    p.payload("vendor --respect-source-config").run();
+    let lock = p.read_file("vendor/log/Payload.toml");
     assert!(lock.contains("version = \"0.3.5\""));
 
     add_vendor_config(&p);
-    p.cargo("build").run();
+    p.payload("build").run();
 }
 
 fn add_vendor_config(p: &Project) {
     p.change_file(
-        ".cargo/config",
+        ".payload/config",
         r#"
             [source.crates-io]
             replace-with = 'vendor'
@@ -50,11 +50,11 @@ fn add_vendor_config(p: &Project) {
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn two_versions() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -67,7 +67,7 @@ fn two_versions() {
         )
         .file("src/lib.rs", "")
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -83,22 +83,22 @@ fn two_versions() {
     Package::new("bitflags", "0.7.0").publish();
     Package::new("bitflags", "0.8.0").publish();
 
-    p.cargo("vendor --respect-source-config").run();
+    p.payload("vendor --respect-source-config").run();
 
-    let lock = p.read_file("vendor/bitflags/Cargo.toml");
+    let lock = p.read_file("vendor/bitflags/Payload.toml");
     assert!(lock.contains("version = \"0.8.0\""));
-    let lock = p.read_file("vendor/bitflags-0.7.0/Cargo.toml");
+    let lock = p.read_file("vendor/bitflags-0.7.0/Payload.toml");
     assert!(lock.contains("version = \"0.7.0\""));
 
     add_vendor_config(&p);
-    p.cargo("build").run();
+    p.payload("build").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn two_explicit_versions() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -111,7 +111,7 @@ fn two_explicit_versions() {
         )
         .file("src/lib.rs", "")
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -127,29 +127,29 @@ fn two_explicit_versions() {
     Package::new("bitflags", "0.7.0").publish();
     Package::new("bitflags", "0.8.0").publish();
 
-    p.cargo("vendor --respect-source-config --versioned-dirs")
+    p.payload("vendor --respect-source-config --versioned-dirs")
         .run();
 
-    let lock = p.read_file("vendor/bitflags-0.8.0/Cargo.toml");
+    let lock = p.read_file("vendor/bitflags-0.8.0/Payload.toml");
     assert!(lock.contains("version = \"0.8.0\""));
-    let lock = p.read_file("vendor/bitflags-0.7.0/Cargo.toml");
+    let lock = p.read_file("vendor/bitflags-0.7.0/Payload.toml");
     assert!(lock.contains("version = \"0.7.0\""));
 
     add_vendor_config(&p);
-    p.cargo("build").run();
+    p.payload("build").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn help() {
     let p = project().build();
-    p.cargo("vendor -h").run();
+    p.payload("vendor -h").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn update_versions() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -165,13 +165,13 @@ fn update_versions() {
     Package::new("bitflags", "0.7.0").publish();
     Package::new("bitflags", "0.8.0").publish();
 
-    p.cargo("vendor --respect-source-config").run();
+    p.payload("vendor --respect-source-config").run();
 
-    let lock = p.read_file("vendor/bitflags/Cargo.toml");
+    let lock = p.read_file("vendor/bitflags/Payload.toml");
     assert!(lock.contains("version = \"0.7.0\""));
 
     p.change_file(
-        "Cargo.toml",
+        "Payload.toml",
         r#"
             [package]
             name = "foo"
@@ -181,18 +181,18 @@ fn update_versions() {
             bitflags = "0.8.0"
         "#,
     );
-    p.cargo("vendor --respect-source-config").run();
+    p.payload("vendor --respect-source-config").run();
 
-    let lock = p.read_file("vendor/bitflags/Cargo.toml");
+    let lock = p.read_file("vendor/bitflags/Payload.toml");
     assert!(lock.contains("version = \"0.8.0\""));
 }
 
-#[cargo_test]
+#[payload_test]
 fn two_lockfiles() {
     let p = project()
         .no_manifest()
         .file(
-            "foo/Cargo.toml",
+            "foo/Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -204,7 +204,7 @@ fn two_lockfiles() {
         )
         .file("foo/src/lib.rs", "")
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -220,24 +220,24 @@ fn two_lockfiles() {
     Package::new("bitflags", "0.7.0").publish();
     Package::new("bitflags", "0.8.0").publish();
 
-    p.cargo("vendor --respect-source-config -s bar/Cargo.toml --manifest-path foo/Cargo.toml")
+    p.payload("vendor --respect-source-config -s bar/Payload.toml --manifest-path foo/Payload.toml")
         .run();
 
-    let lock = p.read_file("vendor/bitflags/Cargo.toml");
+    let lock = p.read_file("vendor/bitflags/Payload.toml");
     assert!(lock.contains("version = \"0.8.0\""));
-    let lock = p.read_file("vendor/bitflags-0.7.0/Cargo.toml");
+    let lock = p.read_file("vendor/bitflags-0.7.0/Payload.toml");
     assert!(lock.contains("version = \"0.7.0\""));
 
     add_vendor_config(&p);
-    p.cargo("build").cwd("foo").run();
-    p.cargo("build").cwd("bar").run();
+    p.payload("build").cwd("foo").run();
+    p.payload("build").cwd("bar").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn delete_old_crates() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -253,11 +253,11 @@ fn delete_old_crates() {
     Package::new("bitflags", "0.7.0").publish();
     Package::new("log", "0.3.5").publish();
 
-    p.cargo("vendor --respect-source-config").run();
-    p.read_file("vendor/bitflags/Cargo.toml");
+    p.payload("vendor --respect-source-config").run();
+    p.read_file("vendor/bitflags/Payload.toml");
 
     p.change_file(
-        "Cargo.toml",
+        "Payload.toml",
         r#"
             [package]
             name = "foo"
@@ -268,17 +268,17 @@ fn delete_old_crates() {
         "#,
     );
 
-    p.cargo("vendor --respect-source-config").run();
-    let lock = p.read_file("vendor/log/Cargo.toml");
+    p.payload("vendor --respect-source-config").run();
+    let lock = p.read_file("vendor/log/Payload.toml");
     assert!(lock.contains("version = \"0.3.5\""));
-    assert!(!p.root().join("vendor/bitflags/Cargo.toml").exists());
+    assert!(!p.root().join("vendor/bitflags/Payload.toml").exists());
 }
 
-#[cargo_test]
+#[payload_test]
 fn ignore_files() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -299,19 +299,19 @@ fn ignore_files() {
         .file("foo.rej", "")
         .publish();
 
-    p.cargo("vendor --respect-source-config").run();
-    let csum = p.read_file("vendor/url/.cargo-checksum.json");
+    p.payload("vendor --respect-source-config").run();
+    let csum = p.read_file("vendor/url/.payload-checksum.json");
     assert!(!csum.contains("foo.orig"));
     assert!(!csum.contains(".gitignore"));
     assert!(!csum.contains(".gitattributes"));
-    assert!(!csum.contains(".cargo-ok"));
+    assert!(!csum.contains(".payload-ok"));
     assert!(!csum.contains("foo.rej"));
 }
 
-#[cargo_test]
+#[payload_test]
 fn included_files_only() {
     let git = git::new("a", |p| {
-        p.file("Cargo.toml", &basic_lib_manifest("a"))
+        p.file("Payload.toml", &basic_lib_manifest("a"))
             .file("src/lib.rs", "")
             .file(".gitignore", "a")
             .file("a/b.md", "")
@@ -319,7 +319,7 @@ fn included_files_only() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                     [package]
@@ -335,16 +335,16 @@ fn included_files_only() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("vendor --respect-source-config").run();
-    let csum = p.read_file("vendor/a/.cargo-checksum.json");
+    p.payload("vendor --respect-source-config").run();
+    let csum = p.read_file("vendor/a/.payload-checksum.json");
     assert!(!csum.contains("a/b.md"));
 }
 
-#[cargo_test]
+#[payload_test]
 fn dependent_crates_in_crates() {
     let git = git::new("a", |p| {
         p.file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "a"
@@ -355,12 +355,12 @@ fn dependent_crates_in_crates() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("b/Cargo.toml", &basic_lib_manifest("b"))
+        .file("b/Payload.toml", &basic_lib_manifest("b"))
         .file("b/src/lib.rs", "")
     });
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                     [package]
@@ -376,22 +376,22 @@ fn dependent_crates_in_crates() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("vendor --respect-source-config").run();
-    p.read_file("vendor/a/.cargo-checksum.json");
-    p.read_file("vendor/b/.cargo-checksum.json");
+    p.payload("vendor --respect-source-config").run();
+    p.read_file("vendor/a/.payload-checksum.json");
+    p.read_file("vendor/b/.payload-checksum.json");
 }
 
-#[cargo_test]
+#[payload_test]
 fn vendoring_git_crates() {
     let git = git::new("git", |p| {
-        p.file("Cargo.toml", &basic_lib_manifest("serde_derive"))
+        p.file("Payload.toml", &basic_lib_manifest("serde_derive"))
             .file("src/lib.rs", "")
             .file("src/wut.rs", "")
     });
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                     [package]
@@ -417,23 +417,23 @@ fn vendoring_git_crates() {
         .publish();
     Package::new("serde_derive", "0.5.0").publish();
 
-    p.cargo("vendor --respect-source-config").run();
+    p.payload("vendor --respect-source-config").run();
     p.read_file("vendor/serde_derive/src/wut.rs");
 
     add_vendor_config(&p);
-    p.cargo("build").run();
+    p.payload("build").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn git_simple() {
     let git = git::new("git", |p| {
-        p.file("Cargo.toml", &basic_lib_manifest("a"))
+        p.file("Payload.toml", &basic_lib_manifest("a"))
             .file("src/lib.rs", "")
     });
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                     [package]
@@ -449,16 +449,16 @@ fn git_simple() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("vendor --respect-source-config").run();
-    let csum = p.read_file("vendor/a/.cargo-checksum.json");
+    p.payload("vendor --respect-source-config").run();
+    let csum = p.read_file("vendor/a/.payload-checksum.json");
     assert!(csum.contains("\"package\":null"));
 }
 
-#[cargo_test]
+#[payload_test]
 fn git_duplicate() {
     let git = git::new("a", |p| {
         p.file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "a"
@@ -469,13 +469,13 @@ fn git_duplicate() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("b/Cargo.toml", &basic_lib_manifest("b"))
+        .file("b/Payload.toml", &basic_lib_manifest("b"))
         .file("b/src/lib.rs", "")
     });
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                     [package]
@@ -494,7 +494,7 @@ fn git_duplicate() {
         .build();
     Package::new("b", "0.5.0").publish();
 
-    p.cargo("vendor --respect-source-config")
+    p.payload("vendor --respect-source-config")
         .with_stderr(
             "\
 [UPDATING] [..]
@@ -514,11 +514,11 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn depend_on_vendor_dir_not_deleted() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -533,11 +533,11 @@ fn depend_on_vendor_dir_not_deleted() {
 
     Package::new("libc", "0.2.30").publish();
 
-    p.cargo("vendor --respect-source-config").run();
+    p.payload("vendor --respect-source-config").run();
     assert!(p.root().join("vendor/libc").is_dir());
 
     p.change_file(
-        "Cargo.toml",
+        "Payload.toml",
         r#"
             [package]
             name = "foo"
@@ -551,17 +551,17 @@ fn depend_on_vendor_dir_not_deleted() {
         "#,
     );
 
-    p.cargo("vendor --respect-source-config").run();
+    p.payload("vendor --respect-source-config").run();
     assert!(p.root().join("vendor/libc").is_dir());
 }
 
-#[cargo_test]
+#[payload_test]
 fn ignore_hidden() {
     // Don't delete files starting with `.`
     Package::new("bar", "0.1.0").publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -572,14 +572,14 @@ fn ignore_hidden() {
         )
         .file("src/lib.rs", "")
         .build();
-    p.cargo("vendor --respect-source-config").run();
+    p.payload("vendor --respect-source-config").run();
     // Add a `.git` directory.
     let repo = git::init(&p.root().join("vendor"));
     git::add(&repo);
     git::commit(&repo);
     assert!(p.root().join("vendor/.git").exists());
     // Vendor again, shouldn't change anything.
-    p.cargo("vendor --respect-source-config").run();
+    p.payload("vendor --respect-source-config").run();
     // .git should not be removed.
     assert!(p.root().join("vendor/.git").exists());
     // And just for good measure, make sure no files changed.
@@ -591,7 +591,7 @@ fn ignore_hidden() {
         .all(|status| status.status() == git2::Status::CURRENT));
 }
 
-#[cargo_test]
+#[payload_test]
 fn config_instructions_works() {
     // Check that the config instructions work for all dependency kinds.
     registry::alt_init();
@@ -599,12 +599,12 @@ fn config_instructions_works() {
     Package::new("altdep", "0.1.0").alternative(true).publish();
     let git_project = git::new("gitdep", |project| {
         project
-            .file("Cargo.toml", &basic_lib_manifest("gitdep"))
+            .file("Payload.toml", &basic_lib_manifest("gitdep"))
             .file("src/lib.rs", "")
     });
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                 [package]
@@ -622,32 +622,32 @@ fn config_instructions_works() {
         .file("src/lib.rs", "")
         .build();
     let output = p
-        .cargo("vendor --respect-source-config")
+        .payload("vendor --respect-source-config")
         .exec_with_output()
         .unwrap();
     let output = String::from_utf8(output.stdout).unwrap();
-    p.change_file(".cargo/config", &output);
+    p.change_file(".payload/config", &output);
 
-    p.cargo("check -v")
+    p.payload("check -v")
         .with_stderr_contains("[..]foo/vendor/dep/src/lib.rs[..]")
         .with_stderr_contains("[..]foo/vendor/altdep/src/lib.rs[..]")
         .with_stderr_contains("[..]foo/vendor/gitdep/src/lib.rs[..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn git_crlf_preservation() {
     // Check that newlines don't get changed when you vendor
     // (will only fail if your system is setup with core.autocrlf=true on windows)
     let input = "hello \nthere\nmy newline\nfriends";
     let git_project = git::new("git", |p| {
-        p.file("Cargo.toml", &basic_lib_manifest("a"))
+        p.file("Payload.toml", &basic_lib_manifest("a"))
             .file("src/lib.rs", input)
     });
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                     [package]
@@ -672,12 +672,12 @@ fn git_crlf_preservation() {
     )
     .unwrap();
 
-    p.cargo("vendor --respect-source-config").run();
+    p.payload("vendor --respect-source-config").run();
     let output = p.read_file("vendor/a/src/lib.rs");
     assert_eq!(input, output);
 }
 
-#[cargo_test]
+#[payload_test]
 #[cfg(unix)]
 fn vendor_preserves_permissions() {
     use std::os::unix::fs::MetadataExt;
@@ -689,7 +689,7 @@ fn vendor_preserves_permissions() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -702,7 +702,7 @@ fn vendor_preserves_permissions() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("vendor --respect-source-config").run();
+    p.payload("vendor --respect-source-config").run();
 
     let metadata = fs::metadata(p.root().join("vendor/bar/src/lib.rs")).unwrap();
     assert_eq!(metadata.mode() & 0o777, 0o644);

@@ -1,17 +1,17 @@
-//! Tests for the `cargo bench` command.
+//! Tests for the `payload bench` command.
 
-use cargo_test_support::is_nightly;
-use cargo_test_support::paths::CargoPathExt;
-use cargo_test_support::{basic_bin_manifest, basic_lib_manifest, basic_manifest, project};
+use payload_test_support::is_nightly;
+use payload_test_support::paths::PayloadPathExt;
+use payload_test_support::{basic_bin_manifest, basic_lib_manifest, basic_manifest, project};
 
-#[cargo_test]
-fn cargo_bench_simple() {
+#[payload_test]
+fn payload_bench_simple() {
     if !is_nightly() {
         return;
     }
 
     let p = project()
-        .file("Cargo.toml", &basic_bin_manifest("foo"))
+        .file("Payload.toml", &basic_bin_manifest("foo"))
         .file(
             "src/main.rs",
             r#"
@@ -35,12 +35,12 @@ fn cargo_bench_simple() {
         )
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
     assert!(p.bin("foo").is_file());
 
     p.process(&p.bin("foo")).with_stdout("hello\n").run();
 
-    p.cargo("bench")
+    p.payload("bench")
         .with_stderr(
             "\
 [COMPILING] foo v0.5.0 ([CWD])
@@ -51,7 +51,7 @@ fn cargo_bench_simple() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bench_bench_implicit() {
     if !is_nightly() {
         return;
@@ -86,7 +86,7 @@ fn bench_bench_implicit() {
         )
         .build();
 
-    p.cargo("bench --benches")
+    p.payload("bench --benches")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
@@ -99,7 +99,7 @@ fn bench_bench_implicit() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bench_bin_implicit() {
     if !is_nightly() {
         return;
@@ -134,7 +134,7 @@ fn bench_bin_implicit() {
         )
         .build();
 
-    p.cargo("bench --bins")
+    p.payload("bench --bins")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
@@ -146,7 +146,7 @@ fn bench_bin_implicit() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bench_tarname() {
     if !is_nightly() {
         return;
@@ -171,7 +171,7 @@ fn bench_tarname() {
         )
         .build();
 
-    p.cargo("bench --bench bin2")
+    p.payload("bench --bench bin2")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
@@ -183,7 +183,7 @@ fn bench_tarname() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bench_multiple_targets() {
     if !is_nightly() {
         return;
@@ -216,21 +216,21 @@ fn bench_multiple_targets() {
         )
         .build();
 
-    p.cargo("bench --bench bin1 --bench bin2")
+    p.payload("bench --bench bin1 --bench bin2")
         .with_stdout_contains("test run1 ... bench: [..]")
         .with_stdout_contains("test run2 ... bench: [..]")
         .with_stdout_does_not_contain("[..]run3[..]")
         .run();
 }
 
-#[cargo_test]
-fn cargo_bench_verbose() {
+#[payload_test]
+fn payload_bench_verbose() {
     if !is_nightly() {
         return;
     }
 
     let p = project()
-        .file("Cargo.toml", &basic_bin_manifest("foo"))
+        .file("Payload.toml", &basic_bin_manifest("foo"))
         .file(
             "src/main.rs",
             r#"
@@ -243,7 +243,7 @@ fn cargo_bench_verbose() {
         )
         .build();
 
-    p.cargo("bench -v hello")
+    p.payload("bench -v hello")
         .with_stderr(
             "\
 [COMPILING] foo v0.5.0 ([CWD])
@@ -255,7 +255,7 @@ fn cargo_bench_verbose() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn many_similar_names() {
     if !is_nightly() {
         return;
@@ -295,21 +295,21 @@ fn many_similar_names() {
         )
         .build();
 
-    p.cargo("bench")
+    p.payload("bench")
         .with_stdout_contains("test bin_bench ... bench:           0 ns/iter (+/- 0)")
         .with_stdout_contains("test lib_bench ... bench:           0 ns/iter (+/- 0)")
         .with_stdout_contains("test bench_bench ... bench:           0 ns/iter (+/- 0)")
         .run();
 }
 
-#[cargo_test]
-fn cargo_bench_failing_test() {
+#[payload_test]
+fn payload_bench_failing_test() {
     if !is_nightly() {
         return;
     }
 
     let p = project()
-        .file("Cargo.toml", &basic_bin_manifest("foo"))
+        .file("Payload.toml", &basic_bin_manifest("foo"))
         .file(
             "src/main.rs",
             r#"
@@ -332,13 +332,13 @@ fn cargo_bench_failing_test() {
         )
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
     assert!(p.bin("foo").is_file());
 
     p.process(&p.bin("foo")).with_stdout("hello\n").run();
 
     // Force libtest into serial execution so that the test header will be printed.
-    p.cargo("bench -- --test-threads=1")
+    p.payload("bench -- --test-threads=1")
         .with_stdout_contains("test bench_hello ...[..]")
         .with_stderr_contains(
             "\
@@ -356,7 +356,7 @@ fn cargo_bench_failing_test() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bench_with_lib_dep() {
     if !is_nightly() {
         return;
@@ -364,7 +364,7 @@ fn bench_with_lib_dep() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -411,7 +411,7 @@ fn bench_with_lib_dep() {
         )
         .build();
 
-    p.cargo("bench")
+    p.payload("bench")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
@@ -424,7 +424,7 @@ fn bench_with_lib_dep() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bench_with_deep_lib_dep() {
     if !is_nightly() {
         return;
@@ -433,7 +433,7 @@ fn bench_with_deep_lib_dep() {
     let p = project()
         .at("bar")
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -475,7 +475,7 @@ fn bench_with_deep_lib_dep() {
         )
         .build();
 
-    p.cargo("bench")
+    p.payload("bench")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([..])
@@ -487,7 +487,7 @@ fn bench_with_deep_lib_dep() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn external_bench_explicit() {
     if !is_nightly() {
         return;
@@ -495,7 +495,7 @@ fn external_bench_explicit() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -533,7 +533,7 @@ fn external_bench_explicit() {
         )
         .build();
 
-    p.cargo("bench")
+    p.payload("bench")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
@@ -546,7 +546,7 @@ fn external_bench_explicit() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn external_bench_implicit() {
     if !is_nightly() {
         return;
@@ -580,7 +580,7 @@ fn external_bench_implicit() {
         )
         .build();
 
-    p.cargo("bench")
+    p.payload("bench")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
@@ -593,7 +593,7 @@ fn external_bench_implicit() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bench_autodiscover_2015() {
     if !is_nightly() {
         return;
@@ -601,7 +601,7 @@ fn bench_autodiscover_2015() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -644,24 +644,24 @@ fn bench_autodiscover_2015() {
         )
         .build();
 
-    p.cargo("bench bench_basic")
+    p.payload("bench bench_basic")
         .with_stderr(
             "warning: \
-An explicit [[bench]] section is specified in Cargo.toml which currently
-disables Cargo from automatically inferring other benchmark targets.
+An explicit [[bench]] section is specified in Payload.toml which currently
+disables Payload from automatically inferring other benchmark targets.
 This inference behavior will change in the Rust 2018 edition and the following
 files will be included as a benchmark target:
 
 * [..]bench_basic.rs
 
-This is likely to break cargo build or cargo test as these files may not be
+This is likely to break payload build or payload test as these files may not be
 ready to be compiled as a benchmark target today. You can future-proof yourself
 and disable this warning by adding `autobenches = false` to your [package]
-section. You may also move the files to a location where Cargo would not
+section. You may also move the files to a location where Payload would not
 automatically infer them to be a target, such as in subfolders.
 
 For more information on this warning you can consult
-https://github.com/rust-lang/cargo/issues/5330
+https://github.com/dustlang/payload/issues/5330
 [COMPILING] foo v0.0.1 ([CWD])
 [FINISHED] bench [optimized] target(s) in [..]
 [RUNNING] [..] (target/release/deps/foo-[..][EXE])
@@ -670,7 +670,7 @@ https://github.com/rust-lang/cargo/issues/5330
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn dont_run_examples() {
     if !is_nightly() {
         return;
@@ -680,13 +680,13 @@ fn dont_run_examples() {
         .file("src/lib.rs", "")
         .file(
             "examples/dont-run-me-i-will-fail.rs",
-            r#"fn main() { panic!("Examples should not be run by 'cargo test'"); }"#,
+            r#"fn main() { panic!("Examples should not be run by 'payload test'"); }"#,
         )
         .build();
-    p.cargo("bench").run();
+    p.payload("bench").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn pass_through_command_line() {
     if !is_nightly() {
         return;
@@ -706,7 +706,7 @@ fn pass_through_command_line() {
         )
         .build();
 
-    p.cargo("bench bar")
+    p.payload("bench bar")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
@@ -716,7 +716,7 @@ fn pass_through_command_line() {
         .with_stdout_contains("test bar ... bench: [..]")
         .run();
 
-    p.cargo("bench foo")
+    p.payload("bench foo")
         .with_stderr(
             "[FINISHED] bench [optimized] target(s) in [..]
 [RUNNING] [..] (target/release/deps/foo-[..][EXE])",
@@ -725,16 +725,16 @@ fn pass_through_command_line() {
         .run();
 }
 
-// Regression test for running cargo-bench twice with
+// Regression test for running payload-bench twice with
 // tests in an rlib
-#[cargo_test]
-fn cargo_bench_twice() {
+#[payload_test]
+fn payload_bench_twice() {
     if !is_nightly() {
         return;
     }
 
     let p = project()
-        .file("Cargo.toml", &basic_lib_manifest("foo"))
+        .file("Payload.toml", &basic_lib_manifest("foo"))
         .file(
             "src/foo.rs",
             r#"
@@ -750,11 +750,11 @@ fn cargo_bench_twice() {
         .build();
 
     for _ in 0..2 {
-        p.cargo("bench").run();
+        p.payload("bench").run();
     }
 }
 
-#[cargo_test]
+#[payload_test]
 fn lib_bin_same_name() {
     if !is_nightly() {
         return;
@@ -762,7 +762,7 @@ fn lib_bin_same_name() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -799,7 +799,7 @@ fn lib_bin_same_name() {
         )
         .build();
 
-    p.cargo("bench")
+    p.payload("bench")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
@@ -811,14 +811,14 @@ fn lib_bin_same_name() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn lib_with_standard_name() {
     if !is_nightly() {
         return;
     }
 
     let p = project()
-        .file("Cargo.toml", &basic_manifest("syntax", "0.0.1"))
+        .file("Payload.toml", &basic_manifest("syntax", "0.0.1"))
         .file(
             "src/lib.rs",
             "
@@ -848,7 +848,7 @@ fn lib_with_standard_name() {
         )
         .build();
 
-    p.cargo("bench")
+    p.payload("bench")
         .with_stderr(
             "\
 [COMPILING] syntax v0.0.1 ([CWD])
@@ -861,7 +861,7 @@ fn lib_with_standard_name() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn lib_with_standard_name2() {
     if !is_nightly() {
         return;
@@ -869,7 +869,7 @@ fn lib_with_standard_name2() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "syntax"
@@ -900,7 +900,7 @@ fn lib_with_standard_name2() {
         )
         .build();
 
-    p.cargo("bench")
+    p.payload("bench")
         .with_stderr(
             "\
 [COMPILING] syntax v0.0.1 ([CWD])
@@ -911,7 +911,7 @@ fn lib_with_standard_name2() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bench_dylib() {
     if !is_nightly() {
         return;
@@ -919,7 +919,7 @@ fn bench_dylib() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -960,7 +960,7 @@ fn bench_dylib() {
             "#,
         )
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -975,7 +975,7 @@ fn bench_dylib() {
         .file("bar/src/lib.rs", "pub fn baz() {}")
         .build();
 
-    p.cargo("bench -v")
+    p.payload("bench -v")
         .with_stderr(
             "\
 [COMPILING] bar v0.0.1 ([CWD]/bar)
@@ -992,7 +992,7 @@ fn bench_dylib() {
         .run();
 
     p.root().move_into_the_past();
-    p.cargo("bench -v")
+    p.payload("bench -v")
         .with_stderr(
             "\
 [FRESH] bar v0.0.1 ([CWD]/bar)
@@ -1005,7 +1005,7 @@ fn bench_dylib() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bench_twice_with_build_cmd() {
     if !is_nightly() {
         return;
@@ -1013,7 +1013,7 @@ fn bench_twice_with_build_cmd() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1035,7 +1035,7 @@ fn bench_twice_with_build_cmd() {
         )
         .build();
 
-    p.cargo("bench")
+    p.payload("bench")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
@@ -1045,7 +1045,7 @@ fn bench_twice_with_build_cmd() {
         .with_stdout_contains("test foo ... bench: [..]")
         .run();
 
-    p.cargo("bench")
+    p.payload("bench")
         .with_stderr(
             "[FINISHED] bench [optimized] target(s) in [..]
 [RUNNING] [..] (target/release/deps/foo-[..][EXE])",
@@ -1054,7 +1054,7 @@ fn bench_twice_with_build_cmd() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bench_with_examples() {
     if !is_nightly() {
         return;
@@ -1062,7 +1062,7 @@ fn bench_with_examples() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1125,7 +1125,7 @@ fn bench_with_examples() {
         )
         .build();
 
-    p.cargo("bench -v")
+    p.payload("bench -v")
         .with_stderr(
             "\
 [COMPILING] foo v6.6.6 ([CWD])
@@ -1141,7 +1141,7 @@ fn bench_with_examples() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn test_a_bench() {
     if !is_nightly() {
         return;
@@ -1149,7 +1149,7 @@ fn test_a_bench() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1170,7 +1170,7 @@ fn test_a_bench() {
         .file("benches/b.rs", "#[test] fn foo() {}")
         .build();
 
-    p.cargo("test")
+    p.payload("test")
         .with_stderr(
             "\
 [COMPILING] foo v0.1.0 ([..])
@@ -1181,7 +1181,7 @@ fn test_a_bench() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn test_bench_no_run() {
     if !is_nightly() {
         return;
@@ -1204,7 +1204,7 @@ fn test_bench_no_run() {
         )
         .build();
 
-    p.cargo("bench --no-run")
+    p.payload("bench --no-run")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([..])
@@ -1214,14 +1214,14 @@ fn test_bench_no_run() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn test_bench_no_fail_fast() {
     if !is_nightly() {
         return;
     }
 
     let p = project()
-        .file("Cargo.toml", &basic_bin_manifest("foo"))
+        .file("Payload.toml", &basic_bin_manifest("foo"))
         .file(
             "src/foo.rs",
             r#"
@@ -1249,7 +1249,7 @@ fn test_bench_no_fail_fast() {
         )
         .build();
 
-    p.cargo("bench --no-fail-fast -- --test-threads=1")
+    p.payload("bench --no-fail-fast -- --test-threads=1")
         .with_status(101)
         .with_stderr_contains("[RUNNING] [..] (target/release/deps/foo-[..][EXE])")
         .with_stdout_contains("running 2 tests")
@@ -1259,7 +1259,7 @@ fn test_bench_no_fail_fast() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn test_bench_multiple_packages() {
     if !is_nightly() {
         return;
@@ -1267,7 +1267,7 @@ fn test_bench_multiple_packages() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1287,7 +1287,7 @@ fn test_bench_multiple_packages() {
     let _bar = project()
         .at("bar")
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "bar"
@@ -1317,7 +1317,7 @@ fn test_bench_multiple_packages() {
     let _baz = project()
         .at("baz")
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "baz"
@@ -1344,7 +1344,7 @@ fn test_bench_multiple_packages() {
         )
         .build();
 
-    p.cargo("bench -p bar -p baz")
+    p.payload("bench -p bar -p baz")
         .with_stderr_contains("[RUNNING] [..] (target/release/deps/bbaz-[..][EXE])")
         .with_stdout_contains("test bench_baz ... bench: [..]")
         .with_stderr_contains("[RUNNING] [..] (target/release/deps/bbar-[..][EXE])")
@@ -1352,7 +1352,7 @@ fn test_bench_multiple_packages() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bench_all_workspace() {
     if !is_nightly() {
         return;
@@ -1360,7 +1360,7 @@ fn bench_all_workspace() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1385,7 +1385,7 @@ fn bench_all_workspace() {
                 fn bench_foo(_: &mut Bencher) -> () { () }
             "#,
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "pub fn bar() {}")
         .file(
             "bar/benches/bar.rs",
@@ -1401,7 +1401,7 @@ fn bench_all_workspace() {
         )
         .build();
 
-    p.cargo("bench --workspace")
+    p.payload("bench --workspace")
         .with_stderr_contains("[RUNNING] [..] (target/release/deps/bar-[..][EXE])")
         .with_stdout_contains("test bench_bar ... bench: [..]")
         .with_stderr_contains("[RUNNING] [..] (target/release/deps/foo-[..][EXE])")
@@ -1409,7 +1409,7 @@ fn bench_all_workspace() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bench_all_exclude() {
     if !is_nightly() {
         return;
@@ -1417,7 +1417,7 @@ fn bench_all_exclude() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1428,7 +1428,7 @@ fn bench_all_exclude() {
             "#,
         )
         .file("src/main.rs", "fn main() {}")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file(
             "bar/src/lib.rs",
             r#"
@@ -1442,14 +1442,14 @@ fn bench_all_exclude() {
                 }
             "#,
         )
-        .file("baz/Cargo.toml", &basic_manifest("baz", "0.1.0"))
+        .file("baz/Payload.toml", &basic_manifest("baz", "0.1.0"))
         .file(
             "baz/src/lib.rs",
             "#[test] pub fn baz() { break_the_build(); }",
         )
         .build();
 
-    p.cargo("bench --workspace --exclude baz")
+    p.payload("bench --workspace --exclude baz")
         .with_stdout_contains(
             "\
 running 1 test
@@ -1458,7 +1458,7 @@ test bar ... bench:           [..] ns/iter (+/- [..])",
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bench_all_exclude_glob() {
     if !is_nightly() {
         return;
@@ -1466,7 +1466,7 @@ fn bench_all_exclude_glob() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1477,7 +1477,7 @@ fn bench_all_exclude_glob() {
             "#,
         )
         .file("src/main.rs", "fn main() {}")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file(
             "bar/src/lib.rs",
             r#"
@@ -1491,14 +1491,14 @@ fn bench_all_exclude_glob() {
                 }
             "#,
         )
-        .file("baz/Cargo.toml", &basic_manifest("baz", "0.1.0"))
+        .file("baz/Payload.toml", &basic_manifest("baz", "0.1.0"))
         .file(
             "baz/src/lib.rs",
             "#[test] pub fn baz() { break_the_build(); }",
         )
         .build();
 
-    p.cargo("bench --workspace --exclude '*z'")
+    p.payload("bench --workspace --exclude '*z'")
         .with_stdout_contains(
             "\
 running 1 test
@@ -1507,7 +1507,7 @@ test bar ... bench:           [..] ns/iter (+/- [..])",
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bench_all_virtual_manifest() {
     if !is_nightly() {
         return;
@@ -1515,13 +1515,13 @@ fn bench_all_virtual_manifest() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["bar", "baz"]
             "#,
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "pub fn bar() {}")
         .file(
             "bar/benches/bar.rs",
@@ -1535,7 +1535,7 @@ fn bench_all_virtual_manifest() {
                 fn bench_bar(_: &mut Bencher) -> () { () }
             "#,
         )
-        .file("baz/Cargo.toml", &basic_manifest("baz", "0.1.0"))
+        .file("baz/Payload.toml", &basic_manifest("baz", "0.1.0"))
         .file("baz/src/lib.rs", "pub fn baz() {}")
         .file(
             "baz/benches/baz.rs",
@@ -1552,7 +1552,7 @@ fn bench_all_virtual_manifest() {
         .build();
 
     // The order in which bar and baz are built is not guaranteed
-    p.cargo("bench --workspace")
+    p.payload("bench --workspace")
         .with_stderr_contains("[RUNNING] [..] (target/release/deps/baz-[..][EXE])")
         .with_stdout_contains("test bench_baz ... bench: [..]")
         .with_stderr_contains("[RUNNING] [..] (target/release/deps/bar-[..][EXE])")
@@ -1560,7 +1560,7 @@ fn bench_all_virtual_manifest() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bench_virtual_manifest_glob() {
     if !is_nightly() {
         return;
@@ -1568,13 +1568,13 @@ fn bench_virtual_manifest_glob() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["bar", "baz"]
             "#,
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "pub fn bar() { break_the_build(); }")
         .file(
             "bar/benches/bar.rs",
@@ -1588,7 +1588,7 @@ fn bench_virtual_manifest_glob() {
                 fn bench_bar(_: &mut Bencher) -> () { break_the_build(); }
             "#,
         )
-        .file("baz/Cargo.toml", &basic_manifest("baz", "0.1.0"))
+        .file("baz/Payload.toml", &basic_manifest("baz", "0.1.0"))
         .file("baz/src/lib.rs", "pub fn baz() {}")
         .file(
             "baz/benches/baz.rs",
@@ -1605,7 +1605,7 @@ fn bench_virtual_manifest_glob() {
         .build();
 
     // The order in which bar and baz are built is not guaranteed
-    p.cargo("bench -p '*z'")
+    p.payload("bench -p '*z'")
         .with_stderr_contains("[RUNNING] [..] (target/release/deps/baz-[..][EXE])")
         .with_stdout_contains("test bench_baz ... bench: [..]")
         .with_stderr_does_not_contain("[RUNNING] [..] (target/release/deps/bar-[..][EXE])")
@@ -1613,8 +1613,8 @@ fn bench_virtual_manifest_glob() {
         .run();
 }
 
-// https://github.com/rust-lang/cargo/issues/4287
-#[cargo_test]
+// https://github.com/dustlang/payload/issues/4287
+#[payload_test]
 fn legacy_bench_name() {
     if !is_nightly() {
         return;
@@ -1622,7 +1622,7 @@ fn legacy_bench_name() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1647,16 +1647,16 @@ fn legacy_bench_name() {
         )
         .build();
 
-    p.cargo("bench")
+    p.payload("bench")
         .with_stderr_contains(
             "\
 [WARNING] path `[..]src/bench.rs` was erroneously implicitly accepted for benchmark `bench`,
-please set bench.path in Cargo.toml",
+please set bench.path in Payload.toml",
         )
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bench_virtual_manifest_all_implied() {
     if !is_nightly() {
         return;
@@ -1664,13 +1664,13 @@ fn bench_virtual_manifest_all_implied() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["bar", "baz"]
             "#,
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "pub fn foo() {}")
         .file(
             "bar/benches/bar.rs",
@@ -1682,7 +1682,7 @@ fn bench_virtual_manifest_all_implied() {
                 fn bench_bar(_: &mut Bencher) -> () { () }
             "#,
         )
-        .file("baz/Cargo.toml", &basic_manifest("baz", "0.1.0"))
+        .file("baz/Payload.toml", &basic_manifest("baz", "0.1.0"))
         .file("baz/src/lib.rs", "pub fn baz() {}")
         .file(
             "baz/benches/baz.rs",
@@ -1698,7 +1698,7 @@ fn bench_virtual_manifest_all_implied() {
 
     // The order in which bar and baz are built is not guaranteed
 
-    p.cargo("bench")
+    p.payload("bench")
         .with_stderr_contains("[RUNNING] [..] (target/release/deps/baz-[..][EXE])")
         .with_stdout_contains("test bench_baz ... bench: [..]")
         .with_stderr_contains("[RUNNING] [..] (target/release/deps/bar-[..][EXE])")
@@ -1706,7 +1706,7 @@ fn bench_virtual_manifest_all_implied() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn json_artifact_includes_executable_for_benchmark() {
     if !is_nightly() {
         return;
@@ -1727,7 +1727,7 @@ fn json_artifact_includes_executable_for_benchmark() {
         )
         .build();
 
-    p.cargo("bench --no-run --message-format=json")
+    p.payload("bench --no-run --message-format=json")
         .with_json(
             r#"
                 {

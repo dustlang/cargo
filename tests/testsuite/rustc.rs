@@ -1,19 +1,19 @@
-//! Tests for the `cargo rustc` command.
+//! Tests for the `payload rustc` command.
 
-use cargo_test_support::{basic_bin_manifest, basic_lib_manifest, basic_manifest, project};
+use payload_test_support::{basic_bin_manifest, basic_lib_manifest, basic_manifest, project};
 
-const CARGO_RUSTC_ERROR: &str =
+const PAYLOAD_RUSTC_ERROR: &str =
     "[ERROR] extra arguments to `rustc` can only be passed to one target, consider filtering
 the package by passing, e.g., `--lib` or `--bin NAME` to specify a single target";
 
-#[cargo_test]
+#[payload_test]
 fn build_lib_for_foo() {
     let p = project()
         .file("src/main.rs", "fn main() {}")
         .file("src/lib.rs", r#" "#)
         .build();
 
-    p.cargo("rustc --lib -v")
+    p.payload("rustc --lib -v")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
@@ -28,14 +28,14 @@ fn build_lib_for_foo() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn lib() {
     let p = project()
         .file("src/main.rs", "fn main() {}")
         .file("src/lib.rs", r#" "#)
         .build();
 
-    p.cargo("rustc --lib -v -- -C debug-assertions=off")
+    p.payload("rustc --lib -v -- -C debug-assertions=off")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
@@ -51,14 +51,14 @@ fn lib() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn build_main_and_allow_unstable_options() {
     let p = project()
         .file("src/main.rs", "fn main() {}")
         .file("src/lib.rs", r#" "#)
         .build();
 
-    p.cargo("rustc -v --bin foo -- -C debug-assertions")
+    p.payload("rustc -v --bin foo -- -C debug-assertions")
         .with_stderr(format!(
             "\
 [COMPILING] {name} v{version} ([CWD])
@@ -82,20 +82,20 @@ fn build_main_and_allow_unstable_options() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn fails_when_trying_to_build_main_and_lib_with_args() {
     let p = project()
         .file("src/main.rs", "fn main() {}")
         .file("src/lib.rs", r#" "#)
         .build();
 
-    p.cargo("rustc -v -- -C debug-assertions")
+    p.payload("rustc -v -- -C debug-assertions")
         .with_status(101)
-        .with_stderr(CARGO_RUSTC_ERROR)
+        .with_stderr(PAYLOAD_RUSTC_ERROR)
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn build_with_args_to_one_of_multiple_binaries() {
     let p = project()
         .file("src/bin/foo.rs", "fn main() {}")
@@ -104,7 +104,7 @@ fn build_with_args_to_one_of_multiple_binaries() {
         .file("src/lib.rs", r#" "#)
         .build();
 
-    p.cargo("rustc -v --bin bar -- -C debug-assertions")
+    p.payload("rustc -v --bin bar -- -C debug-assertions")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
@@ -119,7 +119,7 @@ fn build_with_args_to_one_of_multiple_binaries() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn fails_with_args_to_all_binaries() {
     let p = project()
         .file("src/bin/foo.rs", "fn main() {}")
@@ -128,13 +128,13 @@ fn fails_with_args_to_all_binaries() {
         .file("src/lib.rs", r#" "#)
         .build();
 
-    p.cargo("rustc -v -- -C debug-assertions")
+    p.payload("rustc -v -- -C debug-assertions")
         .with_status(101)
-        .with_stderr(CARGO_RUSTC_ERROR)
+        .with_stderr(PAYLOAD_RUSTC_ERROR)
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn build_with_args_to_one_of_multiple_tests() {
     let p = project()
         .file("tests/foo.rs", r#" "#)
@@ -143,7 +143,7 @@ fn build_with_args_to_one_of_multiple_tests() {
         .file("src/lib.rs", r#" "#)
         .build();
 
-    p.cargo("rustc -v --test bar -- -C debug-assertions")
+    p.payload("rustc -v --test bar -- -C debug-assertions")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
@@ -158,11 +158,11 @@ fn build_with_args_to_one_of_multiple_tests() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn build_foo_with_bar_dependency() {
     let foo = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -177,11 +177,11 @@ fn build_foo_with_bar_dependency() {
         .build();
     let _bar = project()
         .at("bar")
-        .file("Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("src/lib.rs", "pub fn baz() {}")
         .build();
 
-    foo.cargo("rustc -v -- -C debug-assertions")
+    foo.payload("rustc -v -- -C debug-assertions")
         .with_stderr(
             "\
 [COMPILING] bar v0.1.0 ([..])
@@ -194,11 +194,11 @@ fn build_foo_with_bar_dependency() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn build_only_bar_dependency() {
     let foo = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -213,11 +213,11 @@ fn build_only_bar_dependency() {
         .build();
     let _bar = project()
         .at("bar")
-        .file("Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("src/lib.rs", "pub fn baz() {}")
         .build();
 
-    foo.cargo("rustc -v -p bar -- -C debug-assertions")
+    foo.payload("rustc -v -p bar -- -C debug-assertions")
         .with_stderr(
             "\
 [COMPILING] bar v0.1.0 ([..])
@@ -228,10 +228,10 @@ fn build_only_bar_dependency() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn targets_selected_default() {
     let p = project().file("src/main.rs", "fn main() {}").build();
-    p.cargo("rustc -v")
+    p.payload("rustc -v")
         // bin
         .with_stderr_contains(
             "[RUNNING] `rustc --crate-name foo src/main.rs [..]--crate-type bin \
@@ -250,10 +250,10 @@ fn targets_selected_default() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn targets_selected_all() {
     let p = project().file("src/main.rs", "fn main() {}").build();
-    p.cargo("rustc -v --all-targets")
+    p.payload("rustc -v --all-targets")
         // bin
         .with_stderr_contains(
             "[RUNNING] `rustc --crate-name foo src/main.rs [..]--crate-type bin \
@@ -267,11 +267,11 @@ fn targets_selected_all() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn fail_with_multiple_packages() {
     let foo = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -290,7 +290,7 @@ fn fail_with_multiple_packages() {
 
     let _bar = project()
         .at("bar")
-        .file("Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file(
             "src/main.rs",
             r#"
@@ -303,7 +303,7 @@ fn fail_with_multiple_packages() {
 
     let _baz = project()
         .at("baz")
-        .file("Cargo.toml", &basic_manifest("baz", "0.1.0"))
+        .file("Payload.toml", &basic_manifest("baz", "0.1.0"))
         .file(
             "src/main.rs",
             r#"
@@ -314,7 +314,7 @@ fn fail_with_multiple_packages() {
         )
         .build();
 
-    foo.cargo("rustc -v -p bar -p baz")
+    foo.payload("rustc -v -p bar -p baz")
         .with_status(1)
         .with_stderr_contains(
             "\
@@ -325,31 +325,31 @@ error: The argument '--package <SPEC>' was provided more than once, \
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn fail_with_glob() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["bar"]
             "#,
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "pub fn bar() {  break_the_build(); }")
         .build();
 
-    p.cargo("rustc -p '*z'")
+    p.payload("rustc -p '*z'")
         .with_status(101)
         .with_stderr("[ERROR] Glob patterns on package selection are not supported.")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn rustc_with_other_profile() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -369,22 +369,22 @@ fn rustc_with_other_profile() {
                 fn foo() {}
             "#,
         )
-        .file("a/Cargo.toml", &basic_manifest("a", "0.1.0"))
+        .file("a/Payload.toml", &basic_manifest("a", "0.1.0"))
         .file("a/src/lib.rs", "")
         .build();
 
-    p.cargo("rustc --profile test").run();
+    p.payload("rustc --profile test").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn rustc_fingerprint() {
     // Verify that the fingerprint includes the rustc args.
     let p = project()
-        .file("Cargo.toml", &basic_lib_manifest("foo"))
+        .file("Payload.toml", &basic_lib_manifest("foo"))
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("rustc -v -- -C debug-assertions")
+    p.payload("rustc -v -- -C debug-assertions")
         .with_stderr(
             "\
 [COMPILING] foo [..]
@@ -394,7 +394,7 @@ fn rustc_fingerprint() {
         )
         .run();
 
-    p.cargo("rustc -v -- -C debug-assertions")
+    p.payload("rustc -v -- -C debug-assertions")
         .with_stderr(
             "\
 [FRESH] foo [..]
@@ -403,7 +403,7 @@ fn rustc_fingerprint() {
         )
         .run();
 
-    p.cargo("rustc -v")
+    p.payload("rustc -v")
         .with_stderr_does_not_contain("-C debug-assertions")
         .with_stderr(
             "\
@@ -414,7 +414,7 @@ fn rustc_fingerprint() {
         )
         .run();
 
-    p.cargo("rustc -v")
+    p.payload("rustc -v")
         .with_stderr(
             "\
 [FRESH] foo [..]
@@ -424,10 +424,10 @@ fn rustc_fingerprint() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn rustc_test_with_implicit_bin() {
     let p = project()
-        .file("Cargo.toml", &basic_bin_manifest("foo"))
+        .file("Payload.toml", &basic_bin_manifest("foo"))
         .file(
             "src/main.rs",
             r#"
@@ -445,7 +445,7 @@ fn rustc_test_with_implicit_bin() {
         )
         .build();
 
-    p.cargo("rustc --test test1 -v -- --cfg foo")
+    p.payload("rustc --test test1 -v -- --cfg foo")
         .with_stderr_contains(
             "\
 [RUNNING] `rustc --crate-name test1 tests/test1.rs [..] --cfg foo [..]
@@ -459,15 +459,15 @@ fn rustc_test_with_implicit_bin() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn rustc_with_print_cfg_single_target() {
     let p = project()
-        .file("Cargo.toml", &basic_bin_manifest("foo"))
+        .file("Payload.toml", &basic_bin_manifest("foo"))
         .file("src/main.rs", r#"fn main() {} "#)
         .build();
 
-    p.cargo("rustc -Z unstable-options --target x86_64-pc-windows-msvc --print cfg")
-        .masquerade_as_nightly_cargo()
+    p.payload("rustc -Z unstable-options --target x86_64-pc-windows-msvc --print cfg")
+        .masquerade_as_nightly_payload()
         .with_stdout_contains("debug_assertions")
         .with_stdout_contains("target_arch=\"x86_64\"")
         .with_stdout_contains("target_endian=\"little\"")
@@ -480,15 +480,15 @@ fn rustc_with_print_cfg_single_target() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn rustc_with_print_cfg_multiple_targets() {
     let p = project()
-        .file("Cargo.toml", &basic_bin_manifest("foo"))
+        .file("Payload.toml", &basic_bin_manifest("foo"))
         .file("src/main.rs", r#"fn main() {} "#)
         .build();
 
-    p.cargo("rustc -Z unstable-options -Z multitarget --target x86_64-pc-windows-msvc --target i686-unknown-linux-gnu --print cfg")
-        .masquerade_as_nightly_cargo()
+    p.payload("rustc -Z unstable-options -Z multitarget --target x86_64-pc-windows-msvc --target i686-unknown-linux-gnu --print cfg")
+        .masquerade_as_nightly_payload()
         .with_stdout_contains("debug_assertions")
         .with_stdout_contains("target_arch=\"x86_64\"")
         .with_stdout_contains("target_endian=\"little\"")
@@ -507,15 +507,15 @@ fn rustc_with_print_cfg_multiple_targets() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn rustc_with_print_cfg_rustflags_env_var() {
     let p = project()
-        .file("Cargo.toml", &basic_bin_manifest("foo"))
+        .file("Payload.toml", &basic_bin_manifest("foo"))
         .file("src/main.rs", r#"fn main() {} "#)
         .build();
 
-    p.cargo("rustc -Z unstable-options --target x86_64-pc-windows-msvc --print cfg")
-        .masquerade_as_nightly_cargo()
+    p.payload("rustc -Z unstable-options --target x86_64-pc-windows-msvc --print cfg")
+        .masquerade_as_nightly_payload()
         .env("RUSTFLAGS", "-C target-feature=+crt-static")
         .with_stdout_contains("debug_assertions")
         .with_stdout_contains("target_arch=\"x86_64\"")
@@ -530,12 +530,12 @@ fn rustc_with_print_cfg_rustflags_env_var() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn rustc_with_print_cfg_config_toml() {
     let p = project()
-        .file("Cargo.toml", &basic_bin_manifest("foo"))
+        .file("Payload.toml", &basic_bin_manifest("foo"))
         .file(
-            ".cargo/config.toml",
+            ".payload/config.toml",
             r#"
 [target.x86_64-pc-windows-msvc]
 rustflags = ["-C", "target-feature=+crt-static"]
@@ -544,8 +544,8 @@ rustflags = ["-C", "target-feature=+crt-static"]
         .file("src/main.rs", r#"fn main() {} "#)
         .build();
 
-    p.cargo("rustc -Z unstable-options --target x86_64-pc-windows-msvc --print cfg")
-        .masquerade_as_nightly_cargo()
+    p.payload("rustc -Z unstable-options --target x86_64-pc-windows-msvc --print cfg")
+        .masquerade_as_nightly_payload()
         .env("RUSTFLAGS", "-C target-feature=+crt-static")
         .with_stdout_contains("debug_assertions")
         .with_stdout_contains("target_arch=\"x86_64\"")

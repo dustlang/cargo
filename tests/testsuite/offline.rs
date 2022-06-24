@@ -1,16 +1,16 @@
 //! Tests for --offline flag.
 
-use cargo_test_support::{basic_manifest, git, main_file, path2url, project, registry::Package};
+use payload_test_support::{basic_manifest, git, main_file, path2url, project, registry::Package};
 use std::fs;
 
-#[cargo_test]
+#[payload_test]
 fn offline_unused_target_dep() {
     // --offline with a target dependency that is not used and not downloaded.
     Package::new("unused_dep", "1.0.0").publish();
     Package::new("used_dep", "1.0.0").publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [project]
             name = "foo"
@@ -24,21 +24,21 @@ fn offline_unused_target_dep() {
         .file("src/lib.rs", "")
         .build();
     // Do a build that downloads only what is necessary.
-    p.cargo("build")
+    p.payload("build")
         .with_stderr_contains("[DOWNLOADED] used_dep [..]")
         .with_stderr_does_not_contain("[DOWNLOADED] unused_dep [..]")
         .run();
-    p.cargo("clean").run();
+    p.payload("clean").run();
     // Build offline, make sure it works.
-    p.cargo("build --offline").run();
+    p.payload("build --offline").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn offline_missing_optional() {
     Package::new("opt_dep", "1.0.0").publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [project]
             name = "foo"
@@ -50,13 +50,13 @@ fn offline_missing_optional() {
         .file("src/lib.rs", "")
         .build();
     // Do a build that downloads only what is necessary.
-    p.cargo("build")
+    p.payload("build")
         .with_stderr_does_not_contain("[DOWNLOADED] opt_dep [..]")
         .run();
-    p.cargo("clean").run();
+    p.payload("clean").run();
     // Build offline, make sure it works.
-    p.cargo("build --offline").run();
-    p.cargo("build --offline --features=opt_dep")
+    p.payload("build --offline").run();
+    p.payload("build --offline --features=opt_dep")
         .with_stderr(
             "\
 [ERROR] failed to download `opt_dep v1.0.0`
@@ -69,11 +69,11 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
-fn cargo_compile_path_with_offline() {
+#[payload_test]
+fn payload_compile_path_with_offline() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -85,24 +85,24 @@ fn cargo_compile_path_with_offline() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.0.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.0.1"))
         .file("bar/src/lib.rs", "")
         .build();
 
-    p.cargo("build --offline").run();
+    p.payload("build --offline").run();
 }
 
-#[cargo_test]
-fn cargo_compile_with_downloaded_dependency_with_offline() {
+#[payload_test]
+fn payload_compile_with_downloaded_dependency_with_offline() {
     Package::new("present_dep", "1.2.3")
-        .file("Cargo.toml", &basic_manifest("present_dep", "1.2.3"))
+        .file("Payload.toml", &basic_manifest("present_dep", "1.2.3"))
         .file("src/lib.rs", "")
         .publish();
 
     // make package downloaded
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [project]
             name = "foo"
@@ -114,12 +114,12 @@ fn cargo_compile_with_downloaded_dependency_with_offline() {
         )
         .file("src/lib.rs", "")
         .build();
-    p.cargo("build").run();
+    p.payload("build").run();
 
     let p2 = project()
         .at("bar")
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [project]
             name = "bar"
@@ -132,7 +132,7 @@ fn cargo_compile_with_downloaded_dependency_with_offline() {
         .file("src/lib.rs", "")
         .build();
 
-    p2.cargo("build --offline")
+    p2.payload("build --offline")
         .with_stderr(
             "\
 [COMPILING] present_dep v1.2.3
@@ -142,14 +142,14 @@ fn cargo_compile_with_downloaded_dependency_with_offline() {
         .run();
 }
 
-#[cargo_test]
-fn cargo_compile_offline_not_try_update() {
+#[payload_test]
+fn payload_compile_offline_not_try_update() {
     // When --offline needs to download the registry, provide a reasonable
     // error hint to run without --offline.
     let p = project()
         .at("bar")
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [project]
             name = "bar"
@@ -164,30 +164,30 @@ fn cargo_compile_offline_not_try_update() {
 
     let msg = "\
 [ERROR] no matching package named `not_cached_dep` found
-location searched: registry `https://github.com/rust-lang/crates.io-index`
+location searched: registry `https://github.com/dustlang/crates.io-index`
 required by package `bar v0.1.0 ([..]/bar)`
 As a reminder, you're using offline mode (--offline) which can sometimes cause \
 surprising resolution failures, if this error is too confusing you may wish to \
 retry without the offline flag.
 ";
 
-    p.cargo("build --offline")
+    p.payload("build --offline")
         .with_status(101)
         .with_stderr(msg)
         .run();
 
     // While we're here, also check the config works.
-    p.change_file(".cargo/config", "net.offline = true");
-    p.cargo("build").with_status(101).with_stderr(msg).run();
+    p.change_file(".payload/config", "net.offline = true");
+    p.payload("build").with_status(101).with_stderr(msg).run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn compile_offline_without_maxvers_cached() {
     Package::new("present_dep", "1.2.1").publish();
     Package::new("present_dep", "1.2.2").publish();
 
     Package::new("present_dep", "1.2.3")
-        .file("Cargo.toml", &basic_manifest("present_dep", "1.2.3"))
+        .file("Payload.toml", &basic_manifest("present_dep", "1.2.3"))
         .file(
             "src/lib.rs",
             r#"pub fn get_version()->&'static str {"1.2.3"}"#,
@@ -195,14 +195,14 @@ fn compile_offline_without_maxvers_cached() {
         .publish();
 
     Package::new("present_dep", "1.2.5")
-        .file("Cargo.toml", &basic_manifest("present_dep", "1.2.5"))
+        .file("Payload.toml", &basic_manifest("present_dep", "1.2.5"))
         .file("src/lib.rs", r#"pub fn get_version(){"1.2.5"}"#)
         .publish();
 
     // make package cached
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [project]
             name = "foo"
@@ -214,11 +214,11 @@ fn compile_offline_without_maxvers_cached() {
         )
         .file("src/lib.rs", "")
         .build();
-    p.cargo("build").run();
+    p.payload("build").run();
 
     let p2 = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [project]
             name = "foo"
@@ -238,7 +238,7 @@ fn main(){
         )
         .build();
 
-    p2.cargo("run --offline")
+    p2.payload("run --offline")
         .with_stderr(
             "\
 [COMPILING] present_dep v1.2.3
@@ -250,11 +250,11 @@ fn main(){
         .run();
 }
 
-#[cargo_test]
-fn cargo_compile_forbird_git_httpsrepo_offline() {
+#[payload_test]
+fn payload_compile_forbird_git_httpsrepo_offline() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
 
             [project]
@@ -269,7 +269,7 @@ fn cargo_compile_forbird_git_httpsrepo_offline() {
         .file("src/main.rs", "")
         .build();
 
-    p.cargo("build --offline").with_status(101).with_stderr("\
+    p.payload("build --offline").with_status(101).with_stderr("\
 [ERROR] failed to get `dep1` as a dependency of package `foo v0.5.0 [..]`
 
 Caused by:
@@ -282,7 +282,7 @@ Caused by:
   can't checkout from 'https://github.com/some_user/dep1.git': you are in the offline mode (--offline)").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn compile_offline_while_transitive_dep_not_cached() {
     let baz = Package::new("baz", "1.0.0");
     let baz_path = baz.archive_dst();
@@ -296,7 +296,7 @@ fn compile_offline_while_transitive_dep_not_cached() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [project]
             name = "foo"
@@ -310,7 +310,7 @@ fn compile_offline_while_transitive_dep_not_cached() {
         .build();
 
     // simulate download bar, but fail to download baz
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr_contains("[..]failed to verify the checksum of `baz[..]")
         .run();
@@ -318,7 +318,7 @@ fn compile_offline_while_transitive_dep_not_cached() {
     // Restore the file contents.
     fs::write(&baz_path, &baz_content).unwrap();
 
-    p.cargo("build --offline")
+    p.payload("build --offline")
         .with_status(101)
         .with_stderr(
             "\
@@ -331,11 +331,11 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn update_offline_not_cached() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [project]
             name = "foo"
@@ -348,7 +348,7 @@ fn update_offline_not_cached() {
         )
         .file("src/main.rs", "fn main() {}")
         .build();
-    p.cargo("update --offline")
+    p.payload("update --offline")
         .with_status(101)
         .with_stderr(
             "\
@@ -362,11 +362,11 @@ retry without the offline flag.",
         .run();
 }
 
-#[cargo_test]
-fn cargo_compile_offline_with_cached_git_dep() {
+#[payload_test]
+fn payload_compile_offline_with_cached_git_dep() {
     let git_project = git::new("dep1", |project| {
         project
-            .file("Cargo.toml", &basic_manifest("dep1", "0.5.0"))
+            .file("Payload.toml", &basic_manifest("dep1", "0.5.0"))
             .file(
                 "src/lib.rs",
                 r#"
@@ -390,7 +390,7 @@ fn cargo_compile_offline_with_cached_git_dep() {
     let prj = project()
         .at("cache_git_dep")
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                 [project]
@@ -407,10 +407,10 @@ fn cargo_compile_offline_with_cached_git_dep() {
         )
         .file("src/main.rs", "fn main(){}")
         .build();
-    prj.cargo("build").run();
+    prj.payload("build").run();
 
     prj.change_file(
-        "Cargo.toml",
+        "Payload.toml",
         &format!(
             r#"
             [project]
@@ -425,11 +425,11 @@ fn cargo_compile_offline_with_cached_git_dep() {
             rev2
         ),
     );
-    prj.cargo("build").run();
+    prj.payload("build").run();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                 [project]
@@ -450,7 +450,7 @@ fn cargo_compile_offline_with_cached_git_dep() {
 
     let git_root = git_project.root();
 
-    p.cargo("build --offline")
+    p.payload("build --offline")
         .with_stderr(format!(
             "\
 [COMPILING] dep1 v0.5.0 ({}#[..])
@@ -467,7 +467,7 @@ fn cargo_compile_offline_with_cached_git_dep() {
         .run();
 
     p.change_file(
-        "Cargo.toml",
+        "Payload.toml",
         &format!(
             r#"
             [project]
@@ -483,13 +483,13 @@ fn cargo_compile_offline_with_cached_git_dep() {
         ),
     );
 
-    p.cargo("build --offline").run();
+    p.payload("build --offline").run();
     p.process(&p.bin("foo"))
         .with_stdout("hello from cached git repo rev1\n")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn offline_resolve_optional_fail() {
     // Example where resolve fails offline.
     //
@@ -502,7 +502,7 @@ fn offline_resolve_optional_fail() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -515,11 +515,11 @@ fn offline_resolve_optional_fail() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("fetch").run();
+    p.payload("fetch").run();
 
     // Change dep to 2.0.
     p.change_file(
-        "Cargo.toml",
+        "Payload.toml",
         r#"
             [package]
             name = "foo"
@@ -530,12 +530,12 @@ fn offline_resolve_optional_fail() {
         "#,
     );
 
-    p.cargo("build --offline")
+    p.payload("build --offline")
         .with_status(101)
         .with_stderr("\
 [ERROR] failed to select a version for the requirement `dep = \"^2.0\"`
 candidate versions found which didn't match: 1.0.0
-location searched: `[..]` index (which is replacing registry `https://github.com/rust-lang/crates.io-index`)
+location searched: `[..]` index (which is replacing registry `https://github.com/dustlang/crates.io-index`)
 required by package `foo v0.1.0 ([..]/foo)`
 perhaps a crate was updated and forgotten to be re-vendored?
 As a reminder, you're using offline mode (--offline) which can sometimes cause \
@@ -545,12 +545,12 @@ retry without the offline flag.
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn offline_with_all_patched() {
     // Offline works if everything is patched.
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -564,21 +564,21 @@ fn offline_with_all_patched() {
             "#,
         )
         .file("src/lib.rs", "pub fn f() { dep::foo(); }")
-        .file("dep/Cargo.toml", &basic_manifest("dep", "1.0.0"))
+        .file("dep/Payload.toml", &basic_manifest("dep", "1.0.0"))
         .file("dep/src/lib.rs", "pub fn foo() {}")
         .build();
 
-    p.cargo("check --offline").run();
+    p.payload("check --offline").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn update_offline_cached() {
     // Cache a few versions to update against
     let p = project().file("src/lib.rs", "").build();
     let versions = ["1.2.3", "1.2.5", "1.2.9"];
     for vers in versions.iter() {
         Package::new("present_dep", vers)
-            .file("Cargo.toml", &basic_manifest("present_dep", vers))
+            .file("Payload.toml", &basic_manifest("present_dep", vers))
             .file(
                 "src/lib.rs",
                 format!(r#"pub fn get_version()->&'static str {{ "{}" }}"#, vers).as_str(),
@@ -586,7 +586,7 @@ fn update_offline_cached() {
             .publish();
         // make package cached
         p.change_file(
-            "Cargo.toml",
+            "Payload.toml",
             format!(
                 r#"
                 [project]
@@ -600,12 +600,12 @@ fn update_offline_cached() {
             )
             .as_str(),
         );
-        p.cargo("build").run();
+        p.payload("build").run();
     }
 
     let p2 = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [project]
             name = "foo"
@@ -625,7 +625,7 @@ fn main(){
         )
         .build();
 
-    p2.cargo("build --offline")
+    p2.payload("build --offline")
         .with_stderr(
             "\
 [COMPILING] present_dep v1.2.9
@@ -638,7 +638,7 @@ fn main(){
         .with_stdout("1.2.9")
         .run();
     // updates happen without updating the index
-    p2.cargo("update -p present_dep --precise 1.2.3 --offline")
+    p2.payload("update -p present_dep --precise 1.2.3 --offline")
         .with_status(0)
         .with_stderr(
             "\
@@ -647,7 +647,7 @@ fn main(){
         )
         .run();
 
-    p2.cargo("build --offline")
+    p2.payload("build --offline")
         .with_stderr(
             "\
 [COMPILING] present_dep v1.2.3
@@ -661,7 +661,7 @@ fn main(){
         .run();
 
     // Offline update should only print package details and not index updating
-    p2.cargo("update --offline")
+    p2.payload("update --offline")
         .with_status(0)
         .with_stderr(
             "\
@@ -671,7 +671,7 @@ fn main(){
         .run();
 
     // No v1.2.8 loaded into the cache so expect failure.
-    p2.cargo("update -p present_dep --precise 1.2.8 --offline")
+    p2.payload("update -p present_dep --precise 1.2.8 --offline")
         .with_status(101)
         .with_stderr(
             "\

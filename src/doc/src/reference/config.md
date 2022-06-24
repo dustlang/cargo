@@ -1,25 +1,25 @@
 ## Configuration
 
-This document explains how Cargo’s configuration system works, as well as
+This document explains how Payload’s configuration system works, as well as
 available keys or configuration. For configuration of a package through its
 manifest, see the [manifest format](manifest.md).
 
 ### Hierarchical structure
 
-Cargo allows local configuration for a particular package as well as global
+Payload allows local configuration for a particular package as well as global
 configuration. It looks for configuration files in the current directory and
-all parent directories. If, for example, Cargo were invoked in
+all parent directories. If, for example, Payload were invoked in
 `/projects/foo/bar/baz`, then the following configuration files would be
 probed for and unified in this order:
 
-* `/projects/foo/bar/baz/.cargo/config.toml`
-* `/projects/foo/bar/.cargo/config.toml`
-* `/projects/foo/.cargo/config.toml`
-* `/projects/.cargo/config.toml`
-* `/.cargo/config.toml`
-* `$CARGO_HOME/config.toml` which defaults to:
-    * Windows: `%USERPROFILE%\.cargo\config.toml`
-    * Unix: `$HOME/.cargo/config.toml`
+* `/projects/foo/bar/baz/.payload/config.toml`
+* `/projects/foo/bar/.payload/config.toml`
+* `/projects/foo/.payload/config.toml`
+* `/projects/.payload/config.toml`
+* `/.payload/config.toml`
+* `$PAYLOAD_HOME/config.toml` which defaults to:
+    * Windows: `%USERPROFILE%\.payload\config.toml`
+    * Unix: `$HOME/.payload/config.toml`
 
 With this structure, you can specify configuration per-package, and even
 possibly check it into version control. You can also specify personal defaults
@@ -30,9 +30,9 @@ together. Numbers, strings, and booleans will use the value in the deeper
 config directory taking precedence over ancestor directories, where the
 home directory is the lowest priority. Arrays will be joined together.
 
-> **Note:** Cargo also reads config files without the `.toml` extension, such as
-> `.cargo/config`. Support for the `.toml` extension was added in version 1.39
-> and is the preferred form. If both files exist, Cargo will use the file
+> **Note:** Payload also reads config files without the `.toml` extension, such as
+> `.payload/config`. Support for the `.toml` extension was added in version 1.39
+> and is the preferred form. If both files exist, Payload will use the file
 > without the extension.
 
 ### Configuration format
@@ -59,7 +59,7 @@ rustc = "rustc"               # the rust compiler tool
 rustc-wrapper = "…"           # run this wrapper instead of `rustc`
 rustc-workspace-wrapper = "…" # run this wrapper instead of `rustc` for workspace members
 rustdoc = "rustdoc"           # the doc generator tool
-target = "triple"             # build for the target triple (ignored by `cargo install`)
+target = "triple"             # build for the target triple (ignored by `payload install`)
 target-dir = "target"         # path of where to place all generated artifacts
 rustflags = ["…", "…"]        # custom flags to pass to all compiler invocations
 rustdocflags = ["…", "…"]     # custom flags to pass to rustdoc
@@ -67,7 +67,7 @@ incremental = true            # whether or not to enable incremental compilation
 dep-info-basedir = "…"        # path for the base directory for targets in depfiles
 pipelining = true             # rustc pipelining
 
-[cargo-new]
+[payload-new]
 name = "Your Name"        # name to use in `authors` field
 email = "you@example.com" # email address to use in `authors` field
 vcs = "none"              # VCS to use ('git', 'hg', 'pijul', 'fossil', 'none')
@@ -86,7 +86,7 @@ multiplexing = true         # HTTP/2 multiplexing
 user-agent = "…"            # the user-agent header
 
 [install]
-root = "/some/path"         # `cargo install` destination directory
+root = "/some/path"         # `payload install` destination directory
 
 [net]
 retry = 2                   # network retries
@@ -146,20 +146,20 @@ metadata_key1 = "value"
 metadata_key2 = "value"
 
 [term]
-verbose = false        # whether cargo provides verbose output
-color = 'auto'         # whether cargo colorizes output
-progress.when = 'auto' # whether cargo shows progress bar
+verbose = false        # whether payload provides verbose output
+color = 'auto'         # whether payload colorizes output
+progress.when = 'auto' # whether payload shows progress bar
 progress.width = 80    # width of progress bar
 ```
 
 ### Environment variables
 
-Cargo can also be configured through environment variables in addition to the
+Payload can also be configured through environment variables in addition to the
 TOML configuration files. For each configuration key of the form `foo.bar` the
-environment variable `CARGO_FOO_BAR` can also be used to define the value.
+environment variable `PAYLOAD_FOO_BAR` can also be used to define the value.
 Keys are converted to uppercase, dots and dashes are converted to underscores.
 For example the `target.x86_64-unknown-linux-gnu.runner` key can also be
-defined by the `CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER` environment
+defined by the `PAYLOAD_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER` environment
 variable.
 
 Environment variables will take precedence over TOML configuration files.
@@ -167,7 +167,7 @@ Currently only integer, boolean, string and some array values are supported to
 be defined by environment variables. Descriptions below indicate which keys
 support environment variables.
 
-In addition to the system above, Cargo recognizes a few other specific
+In addition to the system above, Payload recognizes a few other specific
 [environment variables][env].
 
 ### Config-relative paths
@@ -176,7 +176,7 @@ Paths in config files may be absolute, relative, or a bare name without any
 path separators. Paths for executables without a path separator will use the
 `PATH` environment variable to search for the executable. Paths for
 non-executables will be relative to where the config value is defined. For
-config files, that is relative to the parent directory of the `.cargo`
+config files, that is relative to the parent directory of the `.payload`
 directory where the value was defined. For environment variables it is
 relative to the current working directory.
 
@@ -187,16 +187,16 @@ relative to the current working directory.
 runner = "foo"  # Searches `PATH` for `foo`.
 
 [source.vendored-sources]
-# Directory is relative to the parent where `.cargo/config.toml` is located.
-# For example, `/my/project/.cargo/config.toml` would result in `/my/project/vendor`.
+# Directory is relative to the parent where `.payload/config.toml` is located.
+# For example, `/my/project/.payload/config.toml` would result in `/my/project/vendor`.
 directory = "vendor"
 ```
 
 ### Credentials
 
 Configuration values with sensitive information are stored in the
-`$CARGO_HOME/credentials.toml` file. This file is automatically created and updated
-by [`cargo login`]. It follows the same format as Cargo config files.
+`$PAYLOAD_HOME/credentials.toml` file. This file is automatically created and updated
+by [`payload login`]. It follows the same format as Payload config files.
 
 ```toml
 [registry]
@@ -206,15 +206,15 @@ token = "…"   # Access token for crates.io
 token = "…"   # Access token for the named registry
 ```
 
-Tokens are used by some Cargo commands such as [`cargo publish`] for
+Tokens are used by some Payload commands such as [`payload publish`] for
 authenticating with remote registries. Care should be taken to protect the
 tokens and to keep them secret.
 
 As with most other config values, tokens may be specified with environment
 variables. The token for [crates.io] may be specified with the
-`CARGO_REGISTRY_TOKEN` environment variable. Tokens for other registries may
+`PAYLOAD_REGISTRY_TOKEN` environment variable. Tokens for other registries may
 be specified with environment variables of the form
-`CARGO_REGISTRIES_<name>_TOKEN` where `<name>` is the name of the registry in
+`PAYLOAD_REGISTRIES_<name>_TOKEN` where `<name>` is the name of the registry in
 all capital letters.
 
 ### Configuration keys
@@ -236,14 +236,14 @@ guide](overriding-dependencies.md#paths-overrides).
 #### `[alias]`
 * Type: string or array of strings
 * Default: see below
-* Environment: `CARGO_ALIAS_<name>`
+* Environment: `PAYLOAD_ALIAS_<name>`
 
-The `[alias]` table defines CLI command aliases. For example, running `cargo
-b` is an alias for running `cargo build`. Each key in the table is the
+The `[alias]` table defines CLI command aliases. For example, running `payload
+b` is an alias for running `payload build`. Each key in the table is the
 subcommand, and the value is the actual command to run. The value may be an
 array of strings, where the first element is the command and the following are
 arguments. It may also be a string, which will be split on spaces into
-subcommand and arguments. The following aliases are built-in to Cargo:
+subcommand and arguments. The following aliases are built-in to Payload:
 
 ```toml
 [alias]
@@ -262,7 +262,7 @@ The `[build]` table controls build-time operations and compiler settings.
 ##### `build.jobs`
 * Type: integer
 * Default: number of logical CPUs
-* Environment: `CARGO_BUILD_JOBS`
+* Environment: `PAYLOAD_BUILD_JOBS`
 
 Sets the maximum number of compiler processes to run in parallel.
 
@@ -271,14 +271,14 @@ Can be overridden with the `--jobs` CLI option.
 ##### `build.rustc`
 * Type: string (program path)
 * Default: "rustc"
-* Environment: `CARGO_BUILD_RUSTC` or `RUSTC`
+* Environment: `PAYLOAD_BUILD_RUSTC` or `RUSTC`
 
 Sets the executable to use for `rustc`.
 
 ##### `build.rustc-wrapper`
 * Type: string (program path)
 * Default: none
-* Environment: `CARGO_BUILD_RUSTC_WRAPPER` or `RUSTC_WRAPPER`
+* Environment: `PAYLOAD_BUILD_RUSTC_WRAPPER` or `RUSTC_WRAPPER`
 
 Sets a wrapper to execute instead of `rustc`. The first argument passed to the
 wrapper is the path to the actual `rustc`.
@@ -286,7 +286,7 @@ wrapper is the path to the actual `rustc`.
 ##### `build.rustc-workspace-wrapper`
 * Type: string (program path)
 * Default: none
-* Environment: `CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER` or `RUSTC_WORKSPACE_WRAPPER`
+* Environment: `PAYLOAD_BUILD_RUSTC_WORKSPACE_WRAPPER` or `RUSTC_WORKSPACE_WRAPPER`
 
 Sets a wrapper to execute instead of `rustc`, for workspace members only.
 The first argument passed to the wrapper is the path to the actual `rustc`.
@@ -295,14 +295,14 @@ It affects the filename hash so that artifacts produced by the wrapper are cache
 ##### `build.rustdoc`
 * Type: string (program path)
 * Default: "rustdoc"
-* Environment: `CARGO_BUILD_RUSTDOC` or `RUSTDOC`
+* Environment: `PAYLOAD_BUILD_RUSTDOC` or `RUSTDOC`
 
 Sets the executable to use for `rustdoc`.
 
 ##### `build.target`
 * Type: string
 * Default: host platform
-* Environment: `CARGO_BUILD_TARGET`
+* Environment: `PAYLOAD_BUILD_TARGET`
 
 The default target platform triple to compile to.
 
@@ -313,7 +313,7 @@ Can be overridden with the `--target` CLI option.
 ##### `build.target-dir`
 * Type: string (path)
 * Default: "target"
-* Environment: `CARGO_BUILD_TARGET_DIR` or `CARGO_TARGET_DIR`
+* Environment: `PAYLOAD_BUILD_TARGET_DIR` or `PAYLOAD_TARGET_DIR`
 
 The path to where all compiler output is placed. The default if not specified
 is a directory named `target` located at the root of the workspace.
@@ -323,7 +323,7 @@ Can be overridden with the `--target-dir` CLI option.
 ##### `build.rustflags`
 * Type: string or array of strings
 * Default: none
-* Environment: `CARGO_BUILD_RUSTFLAGS` or `RUSTFLAGS`
+* Environment: `PAYLOAD_BUILD_RUSTFLAGS` or `RUSTFLAGS`
 
 Extra command-line flags to pass to `rustc`. The value may be a array of
 strings or a space-separated string.
@@ -336,7 +336,7 @@ order, with the first one being used:
    config entries joined together.
 3. `build.rustflags` config value.
 
-Additional flags may also be passed with the [`cargo rustc`] command.
+Additional flags may also be passed with the [`payload rustc`] command.
 
 If the `--target` flag (or [`build.target`](#buildtarget)) is used, then the
 flags will only be passed to the compiler for the target. Things being built
@@ -349,7 +349,7 @@ are building for the host, pass `--target` with the host triple.
 ##### `build.rustdocflags`
 * Type: string or array of strings
 * Default: none
-* Environment: `CARGO_BUILD_RUSTDOCFLAGS` or `RUSTDOCFLAGS`
+* Environment: `PAYLOAD_BUILD_RUSTDOCFLAGS` or `RUSTDOCFLAGS`
 
 Extra command-line flags to pass to `rustdoc`. The value may be a array of
 strings or a space-separated string.
@@ -360,25 +360,25 @@ order, with the first one being used:
 1. `RUSTDOCFLAGS` environment variable.
 2. `build.rustdocflags` config value.
 
-Additional flags may also be passed with the [`cargo rustdoc`] command.
+Additional flags may also be passed with the [`payload rustdoc`] command.
 
 ##### `build.incremental`
 * Type: bool
 * Default: from profile
-* Environment: `CARGO_BUILD_INCREMENTAL` or `CARGO_INCREMENTAL`
+* Environment: `PAYLOAD_BUILD_INCREMENTAL` or `PAYLOAD_INCREMENTAL`
 
 Whether or not to perform [incremental compilation]. The default if not set is
 to use the value from the [profile]. Otherwise this overrides the setting of
 all profiles.
 
-The `CARGO_INCREMENTAL` environment variable can be set to `1` to force enable
+The `PAYLOAD_INCREMENTAL` environment variable can be set to `1` to force enable
 incremental compilation for all profiles, or `0` to disable it. This env var
 overrides the config setting.
 
 ##### `build.dep-info-basedir`
 * Type: string (path)
 * Default: none
-* Environment: `CARGO_BUILD_DEP_INFO_BASEDIR`
+* Environment: `PAYLOAD_BUILD_DEP_INFO_BASEDIR`
 
 Strips the given path prefix from [dep
 info](../guide/build-cache.md#dep-info-files) file paths. This config setting
@@ -386,46 +386,46 @@ is intended to convert absolute paths to relative paths for tools that require
 relative paths.
 
 The setting itself is a config-relative path. So, for example, a value of
-`"."` would strip all paths starting with the parent directory of the `.cargo`
+`"."` would strip all paths starting with the parent directory of the `.payload`
 directory.
 
 ##### `build.pipelining`
 * Type: boolean
 * Default: true
-* Environment: `CARGO_BUILD_PIPELINING`
+* Environment: `PAYLOAD_BUILD_PIPELINING`
 
-Controls whether or not build pipelining is used. This allows Cargo to
+Controls whether or not build pipelining is used. This allows Payload to
 schedule overlapping invocations of `rustc` in parallel when possible.
 
-#### `[cargo-new]`
+#### `[payload-new]`
 
-The `[cargo-new]` table defines defaults for the [`cargo new`] command.
+The `[payload-new]` table defines defaults for the [`payload new`] command.
 
-##### `cargo-new.name`
+##### `payload-new.name`
 * Type: string
 * Default: from environment
-* Environment: `CARGO_NAME` or `CARGO_CARGO_NEW_NAME`
+* Environment: `PAYLOAD_NAME` or `PAYLOAD_PAYLOAD_NEW_NAME`
 
 Defines the name to use in the `authors` field when creating a new
-`Cargo.toml` file. If not specified in the config, Cargo searches the
-environment or your `git` configuration as described in the [`cargo new`]
+`Payload.toml` file. If not specified in the config, Payload searches the
+environment or your `git` configuration as described in the [`payload new`]
 documentation.
 
-##### `cargo-new.email`
+##### `payload-new.email`
 * Type: string
 * Default: from environment
-* Environment: `CARGO_EMAIL` or `CARGO_CARGO_NEW_EMAIL`
+* Environment: `PAYLOAD_EMAIL` or `PAYLOAD_PAYLOAD_NEW_EMAIL`
 
 Defines the email address used in the `authors` field when creating a new
-`Cargo.toml` file. If not specified in the config, Cargo searches the
-environment or your `git` configuration as described in the [`cargo new`]
+`Payload.toml` file. If not specified in the config, Payload searches the
+environment or your `git` configuration as described in the [`payload new`]
 documentation. The `email` value may be set to an empty string to prevent
-Cargo from placing an address in the authors field.
+Payload from placing an address in the authors field.
 
-##### `cargo-new.vcs`
+##### `payload-new.vcs`
 * Type: string
 * Default: "git" or "none"
-* Environment: `CARGO_CARGO_NEW_VCS`
+* Environment: `PAYLOAD_PAYLOAD_NEW_VCS`
 
 Specifies the source control system to use for initializing a new repository.
 Valid values are `git`, `hg` (for Mercurial), `pijul`, `fossil` or `none` to
@@ -440,10 +440,10 @@ crate dependencies and accessing remote git repositories.
 ##### `http.debug`
 * Type: boolean
 * Default: false
-* Environment: `CARGO_HTTP_DEBUG`
+* Environment: `PAYLOAD_HTTP_DEBUG`
 
 If `true`, enables debugging of HTTP requests. The debug information can be
-seen by setting the `CARGO_LOG=cargo::ops::registry=debug` environment
+seen by setting the `PAYLOAD_LOG=payload::ops::registry=debug` environment
 variable (or use `trace` for even more information).
 
 Be wary when posting logs from this output in a public location. The output
@@ -453,10 +453,10 @@ Be sure to review logs before posting them.
 ##### `http.proxy`
 * Type: string
 * Default: none
-* Environment: `CARGO_HTTP_PROXY` or `HTTPS_PROXY` or `https_proxy` or `http_proxy`
+* Environment: `PAYLOAD_HTTP_PROXY` or `HTTPS_PROXY` or `https_proxy` or `http_proxy`
 
 Sets an HTTP and HTTPS proxy to use. The format is in [libcurl format] as in
-`[protocol://]host[:port]`. If not set, Cargo will also check the `http.proxy`
+`[protocol://]host[:port]`. If not set, Payload will also check the `http.proxy`
 setting in your global git configuration. If none of those are set, the
 `HTTPS_PROXY` or `https_proxy` environment variables set the proxy for HTTPS
 requests, and `http_proxy` sets it for HTTP requests.
@@ -464,22 +464,22 @@ requests, and `http_proxy` sets it for HTTP requests.
 ##### `http.timeout`
 * Type: integer
 * Default: 30
-* Environment: `CARGO_HTTP_TIMEOUT` or `HTTP_TIMEOUT`
+* Environment: `PAYLOAD_HTTP_TIMEOUT` or `HTTP_TIMEOUT`
 
 Sets the timeout for each HTTP request, in seconds.
 
 ##### `http.cainfo`
 * Type: string (path)
 * Default: none
-* Environment: `CARGO_HTTP_CAINFO`
+* Environment: `PAYLOAD_HTTP_CAINFO`
 
 Path to a Certificate Authority (CA) bundle file, used to verify TLS
-certificates. If not specified, Cargo attempts to use the system certificates.
+certificates. If not specified, Payload attempts to use the system certificates.
 
 ##### `http.check-revoke`
 * Type: boolean
 * Default: true (Windows) false (all others)
-* Environment: `CARGO_HTTP_CHECK_REVOKE`
+* Environment: `PAYLOAD_HTTP_CHECK_REVOKE`
 
 This determines whether or not TLS certificate revocation checks should be
 performed. This only works on Windows.
@@ -487,7 +487,7 @@ performed. This only works on Windows.
 ##### `http.ssl-version`
 * Type: string or min/max table
 * Default: none
-* Environment: `CARGO_HTTP_SSL_VERSION`
+* Environment: `PAYLOAD_HTTP_SSL_VERSION`
 
 This sets the minimum TLS version to use. It takes a string, with one of the
 possible values of "default", "tlsv1", "tlsv1.0", "tlsv1.1", "tlsv1.2", or
@@ -503,44 +503,44 @@ supported on your platform, typically "tlsv1.3".
 ##### `http.low-speed-limit`
 * Type: integer
 * Default: 10
-* Environment: `CARGO_HTTP_LOW_SPEED_LIMIT`
+* Environment: `PAYLOAD_HTTP_LOW_SPEED_LIMIT`
 
 This setting controls timeout behavior for slow connections. If the average
 transfer speed in bytes per second is below the given value for
 [`http.timeout`](#httptimeout) seconds (default 30 seconds), then the
-connection is considered too slow and Cargo will abort and retry.
+connection is considered too slow and Payload will abort and retry.
 
 ##### `http.multiplexing`
 * Type: boolean
 * Default: true
-* Environment: `CARGO_HTTP_MULTIPLEXING`
+* Environment: `PAYLOAD_HTTP_MULTIPLEXING`
 
-When `true`, Cargo will attempt to use the HTTP2 protocol with multiplexing.
+When `true`, Payload will attempt to use the HTTP2 protocol with multiplexing.
 This allows multiple requests to use the same connection, usually improving
-performance when fetching multiple files. If `false`, Cargo will use HTTP 1.1
+performance when fetching multiple files. If `false`, Payload will use HTTP 1.1
 without pipelining.
 
 ##### `http.user-agent`
 * Type: string
-* Default: Cargo's version
-* Environment: `CARGO_HTTP_USER_AGENT`
+* Default: Payload's version
+* Environment: `PAYLOAD_HTTP_USER_AGENT`
 
 Specifies a custom user-agent header to use. The default if not specified is a
-string that includes Cargo's version.
+string that includes Payload's version.
 
 #### `[install]`
 
-The `[install]` table defines defaults for the [`cargo install`] command.
+The `[install]` table defines defaults for the [`payload install`] command.
 
 ##### `install.root`
 * Type: string (path)
-* Default: Cargo's home directory
-* Environment: `CARGO_INSTALL_ROOT`
+* Default: Payload's home directory
+* Environment: `PAYLOAD_INSTALL_ROOT`
 
-Sets the path to the root directory for installing executables for [`cargo
+Sets the path to the root directory for installing executables for [`payload
 install`]. Executables go into a `bin` directory underneath the root.
 
-The default if not specified is Cargo's home directory (default `.cargo` in
+The default if not specified is Payload's home directory (default `.payload` in
 your home directory).
 
 Can be overridden with the `--root` command-line option.
@@ -552,31 +552,31 @@ The `[net]` table controls networking configuration.
 ##### `net.retry`
 * Type: integer
 * Default: 2
-* Environment: `CARGO_NET_RETRY`
+* Environment: `PAYLOAD_NET_RETRY`
 
 Number of times to retry possibly spurious network errors.
 
 ##### `net.git-fetch-with-cli`
 * Type: boolean
 * Default: false
-* Environment: `CARGO_NET_GIT_FETCH_WITH_CLI`
+* Environment: `PAYLOAD_NET_GIT_FETCH_WITH_CLI`
 
-If this is `true`, then Cargo will use the `git` executable to fetch registry
+If this is `true`, then Payload will use the `git` executable to fetch registry
 indexes and git dependencies. If `false`, then it uses a built-in `git`
 library.
 
 Setting this to `true` can be helpful if you have special authentication
-requirements that Cargo does not support. See [Git
+requirements that Payload does not support. See [Git
 Authentication](../appendix/git-authentication.md) for more information about
 setting up git authentication.
 
 ##### `net.offline`
 * Type: boolean
 * Default: false
-* Environment: `CARGO_NET_OFFLINE`
+* Environment: `PAYLOAD_NET_OFFLINE`
 
-If this is `true`, then Cargo will avoid accessing the network, and attempt to
-proceed with locally cached data. If `false`, Cargo will access the network as
+If this is `true`, then Payload will avoid accessing the network, and attempt to
+proceed with locally cached data. If `false`, Payload will access the network as
 needed, and generate an error if it encounters a network error.
 
 Can be overridden with the `--offline` command-line option.
@@ -584,14 +584,14 @@ Can be overridden with the `--offline` command-line option.
 #### `[profile]`
 
 The `[profile]` table can be used to globally change profile settings, and
-override settings specified in `Cargo.toml`. It has the same syntax and
-options as profiles specified in `Cargo.toml`. See the [Profiles chapter] for
+override settings specified in `Payload.toml`. It has the same syntax and
+options as profiles specified in `Payload.toml`. See the [Profiles chapter] for
 details about the options.
 
 [Profiles chapter]: profiles.md
 
 ##### `[profile.<name>.build-override]`
-* Environment: `CARGO_PROFILE_<name>_BUILD_OVERRIDE_<key>`
+* Environment: `PAYLOAD_PROFILE_<name>_BUILD_OVERRIDE_<key>`
 
 The build-override table overrides settings for build scripts, proc macros,
 and their dependencies. It has the same keys as a normal profile. See the
@@ -607,63 +607,63 @@ the [overrides section](profiles.md#overrides) for more details.
 ##### `profile.<name>.codegen-units`
 * Type: integer
 * Default: See profile docs.
-* Environment: `CARGO_PROFILE_<name>_CODEGEN_UNITS`
+* Environment: `PAYLOAD_PROFILE_<name>_CODEGEN_UNITS`
 
 See [codegen-units](profiles.md#codegen-units).
 
 ##### `profile.<name>.debug`
 * Type: integer or boolean
 * Default: See profile docs.
-* Environment: `CARGO_PROFILE_<name>_DEBUG`
+* Environment: `PAYLOAD_PROFILE_<name>_DEBUG`
 
 See [debug](profiles.md#debug).
 
 ##### `profile.<name>.debug-assertions`
 * Type: boolean
 * Default: See profile docs.
-* Environment: `CARGO_PROFILE_<name>_DEBUG_ASSERTIONS`
+* Environment: `PAYLOAD_PROFILE_<name>_DEBUG_ASSERTIONS`
 
 See [debug-assertions](profiles.md#debug-assertions).
 
 ##### `profile.<name>.incremental`
 * Type: boolean
 * Default: See profile docs.
-* Environment: `CARGO_PROFILE_<name>_INCREMENTAL`
+* Environment: `PAYLOAD_PROFILE_<name>_INCREMENTAL`
 
 See [incremental](profiles.md#incremental).
 
 ##### `profile.<name>.lto`
 * Type: string or boolean
 * Default: See profile docs.
-* Environment: `CARGO_PROFILE_<name>_LTO`
+* Environment: `PAYLOAD_PROFILE_<name>_LTO`
 
 See [lto](profiles.md#lto).
 
 ##### `profile.<name>.overflow-checks`
 * Type: boolean
 * Default: See profile docs.
-* Environment: `CARGO_PROFILE_<name>_OVERFLOW_CHECKS`
+* Environment: `PAYLOAD_PROFILE_<name>_OVERFLOW_CHECKS`
 
 See [overflow-checks](profiles.md#overflow-checks).
 
 ##### `profile.<name>.opt-level`
 * Type: integer or string
 * Default: See profile docs.
-* Environment: `CARGO_PROFILE_<name>_OPT_LEVEL`
+* Environment: `PAYLOAD_PROFILE_<name>_OPT_LEVEL`
 
 See [opt-level](profiles.md#opt-level).
 
 ##### `profile.<name>.panic`
 * Type: string
 * default: See profile docs.
-* Environment: `CARGO_PROFILE_<name>_PANIC`
+* Environment: `PAYLOAD_PROFILE_<name>_PANIC`
 
 See [panic](profiles.md#panic).
 
 ##### `profile.<name>.rpath`
 * Type: boolean
 * default: See profile docs.
-* Environment: `CARGO_PROFILE_<name>_RPATH`
+* Environment: `PAYLOAD_PROFILE_<name>_RPATH`
 
 See [rpath](profiles.md#rpath).
 
@@ -676,18 +676,18 @@ consists of a sub-table for each named registry.
 ##### `registries.<name>.index`
 * Type: string (url)
 * Default: none
-* Environment: `CARGO_REGISTRIES_<name>_INDEX`
+* Environment: `PAYLOAD_REGISTRIES_<name>_INDEX`
 
 Specifies the URL of the git index for the registry.
 
 ##### `registries.<name>.token`
 * Type: string
 * Default: none
-* Environment: `CARGO_REGISTRIES_<name>_TOKEN`
+* Environment: `PAYLOAD_REGISTRIES_<name>_TOKEN`
 
 Specifies the authentication token for the given registry. This value should
 only appear in the [credentials](#credentials) file. This is used for registry
-commands like [`cargo publish`] that require authentication.
+commands like [`payload publish`] that require authentication.
 
 Can be overridden with the `--token` command-line option.
 
@@ -703,21 +703,21 @@ This value is no longer accepted and should not be used.
 ##### `registry.default`
 * Type: string
 * Default: `"crates-io"`
-* Environment: `CARGO_REGISTRY_DEFAULT`
+* Environment: `PAYLOAD_REGISTRY_DEFAULT`
 
 The name of the registry (from the [`registries` table](#registries)) to use
-by default for registry commands like [`cargo publish`].
+by default for registry commands like [`payload publish`].
 
 Can be overridden with the `--registry` command-line option.
 
 ##### `registry.token`
 * Type: string
 * Default: none
-* Environment: `CARGO_REGISTRY_TOKEN`
+* Environment: `PAYLOAD_REGISTRY_TOKEN`
 
 Specifies the authentication token for [crates.io]. This value should only
 appear in the [credentials](#credentials) file. This is used for registry
-commands like [`cargo publish`] that require authentication.
+commands like [`payload publish`] that require authentication.
 
 Can be overridden with the `--token` command-line option.
 
@@ -812,7 +812,7 @@ rustflags = ["…", "…"]
 `cfg` values come from those built-in to the compiler (run `rustc --print=cfg`
 to view), values set by [build scripts], and extra `--cfg` flags passed to
 `rustc` (such as those defined in `RUSTFLAGS`). Do not try to match on
-`debug_assertions` or Cargo features like `feature="foo"`.
+`debug_assertions` or Payload features like `feature="foo"`.
 
 If using a target spec JSON file, the `<triple>` value is the filename stem.
 For example `--target foo/bar.json` would match `[target.bar]`.
@@ -824,7 +824,7 @@ This option is deprecated and unused.
 ##### `target.<triple>.linker`
 * Type: string (program path)
 * Default: none
-* Environment: `CARGO_TARGET_<triple>_LINKER`
+* Environment: `PAYLOAD_TARGET_<triple>_LINKER`
 
 Specifies the linker which is passed to `rustc` (via [`-C linker`]) when the
 `<triple>` is being compiled for. By default, the linker is not overridden.
@@ -832,11 +832,11 @@ Specifies the linker which is passed to `rustc` (via [`-C linker`]) when the
 ##### `target.<triple>.runner`
 * Type: string or array of strings (program path and args)
 * Default: none
-* Environment: `CARGO_TARGET_<triple>_RUNNER`
+* Environment: `PAYLOAD_TARGET_<triple>_RUNNER`
 
 If a runner is provided, executables for the target `<triple>` will be
 executed by invoking the specified runner with the actual executable passed as
-an argument. This applies to [`cargo run`], [`cargo test`] and [`cargo bench`]
+an argument. This applies to [`payload run`], [`payload test`] and [`payload bench`]
 commands. By default, compiled executables are executed directly.
 
 The value may be an array of strings like `['/path/to/program', 'somearg']` or
@@ -855,7 +855,7 @@ the `<triple>` will take precedence. It is an error if more than one
 ##### `target.<triple>.rustflags`
 * Type: string or array of strings
 * Default: none
-* Environment: `CARGO_TARGET_<triple>_RUSTFLAGS`
+* Environment: `PAYLOAD_TARGET_<triple>_RUSTFLAGS`
 
 Passes a set of custom flags to the compiler for this `<triple>`. The value
 may be a array of strings or a space-separated string.
@@ -894,9 +894,9 @@ The `[term]` table controls terminal output and interaction.
 ##### `term.verbose`
 * Type: boolean
 * Default: false
-* Environment: `CARGO_TERM_VERBOSE`
+* Environment: `PAYLOAD_TERM_VERBOSE`
 
-Controls whether or not extra detailed messages are displayed by Cargo.
+Controls whether or not extra detailed messages are displayed by Payload.
 
 Specifying the `--quiet` flag will override and disable verbose output.
 Specifying the `--verbose` flag will override and force verbose output.
@@ -904,7 +904,7 @@ Specifying the `--verbose` flag will override and force verbose output.
 ##### `term.color`
 * Type: string
 * Default: "auto"
-* Environment: `CARGO_TERM_COLOR`
+* Environment: `PAYLOAD_TERM_COLOR`
 
 Controls whether or not colored output is used in the terminal. Possible values:
 
@@ -918,7 +918,7 @@ Can be overridden with the `--color` command-line option.
 ##### `term.progress.when`
 * Type: string
 * Default: "auto"
-* Environment: `CARGO_TERM_PROGRESS_WHEN`
+* Environment: `PAYLOAD_TERM_PROGRESS_WHEN`
 
 Controls whether or not progress bar is shown in the terminal. Possible values:
 
@@ -929,19 +929,19 @@ Controls whether or not progress bar is shown in the terminal. Possible values:
 ##### `term.progress.width`
 * Type: integer
 * Default: none
-* Environment: `CARGO_TERM_PROGRESS_WIDTH`
+* Environment: `PAYLOAD_TERM_PROGRESS_WIDTH`
 
 Sets the width for progress bar.
 
-[`cargo bench`]: ../commands/cargo-bench.md
-[`cargo login`]: ../commands/cargo-login.md
-[`cargo new`]: ../commands/cargo-new.md
-[`cargo publish`]: ../commands/cargo-publish.md
-[`cargo run`]: ../commands/cargo-run.md
-[`cargo rustc`]: ../commands/cargo-rustc.md
-[`cargo test`]: ../commands/cargo-test.md
-[`cargo rustdoc`]: ../commands/cargo-rustdoc.md
-[`cargo install`]: ../commands/cargo-install.md
+[`payload bench`]: ../commands/payload-bench.md
+[`payload login`]: ../commands/payload-login.md
+[`payload new`]: ../commands/payload-new.md
+[`payload publish`]: ../commands/payload-publish.md
+[`payload run`]: ../commands/payload-run.md
+[`payload rustc`]: ../commands/payload-rustc.md
+[`payload test`]: ../commands/payload-test.md
+[`payload rustdoc`]: ../commands/payload-rustdoc.md
+[`payload install`]: ../commands/payload-install.md
 [env]: environment-variables.md
 [`cfg()` expression]: ../../reference/conditional-compilation.html
 [build scripts]: build-scripts.md

@@ -1,10 +1,10 @@
-//! Tests for the `cargo login` command.
+//! Tests for the `payload login` command.
 
-use cargo::core::Shell;
-use cargo::util::config::Config;
-use cargo_test_support::install::cargo_home;
-use cargo_test_support::registry::{self, registry_url};
-use cargo_test_support::{cargo_process, paths, t};
+use payload::core::Shell;
+use payload::util::config::Config;
+use payload_test_support::install::payload_home;
+use payload_test_support::registry::{self, registry_url};
+use payload_test_support::{payload_process, paths, t};
 use std::fs::{self, OpenOptions};
 use std::io::prelude::*;
 use std::path::PathBuf;
@@ -14,12 +14,12 @@ const TOKEN2: &str = "test-token2";
 const ORIGINAL_TOKEN: &str = "api-token";
 
 fn setup_new_credentials() {
-    let config = cargo_home().join("credentials");
+    let config = payload_home().join("credentials");
     setup_new_credentials_at(config);
 }
 
 fn setup_new_credentials_toml() {
-    let config = cargo_home().join("credentials.toml");
+    let config = payload_home().join("credentials.toml");
     setup_new_credentials_at(config);
 }
 
@@ -32,7 +32,7 @@ fn setup_new_credentials_at(config: PathBuf) {
 }
 
 fn check_token(expected_token: &str, registry: Option<&str>) -> bool {
-    let credentials = cargo_home().join("credentials");
+    let credentials = payload_home().join("credentials");
     assert!(credentials.is_file());
 
     let contents = fs::read_to_string(&credentials).unwrap();
@@ -66,11 +66,11 @@ fn check_token(expected_token: &str, registry: Option<&str>) -> bool {
     }
 }
 
-#[cargo_test]
+#[payload_test]
 fn login_with_old_credentials() {
     registry::init();
 
-    cargo_process("login --host")
+    payload_process("login --host")
         .arg(registry_url().to_string())
         .arg(TOKEN)
         .run();
@@ -79,12 +79,12 @@ fn login_with_old_credentials() {
     assert!(check_token(TOKEN, None));
 }
 
-#[cargo_test]
+#[payload_test]
 fn login_with_new_credentials() {
     registry::init();
     setup_new_credentials();
 
-    cargo_process("login --host")
+    payload_process("login --host")
         .arg(registry_url().to_string())
         .arg(TOKEN)
         .run();
@@ -93,12 +93,12 @@ fn login_with_new_credentials() {
     assert!(check_token(TOKEN, None));
 }
 
-#[cargo_test]
+#[payload_test]
 fn credentials_work_with_extension() {
     registry::init();
     setup_new_credentials_toml();
 
-    cargo_process("login --host")
+    payload_process("login --host")
         .arg(registry_url().to_string())
         .arg(TOKEN)
         .run();
@@ -107,16 +107,16 @@ fn credentials_work_with_extension() {
     assert!(check_token(TOKEN, None));
 }
 
-#[cargo_test]
+#[payload_test]
 fn login_with_old_and_new_credentials() {
     setup_new_credentials();
     login_with_old_credentials();
 }
 
-#[cargo_test]
+#[payload_test]
 fn login_without_credentials() {
     registry::init();
-    cargo_process("login --host")
+    payload_process("login --host")
         .arg(registry_url().to_string())
         .arg(TOKEN)
         .run();
@@ -125,17 +125,17 @@ fn login_without_credentials() {
     assert!(check_token(TOKEN, None));
 }
 
-#[cargo_test]
+#[payload_test]
 fn new_credentials_is_used_instead_old() {
     registry::init();
     setup_new_credentials();
 
-    cargo_process("login --host")
+    payload_process("login --host")
         .arg(registry_url().to_string())
         .arg(TOKEN)
         .run();
 
-    let mut config = Config::new(Shell::new(), cargo_home(), cargo_home());
+    let mut config = Config::new(Shell::new(), payload_home(), payload_home());
     let _ = config.values();
     let _ = config.load_credentials();
 
@@ -143,11 +143,11 @@ fn new_credentials_is_used_instead_old() {
     assert_eq!(token.unwrap(), TOKEN);
 }
 
-#[cargo_test]
+#[payload_test]
 fn registry_credentials() {
     registry::alt_init();
 
-    let config = paths::home().join(".cargo/config");
+    let config = paths::home().join(".payload/config");
     let mut f = OpenOptions::new().append(true).open(config).unwrap();
     t!(f.write_all(
         format!(
@@ -170,7 +170,7 @@ fn registry_credentials() {
 
     let reg = "alternative";
 
-    cargo_process("login --registry").arg(reg).arg(TOKEN).run();
+    payload_process("login --registry").arg(reg).arg(TOKEN).run();
 
     // Ensure that we have not updated the default token
     assert!(check_token(ORIGINAL_TOKEN, None));
@@ -179,13 +179,13 @@ fn registry_credentials() {
     assert!(check_token(TOKEN, Some(reg)));
 
     let reg2 = "alternative2";
-    cargo_process("login --registry")
+    payload_process("login --registry")
         .arg(reg2)
         .arg(TOKEN2)
         .run();
 
     // Ensure not overwriting 1st alternate registry token with
-    // 2nd alternate registry token (see rust-lang/cargo#7701).
+    // 2nd alternate registry token (see dustlang/payload#7701).
     assert!(check_token(ORIGINAL_TOKEN, None));
     assert!(check_token(TOKEN, Some(reg)));
     assert!(check_token(TOKEN2, Some(reg2)));

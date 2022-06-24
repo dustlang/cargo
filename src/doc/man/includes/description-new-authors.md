@@ -2,8 +2,8 @@ The "authors" field in the manifest is determined from the environment or
 configuration settings. A name is required and is determined from (first match
 wins):
 
-- `cargo-new.name` Cargo config value
-- `CARGO_NAME` environment variable
+- `payload-new.name` Payload config value
+- `PAYLOAD_NAME` environment variable
 - `GIT_AUTHOR_NAME` environment variable
 - `GIT_COMMITTER_NAME` environment variable
 - `user.name` git configuration value
@@ -13,8 +13,8 @@ wins):
 
 The email address is optional and is determined from:
 
-- `cargo-new.email` Cargo config value
-- `CARGO_EMAIL` environment variable
+- `payload-new.email` Payload config value
+- `PAYLOAD_EMAIL` environment variable
 - `GIT_AUTHOR_EMAIL` environment variable
 - `GIT_COMMITTER_EMAIL` environment variable
 - `user.email` git configuration value

@@ -2,17 +2,17 @@
 //! example, the `test` profile applying to test targets, but not other
 //! targets, etc.
 
-use cargo_test_support::{basic_manifest, is_nightly, project, Project};
+use payload_test_support::{basic_manifest, is_nightly, project, Project};
 
 fn all_target_project() -> Project {
     // This abuses the `codegen-units` setting so that we can verify exactly
     // which profile is used for each compiler invocation.
     project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
-                    cargo-features = [{named_profiles}]
+                    payload-features = [{named_profiles}]
 
                     [package]
                     name = "foo"
@@ -65,11 +65,11 @@ fn all_target_project() -> Project {
             "#,
         )
         // `bar` package.
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.0.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.0.1"))
         .file("bar/src/lib.rs", "")
         // `bdep` package.
         .file(
-            "bdep/Cargo.toml",
+            "bdep/Payload.toml",
             r#"
                 [package]
                 name = "bdep"
@@ -83,7 +83,7 @@ fn all_target_project() -> Project {
         .build()
 }
 
-#[cargo_test]
+#[payload_test]
 fn profile_selection_build() {
     let p = all_target_project();
 
@@ -91,7 +91,7 @@ fn profile_selection_build() {
     // NOTES:
     // - bdep `panic` is not set because it thinks `build.rs` is a plugin.
     // - build_script_build is built without panic because it thinks `build.rs` is a plugin.
-    p.cargo("build -vv").masquerade_as_nightly_cargo().with_stderr_unordered("\
+    p.payload("build -vv").masquerade_as_nightly_payload().with_stderr_unordered("\
 [COMPILING] bar [..]
 [RUNNING] `[..] rustc --crate-name bar bar/src/lib.rs [..]--crate-type lib --emit=[..]link -C panic=abort[..]-C codegen-units=1 -C debuginfo=2 [..]
 [RUNNING] `[..] rustc --crate-name bar bar/src/lib.rs [..]--crate-type lib --emit=[..]link[..]-C codegen-units=5 -C debuginfo=2 [..]
@@ -105,8 +105,8 @@ fn profile_selection_build() {
 [RUNNING] `[..] rustc --crate-name foo src/main.rs [..]--crate-type bin --emit=[..]link -C panic=abort[..]-C codegen-units=1 -C debuginfo=2 [..]
 [FINISHED] dev [unoptimized + debuginfo] [..]
 ").run();
-    p.cargo("build -vv")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -vv")
+        .masquerade_as_nightly_payload()
         .with_stderr_unordered(
             "\
 [FRESH] bar [..]
@@ -118,12 +118,12 @@ fn profile_selection_build() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn profile_selection_build_release() {
     let p = all_target_project();
 
     // `build --release`
-    p.cargo("build --release -vv").masquerade_as_nightly_cargo().with_stderr_unordered("\
+    p.payload("build --release -vv").masquerade_as_nightly_payload().with_stderr_unordered("\
 [COMPILING] bar [..]
 [RUNNING] `[..] rustc --crate-name bar bar/src/lib.rs [..]--crate-type lib --emit=[..]link -C opt-level=3 -C panic=abort[..]-C codegen-units=2 [..]
 [RUNNING] `[..] rustc --crate-name bar bar/src/lib.rs [..]--crate-type lib --emit=[..]link[..]-C codegen-units=6 [..]
@@ -137,8 +137,8 @@ fn profile_selection_build_release() {
 [RUNNING] `[..] rustc --crate-name foo src/main.rs [..]--crate-type bin --emit=[..]link -C opt-level=3 -C panic=abort[..]-C codegen-units=2 [..]
 [FINISHED] release [optimized] [..]
 ").run();
-    p.cargo("build --release -vv")
-        .masquerade_as_nightly_cargo()
+    p.payload("build --release -vv")
+        .masquerade_as_nightly_payload()
         .with_stderr_unordered(
             "\
 [FRESH] bar [..]
@@ -150,7 +150,7 @@ fn profile_selection_build_release() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn profile_selection_build_all_targets() {
     let p = all_target_project();
     let affected = if is_nightly() { 1 } else { 3 };
@@ -160,7 +160,7 @@ fn profile_selection_build_all_targets() {
     // - build_script_build is built without panic because it thinks
     //   `build.rs` is a plugin.
     // - Benchmark dependencies are compiled in `dev` mode, which may be
-    //   surprising. See issue rust-lang/cargo#4929.
+    //   surprising. See issue dustlang/payload#4929.
     //
     // - Dependency profiles:
     //   Pkg  Target  Profile     Reason
@@ -181,7 +181,7 @@ fn profile_selection_build_all_targets() {
     //   bin      dev        dev
     //   bin      dev        build
     //   example  dev        build
-    p.cargo("build --all-targets -vv").masquerade_as_nightly_cargo().with_stderr_unordered(format!("\
+    p.payload("build --all-targets -vv").masquerade_as_nightly_payload().with_stderr_unordered(format!("\
 [COMPILING] bar [..]
 [RUNNING] `[..] rustc --crate-name bar bar/src/lib.rs [..]--crate-type lib --emit=[..]link[..]-C codegen-units=1 -C debuginfo=2 [..]
 [RUNNING] `[..] rustc --crate-name bar bar/src/lib.rs [..]--crate-type lib --emit=[..]link -C panic=abort[..]-C codegen-units=1 -C debuginfo=2 [..]
@@ -202,8 +202,8 @@ fn profile_selection_build_all_targets() {
 [RUNNING] `[..] rustc --crate-name ex1 examples/ex1.rs [..]--crate-type bin --emit=[..]link -C panic=abort[..]-C codegen-units=1 -C debuginfo=2 [..]`
 [FINISHED] dev [unoptimized + debuginfo] [..]
 ", affected=affected)).run();
-    p.cargo("build -vv")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -vv")
+        .masquerade_as_nightly_payload()
         .with_stderr_unordered(
             "\
 [FRESH] bar [..]
@@ -215,7 +215,7 @@ fn profile_selection_build_all_targets() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn profile_selection_build_all_targets_release() {
     let p = all_target_project();
     let affected = if is_nightly() { 2 } else { 4 };
@@ -249,7 +249,7 @@ fn profile_selection_build_all_targets_release() {
     //   bin      release        test   (bench/test de-duped)
     //   bin      release        build
     //   example  release        build
-    p.cargo("build --all-targets --release -vv").masquerade_as_nightly_cargo().with_stderr_unordered(format!("\
+    p.payload("build --all-targets --release -vv").masquerade_as_nightly_payload().with_stderr_unordered(format!("\
 [COMPILING] bar [..]
 [RUNNING] `[..] rustc --crate-name bar bar/src/lib.rs [..]--crate-type lib --emit=[..]link -C opt-level=3[..]-C codegen-units=2 [..]
 [RUNNING] `[..] rustc --crate-name bar bar/src/lib.rs [..]--crate-type lib --emit=[..]link -C opt-level=3 -C panic=abort[..]-C codegen-units=2 [..]
@@ -270,8 +270,8 @@ fn profile_selection_build_all_targets_release() {
 [RUNNING] `[..] rustc --crate-name ex1 examples/ex1.rs [..]--crate-type bin --emit=[..]link -C opt-level=3 -C panic=abort[..]-C codegen-units=2 [..]`
 [FINISHED] release [optimized] [..]
 ", affected=affected)).run();
-    p.cargo("build --all-targets --release -vv")
-        .masquerade_as_nightly_cargo()
+    p.payload("build --all-targets --release -vv")
+        .masquerade_as_nightly_payload()
         .with_stderr_unordered(
             "\
 [FRESH] bar [..]
@@ -283,7 +283,7 @@ fn profile_selection_build_all_targets_release() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn profile_selection_test() {
     let p = all_target_project();
     let affected = if is_nightly() { 3 } else { 1 };
@@ -308,7 +308,7 @@ fn profile_selection_test() {
     //   bin      test           test
     //   bin      test           build
     //
-    p.cargo("test -vv").masquerade_as_nightly_cargo().with_stderr_unordered(format!("\
+    p.payload("test -vv").masquerade_as_nightly_payload().with_stderr_unordered(format!("\
 [COMPILING] bar [..]
 [RUNNING] `[..] rustc --crate-name bar bar/src/lib.rs [..]--crate-type lib --emit=[..]link[..]-C codegen-units={affected} -C debuginfo=2 [..]
 [RUNNING] `[..] rustc --crate-name bar bar/src/lib.rs [..]--crate-type lib --emit=[..]link[..]-C codegen-units=5 -C debuginfo=2 [..]
@@ -333,8 +333,8 @@ fn profile_selection_test() {
 [DOCTEST] foo
 [RUNNING] `rustdoc [..]--test [..]
 ", affected=affected)).run();
-    p.cargo("test -vv")
-        .masquerade_as_nightly_cargo()
+    p.payload("test -vv")
+        .masquerade_as_nightly_payload()
         .with_stderr_unordered(
             "\
 [FRESH] bar [..]
@@ -351,7 +351,7 @@ fn profile_selection_test() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn profile_selection_test_release() {
     let p = all_target_project();
     let affected = if is_nightly() { 2 } else { 4 };
@@ -377,7 +377,7 @@ fn profile_selection_test_release() {
     //   bin      release        test
     //   bin      release        build
     //
-    p.cargo("test --release -vv").masquerade_as_nightly_cargo().with_stderr_unordered(format!("\
+    p.payload("test --release -vv").masquerade_as_nightly_payload().with_stderr_unordered(format!("\
 [COMPILING] bar [..]
 [RUNNING] `[..] rustc --crate-name bar bar/src/lib.rs [..]--crate-type lib --emit=[..]link[..]-C codegen-units=6 [..]
 [RUNNING] `[..] rustc --crate-name bar bar/src/lib.rs [..]--crate-type lib --emit=[..]link -C opt-level=3 -C panic=abort[..]-C codegen-units=2 [..]
@@ -402,8 +402,8 @@ fn profile_selection_test_release() {
 [DOCTEST] foo
 [RUNNING] `rustdoc [..]--test [..]`
 ", affected=affected)).run();
-    p.cargo("test --release -vv")
-        .masquerade_as_nightly_cargo()
+    p.payload("test --release -vv")
+        .masquerade_as_nightly_payload()
         .with_stderr_unordered(
             "\
 [FRESH] bar [..]
@@ -420,7 +420,7 @@ fn profile_selection_test_release() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn profile_selection_bench() {
     let p = all_target_project();
     let affected = if is_nightly() { 4 } else { 2 };
@@ -445,7 +445,7 @@ fn profile_selection_bench() {
     //   bin      bench          test(bench)
     //   bin      bench          build
     //
-    p.cargo("bench -vv").masquerade_as_nightly_cargo().with_stderr_unordered(format!("\
+    p.payload("bench -vv").masquerade_as_nightly_payload().with_stderr_unordered(format!("\
 [COMPILING] bar [..]
 [RUNNING] `[..] rustc --crate-name bar bar/src/lib.rs [..]--crate-type lib --emit=[..]link -C opt-level=3[..]-C codegen-units={affected} [..]
 [RUNNING] `[..] rustc --crate-name bar bar/src/lib.rs [..]--crate-type lib --emit=[..]link -C opt-level=3 -C panic=abort[..]-C codegen-units={affected} [..]
@@ -467,8 +467,8 @@ fn profile_selection_bench() {
 [RUNNING] `[..]/deps/foo-[..] --bench`
 [RUNNING] `[..]/deps/bench1-[..] --bench`
 ", affected=affected)).run();
-    p.cargo("bench -vv")
-        .masquerade_as_nightly_cargo()
+    p.payload("bench -vv")
+        .masquerade_as_nightly_payload()
         .with_stderr_unordered(
             "\
 [FRESH] bar [..]
@@ -483,7 +483,7 @@ fn profile_selection_bench() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn profile_selection_check_all_targets() {
     let p = all_target_project();
     // `check`
@@ -511,7 +511,7 @@ fn profile_selection_check_all_targets() {
     //   bin      dev            check
     //   bin      dev-panic      check-test (checking bin as a unittest)
     //
-    p.cargo("check --all-targets -vv").masquerade_as_nightly_cargo().with_stderr_unordered("\
+    p.payload("check --all-targets -vv").masquerade_as_nightly_payload().with_stderr_unordered("\
 [COMPILING] bar [..]
 [RUNNING] `[..] rustc --crate-name bar bar/src/lib.rs [..]--crate-type lib --emit=[..]link[..]-C codegen-units=5 -C debuginfo=2 [..]
 [RUNNING] `[..] rustc --crate-name bar bar/src/lib.rs [..]--crate-type lib --emit=[..]metadata[..]-C codegen-units=1 -C debuginfo=2 [..]
@@ -535,9 +535,9 @@ fn profile_selection_check_all_targets() {
     // Starting with Rust 1.27, rustc emits `rmeta` files for bins, so
     // everything should be completely fresh. Previously, bins were being
     // rechecked.
-    // See PR rust-lang/rust#49289 and issue rust-lang/cargo#3624.
-    p.cargo("check --all-targets -vv")
-        .masquerade_as_nightly_cargo()
+    // See PR dustlang/rust#49289 and issue dustlang/payload#3624.
+    p.payload("check --all-targets -vv")
+        .masquerade_as_nightly_payload()
         .with_stderr_unordered(
             "\
 [FRESH] bar [..]
@@ -549,15 +549,15 @@ fn profile_selection_check_all_targets() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn profile_selection_check_all_targets_release() {
     let p = all_target_project();
     // `check --release`
-    // See issue rust-lang/cargo#5218.
+    // See issue dustlang/payload#5218.
     // This is a pretty straightforward variant of
     // `profile_selection_check_all_targets` that uses `release` instead of
     // `dev` for all targets.
-    p.cargo("check --all-targets --release -vv").masquerade_as_nightly_cargo().with_stderr_unordered("\
+    p.payload("check --all-targets --release -vv").masquerade_as_nightly_payload().with_stderr_unordered("\
 [COMPILING] bar [..]
 [RUNNING] `[..] rustc --crate-name bar bar/src/lib.rs [..]--crate-type lib --emit=[..]link[..]-C codegen-units=6 [..]
 [RUNNING] `[..] rustc --crate-name bar bar/src/lib.rs [..]--crate-type lib --emit=[..]metadata -C opt-level=3[..]-C codegen-units=2 [..]
@@ -579,8 +579,8 @@ fn profile_selection_check_all_targets_release() {
 [FINISHED] release [optimized] [..]
 ").run();
 
-    p.cargo("check --all-targets --release -vv")
-        .masquerade_as_nightly_cargo()
+    p.payload("check --all-targets --release -vv")
+        .masquerade_as_nightly_payload()
         .with_stderr_unordered(
             "\
 [FRESH] bar [..]
@@ -592,7 +592,7 @@ fn profile_selection_check_all_targets_release() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn profile_selection_check_all_targets_test() {
     let p = all_target_project();
     let affected = if is_nightly() { 3 } else { 1 };
@@ -618,7 +618,7 @@ fn profile_selection_check_all_targets_test() {
     //   bench    test-panic  check-test
     //   bin      test-panic  check-test
     //
-    p.cargo("check --all-targets --profile=test -vv").masquerade_as_nightly_cargo().with_stderr_unordered(format!("\
+    p.payload("check --all-targets --profile=test -vv").masquerade_as_nightly_payload().with_stderr_unordered(format!("\
 [COMPILING] bar [..]
 [RUNNING] `[..] rustc --crate-name bar bar/src/lib.rs [..]--crate-type lib --emit=[..]link[..]-C codegen-units=5 -C debuginfo=2 [..]
 [RUNNING] `[..] rustc --crate-name bar bar/src/lib.rs [..]--crate-type lib --emit=[..]metadata[..]-C codegen-units={affected} -C debuginfo=2 [..]
@@ -637,8 +637,8 @@ fn profile_selection_check_all_targets_test() {
 [FINISHED] test [unoptimized + debuginfo] [..]
 ", affected=affected)).run();
 
-    p.cargo("check --all-targets --profile=test -vv")
-        .masquerade_as_nightly_cargo()
+    p.payload("check --all-targets --profile=test -vv")
+        .masquerade_as_nightly_payload()
         .with_stderr_unordered(
             "\
 [FRESH] bar [..]
@@ -650,7 +650,7 @@ fn profile_selection_check_all_targets_test() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn profile_selection_doc() {
     let p = all_target_project();
     // `doc`
@@ -664,7 +664,7 @@ fn profile_selection_doc() {
     //   foo  custom  dev*       link     For build.rs
     //
     //   `*` = wants panic, but it is cleared when args are built.
-    p.cargo("doc -vv").masquerade_as_nightly_cargo().with_stderr_unordered("\
+    p.payload("doc -vv").masquerade_as_nightly_payload().with_stderr_unordered("\
 [COMPILING] bar [..]
 [DOCUMENTING] bar [..]
 [RUNNING] `[..] rustc --crate-name bar bar/src/lib.rs [..]--crate-type lib --emit=[..]link[..]-C codegen-units=5 -C debuginfo=2 [..]

@@ -5,23 +5,23 @@ tests is also encouraged!
 
 ## Testsuite
 
-Cargo has a wide variety of integration tests that execute the `cargo` binary
+Payload has a wide variety of integration tests that execute the `payload` binary
 and verify its behavior, located in the [`testsuite`] directory. The
 [`support`] crate contains many helpers to make this process easy.
 
 These tests typically work by creating a temporary "project" with a
-`Cargo.toml` file, executing the `cargo` binary process, and checking the
+`Payload.toml` file, executing the `payload` binary process, and checking the
 stdout and stderr output against the expected output.
 
-### `cargo_test` attribute
+### `payload_test` attribute
 
-Cargo's tests use the `#[cargo_test]` attribute instead of `#[test]`. This
+Payload's tests use the `#[payload_test]` attribute instead of `#[test]`. This
 attribute injects some code which does some setup before starting the test,
 creating the little "sandbox" described below.
 
 ### Basic test structure
 
-The general form of a test involves creating a "project", running `cargo`, and
+The general form of a test involves creating a "project", running `payload`, and
 checking the result. Projects are created with the [`ProjectBuilder`] where
 you specify some files to create. The general form looks like this:
 
@@ -31,19 +31,19 @@ let p = project()
     .build();
 ```
 
-The project creates a mini sandbox under the "cargo integration test"
+The project creates a mini sandbox under the "payload integration test"
 directory with each test getting a separate directory such as
-`/path/to/cargo/target/cit/t123/`. Each project appears as a separate
+`/path/to/payload/target/cit/t123/`. Each project appears as a separate
 directory. There is also an empty `home` directory created that will be used
 as a home directory instead of your normal home directory.
 
-If you do not specify a `Cargo.toml` manifest using `file()`, one is
+If you do not specify a `Payload.toml` manifest using `file()`, one is
 automatically created with a project name of `foo` using `basic_manifest()`.
 
-To run Cargo, call the `cargo` method and make assertions on the execution:
+To run Payload, call the `payload` method and make assertions on the execution:
 
 ```rust,ignore
-p.cargo("run --bin foo")
+p.payload("run --bin foo")
     .with_stderr(
         "\
 [COMPILING] foo [..]
@@ -66,12 +66,12 @@ helpful utilities.
 
 ### Testing Nightly Features
 
-If you are testing a Cargo feature that only works on "nightly" Cargo, then
-you need to call `masquerade_as_nightly_cargo` on the process builder like
+If you are testing a Payload feature that only works on "nightly" Payload, then
+you need to call `masquerade_as_nightly_payload` on the process builder like
 this:
 
 ```rust,ignore
-p.cargo("build").masquerade_as_nightly_cargo()
+p.payload("build").masquerade_as_nightly_payload()
 ```
 
 If you are testing a feature that only works on *nightly rustc* (such as
@@ -103,7 +103,7 @@ dependency. Example:
 
 ```rust,ignore
 let p = project()
-    .file("Cargo.toml", r#"
+    .file("Payload.toml", r#"
         [package]
         name = "foo"
         version = "1.0.0"
@@ -112,7 +112,7 @@ let p = project()
         bar = {path = "bar"}
     "#)
     .file("src/lib.rs", "extern crate bar;")
-    .file("bar/Cargo.toml", &basic_manifest("bar", "1.0.0"))
+    .file("bar/Payload.toml", &basic_manifest("bar", "1.0.0"))
     .file("bar/src/lib.rs", "")
     .build();
 ```
@@ -123,10 +123,10 @@ If you need to test with registry dependencies, see
 If you need to test git dependencies, see [`support::git`] to create a git
 dependency.
 
-[`testsuite`]: https://github.com/rust-lang/cargo/tree/master/tests/testsuite/
-[`ProjectBuilder`]: https://github.com/rust-lang/cargo/blob/e4b65bdc80f2a293447f2f6a808fa7c84bf9a357/crates/cargo-test-support/src/lib.rs#L225-L231
-[`Execs`]: https://github.com/rust-lang/cargo/blob/e4b65bdc80f2a293447f2f6a808fa7c84bf9a357/crates/cargo-test-support/src/lib.rs#L558-L579
-[`support`]: https://github.com/rust-lang/cargo/blob/master/crates/cargo-test-support/src/lib.rs
-[`support::lines_match`]: https://github.com/rust-lang/cargo/blob/e4b65bdc80f2a293447f2f6a808fa7c84bf9a357/crates/cargo-test-support/src/lib.rs#L1322-L1332
-[`support::registry::Package`]: https://github.com/rust-lang/cargo/blob/e4b65bdc80f2a293447f2f6a808fa7c84bf9a357/crates/cargo-test-support/src/registry.rs#L73-L149
-[`support::git`]: https://github.com/rust-lang/cargo/blob/master/crates/cargo-test-support/src/git.rs
+[`testsuite`]: https://github.com/dustlang/payload/tree/master/tests/testsuite/
+[`ProjectBuilder`]: https://github.com/dustlang/payload/blob/e4b65bdc80f2a293447f2f6a808fa7c84bf9a357/crates/payload-test-support/src/lib.rs#L225-L231
+[`Execs`]: https://github.com/dustlang/payload/blob/e4b65bdc80f2a293447f2f6a808fa7c84bf9a357/crates/payload-test-support/src/lib.rs#L558-L579
+[`support`]: https://github.com/dustlang/payload/blob/master/crates/payload-test-support/src/lib.rs
+[`support::lines_match`]: https://github.com/dustlang/payload/blob/e4b65bdc80f2a293447f2f6a808fa7c84bf9a357/crates/payload-test-support/src/lib.rs#L1322-L1332
+[`support::registry::Package`]: https://github.com/dustlang/payload/blob/e4b65bdc80f2a293447f2f6a808fa7c84bf9a357/crates/payload-test-support/src/registry.rs#L73-L149
+[`support::git`]: https://github.com/dustlang/payload/blob/master/crates/payload-test-support/src/git.rs

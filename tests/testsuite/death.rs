@@ -6,16 +6,16 @@ use std::net::TcpListener;
 use std::process::{Child, Stdio};
 use std::thread;
 
-use cargo_test_support::{project, slow_cpu_multiplier};
+use payload_test_support::{project, slow_cpu_multiplier};
 
-#[cargo_test]
+#[payload_test]
 fn ctrl_c_kills_everyone() {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let addr = listener.local_addr().unwrap();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -43,13 +43,13 @@ fn ctrl_c_kills_everyone() {
         )
         .build();
 
-    let mut cargo = p.cargo("build").build_command();
-    cargo
+    let mut payload = p.payload("build").build_command();
+    payload
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        .env("__CARGO_TEST_SETSID_PLEASE_DONT_USE_ELSEWHERE", "1");
-    let mut child = cargo.spawn().unwrap();
+        .env("__PAYLOAD_TEST_SETSID_PLEASE_DONT_USE_ELSEWHERE", "1");
+    let mut child = payload.spawn().unwrap();
 
     let mut sock = listener.accept().unwrap().0;
     ctrl_c(&mut child);
@@ -60,8 +60,8 @@ fn ctrl_c_kills_everyone() {
         Err(e) => assert_eq!(e.kind(), io::ErrorKind::ConnectionReset),
     }
 
-    // Ok so what we just did was spawn cargo that spawned a build script, then
-    // we killed cargo in hopes of it killing the build script as well. If all
+    // Ok so what we just did was spawn payload that spawned a build script, then
+    // we killed payload in hopes of it killing the build script as well. If all
     // went well the build script is now dead. On Windows, however, this is
     // enforced with job objects which means that it may actually be in the
     // *process* of being torn down at this point.

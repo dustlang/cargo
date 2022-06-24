@@ -1,12 +1,12 @@
 //! Tests for --unit-graph option.
 
-use cargo_test_support::project;
-use cargo_test_support::registry::Package;
+use payload_test_support::project;
+use payload_test_support::registry::Package;
 
-#[cargo_test]
+#[payload_test]
 fn gated() {
     let p = project().file("src/lib.rs", "").build();
-    p.cargo("build --unit-graph")
+    p.payload("build --unit-graph")
         .with_status(101)
         .with_stderr(
             "\
@@ -18,7 +18,7 @@ See [..]
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn simple() {
     Package::new("a", "1.0.0")
         .dep("b", "1.0")
@@ -32,7 +32,7 @@ fn simple() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -45,14 +45,14 @@ fn simple() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build --features a/feata --unit-graph -Zunstable-options")
-        .masquerade_as_nightly_cargo()
+    p.payload("build --features a/feata --unit-graph -Zunstable-options")
+        .masquerade_as_nightly_payload()
         .with_json(
             r#"{
               "version": 1,
               "units": [
                 {
-                  "pkg_id": "a 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+                  "pkg_id": "a 1.0.0 (registry+https://github.com/dustlang/crates.io-index)",
                   "target": {
                     "kind": [
                       "lib"
@@ -96,7 +96,7 @@ fn simple() {
                   ]
                 },
                 {
-                  "pkg_id": "b 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+                  "pkg_id": "b 1.0.0 (registry+https://github.com/dustlang/crates.io-index)",
                   "target": {
                     "kind": [
                       "lib"
@@ -140,7 +140,7 @@ fn simple() {
                   ]
                 },
                 {
-                  "pkg_id": "c 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+                  "pkg_id": "c 1.0.0 (registry+https://github.com/dustlang/crates.io-index)",
                   "target": {
                     "kind": [
                       "lib"

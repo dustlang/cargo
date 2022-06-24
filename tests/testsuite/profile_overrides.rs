@@ -1,13 +1,13 @@
 //! Tests for profile overrides (build-override and per-package overrides).
 
-use cargo_test_support::registry::Package;
-use cargo_test_support::{basic_lib_manifest, basic_manifest, project};
+use payload_test_support::registry::Package;
+use payload_test_support::{basic_lib_manifest, basic_manifest, project};
 
-#[cargo_test]
+#[payload_test]
 fn profile_override_basic() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -25,11 +25,11 @@ fn profile_override_basic() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_lib_manifest("bar"))
+        .file("bar/Payload.toml", &basic_lib_manifest("bar"))
         .file("bar/src/lib.rs", "")
         .build();
 
-    p.cargo("build -v")
+    p.payload("build -v")
         .with_stderr(
             "[COMPILING] bar [..]
 [RUNNING] `rustc --crate-name bar [..] -C opt-level=3 [..]`
@@ -40,11 +40,11 @@ fn profile_override_basic() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn profile_override_warnings() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -64,11 +64,11 @@ fn profile_override_warnings() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_lib_manifest("bar"))
+        .file("bar/Payload.toml", &basic_lib_manifest("bar"))
         .file("bar/src/lib.rs", "")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr_contains(
             "\
 [WARNING] profile package spec `bar:1.2.3` in profile `dev` \
@@ -84,7 +84,7 @@ fn profile_override_warnings() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn profile_override_bad_settings() {
     let bad_values = [
         (
@@ -104,7 +104,7 @@ fn profile_override_bad_settings() {
     for &(snippet, expected) in bad_values.iter() {
         let p = project()
             .file(
-                "Cargo.toml",
+                "Payload.toml",
                 &format!(
                     r#"
                         [package]
@@ -121,23 +121,23 @@ fn profile_override_bad_settings() {
                 ),
             )
             .file("src/lib.rs", "")
-            .file("bar/Cargo.toml", &basic_lib_manifest("bar"))
+            .file("bar/Payload.toml", &basic_lib_manifest("bar"))
             .file("bar/src/lib.rs", "")
             .build();
 
-        p.cargo("build")
+        p.payload("build")
             .with_status(101)
             .with_stderr_contains(format!("Caused by:\n  {}", expected))
             .run();
     }
 }
 
-#[cargo_test]
+#[payload_test]
 fn profile_override_hierarchy() {
     // Test that the precedence rules are correct for different types.
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [workspace]
             members = ["m1", "m2", "m3"]
@@ -157,7 +157,7 @@ fn profile_override_hierarchy() {
         )
         // m1
         .file(
-            "m1/Cargo.toml",
+            "m1/Payload.toml",
             r#"
             [package]
             name = "m1"
@@ -172,7 +172,7 @@ fn profile_override_hierarchy() {
         .file("m1/build.rs", "fn main() {}")
         // m2
         .file(
-            "m2/Cargo.toml",
+            "m2/Payload.toml",
             r#"
             [package]
             name = "m2"
@@ -192,14 +192,14 @@ fn profile_override_hierarchy() {
             "extern crate m3; extern crate dep; fn main() {}",
         )
         // m3
-        .file("m3/Cargo.toml", &basic_lib_manifest("m3"))
+        .file("m3/Payload.toml", &basic_lib_manifest("m3"))
         .file("m3/src/lib.rs", "")
         .build();
 
     // dep (outside of workspace)
     let _dep = project()
         .at("dep")
-        .file("Cargo.toml", &basic_lib_manifest("dep"))
+        .file("Payload.toml", &basic_lib_manifest("dep"))
         .file("src/lib.rs", "")
         .build();
 
@@ -212,7 +212,7 @@ fn profile_override_hierarchy() {
     // m2: 2 (as [profile.dev.package.m2])
     // m1: 1 (as [profile.dev])
 
-    p.cargo("build -v").with_stderr_unordered("\
+    p.payload("build -v").with_stderr_unordered("\
 [COMPILING] m3 [..]
 [COMPILING] dep [..]
 [RUNNING] `rustc --crate-name m3 m3/src/lib.rs [..] --crate-type lib --emit=[..]link[..]-C codegen-units=4 [..]
@@ -232,11 +232,11 @@ fn profile_override_hierarchy() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn profile_override_spec_multiple() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -253,11 +253,11 @@ fn profile_override_spec_multiple() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_lib_manifest("bar"))
+        .file("bar/Payload.toml", &basic_lib_manifest("bar"))
         .file("bar/src/lib.rs", "")
         .build();
 
-    p.cargo("build -v")
+    p.payload("build -v")
         .with_status(101)
         .with_stderr_contains(
             "\
@@ -267,11 +267,11 @@ found package specs: bar, bar:0.5.0",
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn profile_override_spec() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [workspace]
             members = ["m1", "m2"]
@@ -285,7 +285,7 @@ fn profile_override_spec() {
         )
         // m1
         .file(
-            "m1/Cargo.toml",
+            "m1/Payload.toml",
             r#"
             [package]
             name = "m1"
@@ -298,7 +298,7 @@ fn profile_override_spec() {
         .file("m1/src/lib.rs", "extern crate dep;")
         // m2
         .file(
-            "m2/Cargo.toml",
+            "m2/Payload.toml",
             r#"
             [package]
             name = "m2"
@@ -313,28 +313,28 @@ fn profile_override_spec() {
 
     project()
         .at("dep1")
-        .file("Cargo.toml", &basic_manifest("dep", "1.0.0"))
+        .file("Payload.toml", &basic_manifest("dep", "1.0.0"))
         .file("src/lib.rs", "")
         .build();
 
     project()
         .at("dep2")
-        .file("Cargo.toml", &basic_manifest("dep", "2.0.0"))
+        .file("Payload.toml", &basic_manifest("dep", "2.0.0"))
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build -v")
+    p.payload("build -v")
         .with_stderr_contains("[RUNNING] `rustc [..]dep1/src/lib.rs [..] -C codegen-units=1 [..]")
         .with_stderr_contains("[RUNNING] `rustc [..]dep2/src/lib.rs [..] -C codegen-units=2 [..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn override_proc_macro() {
     Package::new("shared", "1.0.0").publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -351,7 +351,7 @@ fn override_proc_macro() {
         )
         .file("src/lib.rs", r#"pm::eat!{}"#)
         .file(
-            "pm/Cargo.toml",
+            "pm/Payload.toml",
             r#"
             [package]
             name = "pm"
@@ -378,7 +378,7 @@ fn override_proc_macro() {
         )
         .build();
 
-    p.cargo("build -v")
+    p.payload("build -v")
         // Shared built for the proc-macro.
         .with_stderr_contains("[RUNNING] `rustc [..]--crate-name shared [..]-C codegen-units=4[..]")
         // Shared built for the library.
@@ -394,12 +394,12 @@ fn override_proc_macro() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn no_warning_ws() {
-    // https://github.com/rust-lang/cargo/issues/7378, avoid warnings in a workspace.
+    // https://github.com/dustlang/payload/issues/7378, avoid warnings in a workspace.
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [workspace]
             members = ["a", "b"]
@@ -408,13 +408,13 @@ fn no_warning_ws() {
             codegen-units = 3
             "#,
         )
-        .file("a/Cargo.toml", &basic_manifest("a", "0.1.0"))
+        .file("a/Payload.toml", &basic_manifest("a", "0.1.0"))
         .file("a/src/lib.rs", "")
-        .file("b/Cargo.toml", &basic_manifest("b", "0.1.0"))
+        .file("b/Payload.toml", &basic_manifest("b", "0.1.0"))
         .file("b/src/lib.rs", "")
         .build();
 
-    p.cargo("build -p b")
+    p.payload("build -p b")
         .with_stderr(
             "\
 [COMPILING] b [..]
@@ -424,7 +424,7 @@ fn no_warning_ws() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn build_override_shared() {
     // A dependency with a build script that is shared with a build
     // dependency, using different profile settings. That is:
@@ -448,9 +448,9 @@ fn build_override_shared() {
             r#"
             fn main() {
                 if std::env::var("DEBUG").unwrap() != "false" {
-                    println!("cargo:rustc-cfg=foo_debug");
+                    println!("payload:rustc-cfg=foo_debug");
                 } else {
-                    println!("cargo:rustc-cfg=foo_release");
+                    println!("payload:rustc-cfg=foo_release");
                 }
             }
             "#,
@@ -475,7 +475,7 @@ fn build_override_shared() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -511,5 +511,5 @@ fn build_override_shared() {
         )
         .build();
 
-    p.cargo("run").run();
+    p.payload("run").run();
 }

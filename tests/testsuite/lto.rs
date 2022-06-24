@@ -1,15 +1,15 @@
-use cargo::core::compiler::Lto;
-use cargo_test_support::registry::Package;
-use cargo_test_support::{basic_manifest, project, Project};
+use payload::core::compiler::Lto;
+use payload_test_support::registry::Package;
+use payload_test_support::{basic_manifest, project, Project};
 use std::process::Output;
 
-#[cargo_test]
+#[payload_test]
 fn with_deps() {
     Package::new("bar", "0.0.1").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "test"
@@ -24,19 +24,19 @@ fn with_deps() {
         )
         .file("src/main.rs", "extern crate bar; fn main() {}")
         .build();
-    p.cargo("build -v --release")
+    p.payload("build -v --release")
         .with_stderr_contains("[..]`rustc[..]--crate-name bar[..]-C linker-plugin-lto[..]`")
         .with_stderr_contains("[..]`rustc[..]--crate-name test[..]-C lto[..]`")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn shared_deps() {
     Package::new("bar", "0.0.1").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "test"
@@ -55,18 +55,18 @@ fn shared_deps() {
         .file("build.rs", "extern crate bar; fn main() {}")
         .file("src/main.rs", "extern crate bar; fn main() {}")
         .build();
-    p.cargo("build -v --release")
+    p.payload("build -v --release")
         .with_stderr_contains("[..]`rustc[..]--crate-name test[..]-C lto[..]`")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn build_dep_not_ltod() {
     Package::new("bar", "0.0.1").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "test"
@@ -82,13 +82,13 @@ fn build_dep_not_ltod() {
         .file("build.rs", "extern crate bar; fn main() {}")
         .file("src/main.rs", "fn main() {}")
         .build();
-    p.cargo("build -v --release")
+    p.payload("build -v --release")
         .with_stderr_contains("[..]`rustc[..]--crate-name bar[..]-C embed-bitcode=no[..]`")
         .with_stderr_contains("[..]`rustc[..]--crate-name test[..]-C lto[..]`")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn complicated() {
     Package::new("dep-shared", "0.0.1")
         .file("src/lib.rs", "pub fn foo() {}")
@@ -150,7 +150,7 @@ fn complicated() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "test"
@@ -185,7 +185,7 @@ fn complicated() {
             "#[dep_proc_macro::foo] pub fn foo() { dep_normal::foo() }",
         )
         .build();
-    p.cargo("build -v --release")
+    p.payload("build -v --release")
         // normal deps and their transitive dependencies do not need object
         // code, so they should have linker-plugin-lto specified
         .with_stderr_contains(
@@ -217,7 +217,7 @@ fn complicated() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn off_in_manifest_works() {
     Package::new("bar", "0.0.1")
         .file("src/lib.rs", "pub fn foo() {}")
@@ -225,7 +225,7 @@ fn off_in_manifest_works() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "test"
@@ -247,7 +247,7 @@ fn off_in_manifest_works() {
         }",
         )
         .build();
-    p.cargo("build -v --release")
+    p.payload("build -v --release")
         .with_stderr(
             "\
 [UPDATING] [..]
@@ -264,11 +264,11 @@ fn off_in_manifest_works() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn between_builds() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "test"
@@ -281,7 +281,7 @@ fn between_builds() {
         .file("src/lib.rs", "pub fn foo() {}")
         .file("src/main.rs", "fn main() { test::foo() }")
         .build();
-    p.cargo("build -v --release --lib")
+    p.payload("build -v --release --lib")
         .with_stderr(
             "\
 [COMPILING] test [..]
@@ -290,7 +290,7 @@ fn between_builds() {
 ",
         )
         .run();
-    p.cargo("build -v --release")
+    p.payload("build -v --release")
         .with_stderr_contains(
             "\
 [COMPILING] test [..]
@@ -301,11 +301,11 @@ fn between_builds() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn test_all() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -319,16 +319,16 @@ fn test_all() {
         .file("tests/a.rs", "")
         .file("tests/b.rs", "")
         .build();
-    p.cargo("test --release -v")
+    p.payload("test --release -v")
         .with_stderr_contains("[RUNNING] `rustc[..]--crate-name foo[..]-C lto[..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn test_all_and_bench() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -344,7 +344,7 @@ fn test_all_and_bench() {
         .file("tests/a.rs", "")
         .file("tests/b.rs", "")
         .build();
-    p.cargo("test --release -v")
+    p.payload("test --release -v")
         .with_stderr_contains("[RUNNING] `rustc[..]--crate-name a[..]-C lto[..]")
         .with_stderr_contains("[RUNNING] `rustc[..]--crate-name b[..]-C lto[..]")
         .with_stderr_contains("[RUNNING] `rustc[..]--crate-name foo[..]-C lto[..]")
@@ -361,7 +361,7 @@ fn project_with_dep(crate_types: &str) -> Project {
 
     project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -387,7 +387,7 @@ fn project_with_dep(crate_types: &str) -> Project {
             ",
         )
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             &format!(
                 r#"
                     [package]
@@ -463,10 +463,10 @@ fn verify_lto(output: &Output, krate: &str, krate_info: &str, expected_lto: Lto)
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn cdylib_and_rlib() {
     let p = project_with_dep("'cdylib', 'rlib'");
-    let output = p.cargo("build --release -v").exec_with_output().unwrap();
+    let output = p.payload("build --release -v").exec_with_output().unwrap();
     verify_lto(
         &output,
         "registry",
@@ -486,7 +486,7 @@ fn cdylib_and_rlib() {
         Lto::ObjectAndBitcode,
     );
     verify_lto(&output, "foo", "--crate-type bin", Lto::Run(None));
-    p.cargo("test --release -v")
+    p.payload("test --release -v")
         .with_stderr_unordered(
             "\
 [FRESH] registry v0.0.1
@@ -501,7 +501,7 @@ fn cdylib_and_rlib() {
 ",
         )
         .run();
-    p.cargo("build --release -v --manifest-path bar/Cargo.toml")
+    p.payload("build --release -v --manifest-path bar/Payload.toml")
         .with_stderr_unordered(
             "\
 [FRESH] registry-shared v0.0.1
@@ -511,7 +511,7 @@ fn cdylib_and_rlib() {
 ",
         )
         .run();
-    p.cargo("test --release -v --manifest-path bar/Cargo.toml")
+    p.payload("test --release -v --manifest-path bar/Payload.toml")
         .with_stderr_unordered(
             "\
 [COMPILING] registry v0.0.1
@@ -532,10 +532,10 @@ fn cdylib_and_rlib() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn dylib() {
     let p = project_with_dep("'dylib'");
-    let output = p.cargo("build --release -v").exec_with_output().unwrap();
+    let output = p.payload("build --release -v").exec_with_output().unwrap();
     verify_lto(&output, "registry", "--crate-type lib", Lto::OnlyObject);
     verify_lto(
         &output,
@@ -545,7 +545,7 @@ fn dylib() {
     );
     verify_lto(&output, "bar", "--crate-type dylib", Lto::OnlyObject);
     verify_lto(&output, "foo", "--crate-type bin", Lto::Run(None));
-    p.cargo("test --release -v")
+    p.payload("test --release -v")
         .with_stderr_unordered(
             "\
 [FRESH] registry v0.0.1
@@ -560,7 +560,7 @@ fn dylib() {
 ",
         )
         .run();
-    p.cargo("build --release -v --manifest-path bar/Cargo.toml")
+    p.payload("build --release -v --manifest-path bar/Payload.toml")
         .with_stderr_unordered(
             "\
 [COMPILING] registry-shared v0.0.1
@@ -572,7 +572,7 @@ fn dylib() {
 ",
         )
         .run();
-    p.cargo("test --release -v --manifest-path bar/Cargo.toml")
+    p.payload("test --release -v --manifest-path bar/Payload.toml")
         .with_stderr_unordered(
             "\
 [FRESH] registry-shared v0.0.1
@@ -588,7 +588,7 @@ fn dylib() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn test_profile() {
     Package::new("bar", "0.0.1")
         .file("src/lib.rs", "pub fn foo() -> i32 { 123 } ")
@@ -596,7 +596,7 @@ fn test_profile() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -621,7 +621,7 @@ fn test_profile() {
         )
         .build();
 
-    p.cargo("test -v")
+    p.payload("test -v")
         // unordered because the two `foo` builds start in parallel
         .with_stderr_unordered("\
 [UPDATING] [..]
@@ -640,7 +640,7 @@ fn test_profile() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn dev_profile() {
     // Mixing dev=LTO with test=not-LTO
     Package::new("bar", "0.0.1")
@@ -649,7 +649,7 @@ fn dev_profile() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -674,7 +674,7 @@ fn dev_profile() {
         )
         .build();
 
-    p.cargo("test -v")
+    p.payload("test -v")
         // unordered because the two `foo` builds start in parallel
         .with_stderr_unordered("\
 [UPDATING] [..]
@@ -693,11 +693,11 @@ fn dev_profile() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn doctest() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -722,7 +722,7 @@ fn doctest() {
                 pub fn foo() { bar::bar(); }
             "#,
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file(
             "bar/src/lib.rs",
             r#"
@@ -731,7 +731,7 @@ fn doctest() {
         )
         .build();
 
-    p.cargo("test --doc --release -v")
+    p.payload("test --doc --release -v")
         .with_stderr_contains("[..]`rustc --crate-name bar[..]-C embed-bitcode=no[..]")
         .with_stderr_contains("[..]`rustc --crate-name foo[..]-C embed-bitcode=no[..]")
         // embed-bitcode should be harmless here
@@ -739,20 +739,20 @@ fn doctest() {
         .run();
 
     // Try with bench profile.
-    p.cargo("test --doc --release -v")
-        .env("CARGO_PROFILE_BENCH_LTO", "true")
+    p.payload("test --doc --release -v")
+        .env("PAYLOAD_PROFILE_BENCH_LTO", "true")
         .with_stderr_contains("[..]`rustc --crate-name bar[..]-C linker-plugin-lto[..]")
         .with_stderr_contains("[..]`rustc --crate-name foo[..]-C linker-plugin-lto[..]")
         .with_stderr_contains("[..]`rustdoc [..]-C lto[..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn dylib_rlib_bin() {
     // dylib+rlib linked with a binary
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -769,7 +769,7 @@ fn dylib_rlib_bin() {
         .file("src/main.rs", "fn main() { foo::foo(); }")
         .build();
 
-    let output = p.cargo("build --release -v").exec_with_output().unwrap();
+    let output = p.payload("build --release -v").exec_with_output().unwrap();
     verify_lto(
         &output,
         "foo",
@@ -779,7 +779,7 @@ fn dylib_rlib_bin() {
     verify_lto(&output, "foo", "--crate-type bin", Lto::Run(None));
 }
 
-#[cargo_test]
+#[payload_test]
 fn fresh_swapping_commands() {
     // In some rare cases, different commands end up building dependencies
     // with different LTO settings. This checks that it doesn't cause the
@@ -788,7 +788,7 @@ fn fresh_swapping_commands() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -804,7 +804,7 @@ fn fresh_swapping_commands() {
         .file("src/lib.rs", "pub fn foo() { println!(\"hi!\"); }")
         .build();
 
-    p.cargo("build --release -v")
+    p.payload("build --release -v")
         .with_stderr(
             "\
 [UPDATING] [..]
@@ -818,7 +818,7 @@ fn fresh_swapping_commands() {
 ",
         )
         .run();
-    p.cargo("test --release -v")
+    p.payload("test --release -v")
         .with_stderr_unordered(
             "\
 [COMPILING] bar v1.0.0
@@ -834,7 +834,7 @@ fn fresh_swapping_commands() {
         )
         .run();
 
-    p.cargo("build --release -v")
+    p.payload("build --release -v")
         .with_stderr(
             "\
 [FRESH] bar v1.0.0
@@ -843,7 +843,7 @@ fn fresh_swapping_commands() {
 ",
         )
         .run();
-    p.cargo("test --release -v --no-run -v")
+    p.payload("test --release -v --no-run -v")
         .with_stderr(
             "\
 [FRESH] bar v1.0.0

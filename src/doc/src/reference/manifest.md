@@ -1,9 +1,9 @@
 ## The Manifest Format
 
-The `Cargo.toml` file for each package is called its *manifest*. It is written
+The `Payload.toml` file for each package is called its *manifest*. It is written
 in the [TOML] format. Every manifest file consists of the following sections:
 
-* [`cargo-features`](unstable.md) — Unstable, nightly-only features.
+* [`payload-features`](unstable.md) — Unstable, nightly-only features.
 * [`[package]`](#the-package-section) — Defines a package.
   * [`name`](#the-name-field) — The name of the package.
   * [`version`](#the-version-field) — The version of the package.
@@ -25,18 +25,18 @@ in the [TOML] format. Every manifest file consists of the following sections:
   * [`include`](#the-exclude-and-include-fields) — Files to include when publishing.
   * [`publish`](#the-publish-field) — Can be used to prevent publishing the package.
   * [`metadata`](#the-metadata-table) — Extra settings for external tools.
-  * [`default-run`](#the-default-run-field) — The default binary to run by [`cargo run`].
-  * [`autobins`](cargo-targets.md#target-auto-discovery) — Disables binary auto discovery.
-  * [`autoexamples`](cargo-targets.md#target-auto-discovery) — Disables example auto discovery.
-  * [`autotests`](cargo-targets.md#target-auto-discovery) — Disables test auto discovery.
-  * [`autobenches`](cargo-targets.md#target-auto-discovery) — Disables bench auto discovery.
+  * [`default-run`](#the-default-run-field) — The default binary to run by [`payload run`].
+  * [`autobins`](payload-targets.md#target-auto-discovery) — Disables binary auto discovery.
+  * [`autoexamples`](payload-targets.md#target-auto-discovery) — Disables example auto discovery.
+  * [`autotests`](payload-targets.md#target-auto-discovery) — Disables test auto discovery.
+  * [`autobenches`](payload-targets.md#target-auto-discovery) — Disables bench auto discovery.
   * [`resolver`](resolver.md#resolver-versions) — Sets the dependency resolver to use.
-* Target tables: (see [configuration](cargo-targets.md#configuring-a-target) for settings)
-  * [`[lib]`](cargo-targets.md#library) — Library target settings.
-  * [`[[bin]]`](cargo-targets.md#binaries) — Binary target settings.
-  * [`[[example]]`](cargo-targets.md#examples) — Example target settings.
-  * [`[[test]]`](cargo-targets.md#tests) — Test target settings.
-  * [`[[bench]]`](cargo-targets.md#benchmarks) — Benchmark target settings.
+* Target tables: (see [configuration](payload-targets.md#configuring-a-target) for settings)
+  * [`[lib]`](payload-targets.md#library) — Library target settings.
+  * [`[[bin]]`](payload-targets.md#binaries) — Binary target settings.
+  * [`[[example]]`](payload-targets.md#examples) — Example target settings.
+  * [`[[test]]`](payload-targets.md#tests) — Test target settings.
+  * [`[[bench]]`](payload-targets.md#benchmarks) — Benchmark target settings.
 * Dependency tables:
   * [`[dependencies]`](specifying-dependencies.md) — Package library dependencies.
   * [`[dev-dependencies]`](specifying-dependencies.md#development-dependencies) — Dependencies for examples, tests, and benchmarks.
@@ -52,7 +52,7 @@ in the [TOML] format. Every manifest file consists of the following sections:
 <a id="package-metadata"></a>
 ### The `[package]` section
 
-The first section in a `Cargo.toml` is `[package]`.
+The first section in a `Payload.toml` is `[package]`.
 
 ```toml
 [package]
@@ -61,7 +61,7 @@ version = "0.1.0"    # the current version, obeying semver
 authors = ["Alice <a@example.com>", "Bob <b@example.com>"]
 ```
 
-The only fields required by Cargo are [`name`](#the-name-field) and
+The only fields required by Payload are [`name`](#the-name-field) and
 [`version`](#the-version-field). If publishing to a registry, the registry may
 require additional fields. See the notes below and [the publishing
 chapter][publishing] for requirements for publishing to [crates.io].
@@ -73,7 +73,7 @@ when listed as a dependency in another package, and as the default name of
 inferred lib and bin targets.
 
 The name must use only [alphanumeric] characters or `-` or `_`, and cannot be empty.
-Note that [`cargo new`] and [`cargo init`] impose some additional restrictions on
+Note that [`payload new`] and [`payload init`] impose some additional restrictions on
 the package name, such as enforcing that it is a valid Rust identifier and not
 a keyword. [crates.io] imposes even more restrictions, such as
 enforcing only ASCII characters, not a reserved name, not a special Windows
@@ -83,7 +83,7 @@ name such as "nul", is not too long, etc.
 
 #### The `version` field
 
-Cargo bakes in the concept of [Semantic
+Payload bakes in the concept of [Semantic
 Versioning](https://semver.org/), so make sure you follow some basic rules:
 
 * Before you reach 1.0.0, anything goes, but if you make breaking changes,
@@ -96,7 +96,7 @@ Versioning](https://semver.org/), so make sure you follow some basic rules:
   traits, fields, types, functions, methods or anything else.
 * Use version numbers with three numeric parts such as 1.0.0 rather than 1.0.
 
-See the [Resolver] chapter for more information on how Cargo uses versions to
+See the [Resolver] chapter for more information on how Payload uses versions to
 resolve dependencies, and for guidelines on setting your own version. See the
 [Semver compatibility] chapter for more details on exactly what constitutes a
 breaking change.
@@ -130,13 +130,13 @@ examples, etc.
 edition = '2018'
 ```
 
-Most manifests have the `edition` field filled in automatically by [`cargo new`]
-with the latest stable edition. By default `cargo new` creates a manifest with
+Most manifests have the `edition` field filled in automatically by [`payload new`]
+with the latest stable edition. By default `payload new` creates a manifest with
 the 2018 edition currently.
 
-If the `edition` field is not present in `Cargo.toml`, then the 2015 edition is
+If the `edition` field is not present in `Payload.toml`, then the 2015 edition is
 assumed for backwards compatibility. Note that all manifests
-created with [`cargo new`] will not use this historical fallback because they
+created with [`payload new`] will not use this historical fallback because they
 will have `edition` explicitly specified to a newer value.
 
 #### The `description` field
@@ -168,7 +168,7 @@ documentation = "https://docs.rs/bitflags"
 #### The `readme` field
 
 The `readme` field should be the path to a file in the package root (relative
-to this `Cargo.toml`) that contains general information about the package.
+to this `Payload.toml`) that contains general information about the package.
 This file will be transferred to the registry when you publish. [crates.io]
 will interpret it as Markdown and render it on the crate's page.
 
@@ -203,14 +203,14 @@ package.
 ```toml
 [package]
 # ...
-repository = "https://github.com/rust-lang/cargo/"
+repository = "https://github.com/dustlang/payload/"
 ```
 
 #### The `license` and `license-file` fields
 
 The `license` field contains the name of the software license that the package
 is released under. The `license-file` field contains the path to a file
-containing the text of the license (relative to this `Cargo.toml`).
+containing the text of the license (relative to this `Payload.toml`).
 
 [crates.io] interprets the `license` field as an [SPDX 2.1 license
 expression][spdx-2.1-license-expressions]. The name must be a known license
@@ -270,7 +270,7 @@ The `categories` field is an array of strings of the categories this package
 belongs to.
 
 ```toml
-categories = ["command-line-utilities", "development-tools::cargo-plugins"]
+categories = ["command-line-utilities", "development-tools::payload-plugins"]
 ```
 
 > **Note**: [crates.io] has a maximum of 5 categories. Each category should
@@ -282,7 +282,7 @@ categories = ["command-line-utilities", "development-tools::cargo-plugins"]
 
 The `workspace` field can be used to configure the workspace that this package
 will be a member of. If not specified this will be inferred as the first
-Cargo.toml with `[workspace]` upwards in the filesystem. Setting this is
+Payload.toml with `[workspace]` upwards in the filesystem. Setting this is
 useful if the member is not inside a subdirectory of the workspace root.
 
 ```toml
@@ -380,12 +380,12 @@ exclude = ["build/**/*.o", "doc/**/*.html"]
 ```toml
 [package]
 # ...
-include = ["src/**/*", "Cargo.toml"]
+include = ["src/**/*", "Payload.toml"]
 ```
 
 The options are mutually exclusive: setting `include` will override an
 `exclude`. Note that `include` must be an exhaustive list of files as otherwise
-necessary source files may not be included. The package's `Cargo.toml` is
+necessary source files may not be included. The package's `Payload.toml` is
 automatically included.
 
 The include/exclude list is also used for change tracking in some situations.
@@ -419,16 +419,16 @@ allowed to be published to.
 publish = ["some-registry-name"]
 ```
 
-If publish array contains a single registry, `cargo publish` command will use
+If publish array contains a single registry, `payload publish` command will use
 it when `--registry` flag is not specified.
 
 <a id="the-metadata-table-optional"></a>
 #### The `metadata` table
 
-Cargo by default will warn about unused keys in `Cargo.toml` to assist in
+Payload by default will warn about unused keys in `Payload.toml` to assist in
 detecting typos and such. The `package.metadata` table, however, is completely
-ignored by Cargo and will not be warned about. This section can be used for
-tools which would like to store package configuration in `Cargo.toml`. For
+ignored by Payload and will not be warned about. This section can be used for
+tools which would like to store package configuration in `Payload.toml`. For
 example:
 
 ```toml
@@ -443,7 +443,7 @@ assets = "path/to/static"
 ```
 
 There is a similar table at the workspace level at
-[`workspace.metadata`][workspace-metadata]. While cargo does not specify a
+[`workspace.metadata`][workspace-metadata]. While payload does not specify a
 format for the content of either of these tables, it is suggested that
 external tools may wish to use them in a consistent fashion, such as referring
 to the data in `workspace.metadata` if data is missing from `package.metadata`,
@@ -454,7 +454,7 @@ if that makes sense for the tool in question.
 #### The `default-run` field
 
 The `default-run` field in the `[package]` section of the manifest can be used
-to specify a default binary picked by [`cargo run`]. For example, when there is
+to specify a default binary picked by [`payload run`]. For example, when there is
 both `src/bin/a.rs` and `src/bin/b.rs`:
 
 ```toml
@@ -476,8 +476,8 @@ on a registry website when the package is published.
 [badges]
 # The `maintenance` table indicates the status of the maintenance of
 # the crate. This may be used by a registry, but is currently not
-# used by crates.io. See https://github.com/rust-lang/crates.io/issues/2437
-# and https://github.com/rust-lang/crates.io/issues/2438 for more details.
+# used by crates.io. See https://github.com/dustlang/crates.io/issues/2437
+# and https://github.com/dustlang/crates.io/issues/2438 for more details.
 #
 # The `status` field is required. Available options are:
 # - `actively-developed`: New features are being added and bugs are being fixed.
@@ -511,9 +511,9 @@ more detail.
 
 
 
-[`cargo init`]: ../commands/cargo-init.md
-[`cargo new`]: ../commands/cargo-new.md
-[`cargo run`]: ../commands/cargo-run.md
+[`payload init`]: ../commands/payload-init.md
+[`payload new`]: ../commands/payload-new.md
+[`payload run`]: ../commands/payload-run.md
 [crates.io]: https://crates.io/
 [docs.rs]: https://docs.rs/
 [publishing]: publishing.md
@@ -527,13 +527,13 @@ more detail.
 (function() {
     var fragments = {
         "#the-project-layout": "../guide/project-layout.html",
-        "#examples": "cargo-targets.html#examples",
-        "#tests": "cargo-targets.html#tests",
-        "#integration-tests": "cargo-targets.html#integration-tests",
-        "#configuring-a-target": "cargo-targets.html#configuring-a-target",
-        "#target-auto-discovery": "cargo-targets.html#target-auto-discovery",
-        "#the-required-features-field-optional": "cargo-targets.html#the-required-features-field",
-        "#building-dynamic-or-static-libraries": "cargo-targets.html#the-crate-type-field",
+        "#examples": "payload-targets.html#examples",
+        "#tests": "payload-targets.html#tests",
+        "#integration-tests": "payload-targets.html#integration-tests",
+        "#configuring-a-target": "payload-targets.html#configuring-a-target",
+        "#target-auto-discovery": "payload-targets.html#target-auto-discovery",
+        "#the-required-features-field-optional": "payload-targets.html#the-required-features-field",
+        "#building-dynamic-or-static-libraries": "payload-targets.html#the-crate-type-field",
         "#the-workspace-section": "workspaces.html#the-workspace-section",
         "#virtual-manifest": "workspaces.html",
         "#package-selection": "workspaces.html#package-selection",

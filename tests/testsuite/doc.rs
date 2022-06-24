@@ -1,18 +1,18 @@
-//! Tests for the `cargo doc` command.
+//! Tests for the `payload doc` command.
 
-use cargo::core::compiler::RustDocFingerprint;
-use cargo_test_support::paths::CargoPathExt;
-use cargo_test_support::registry::Package;
-use cargo_test_support::{basic_lib_manifest, basic_manifest, git, project};
-use cargo_test_support::{is_nightly, rustc_host};
+use payload::core::compiler::RustDocFingerprint;
+use payload_test_support::paths::PayloadPathExt;
+use payload_test_support::registry::Package;
+use payload_test_support::{basic_lib_manifest, basic_manifest, git, project};
+use payload_test_support::{is_nightly, rustc_host};
 use std::fs;
 use std::str;
 
-#[cargo_test]
+#[payload_test]
 fn simple() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -25,7 +25,7 @@ fn simple() {
         .file("src/lib.rs", "pub fn foo() {}")
         .build();
 
-    p.cargo("doc")
+    p.payload("doc")
         .with_stderr(
             "\
 [..] foo v0.0.1 ([CWD])
@@ -38,11 +38,11 @@ fn simple() {
     assert!(p.root().join("target/doc/foo/index.html").is_file());
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_no_libs() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -57,14 +57,14 @@ fn doc_no_libs() {
         .file("src/main.rs", "bad code")
         .build();
 
-    p.cargo("doc").run();
+    p.payload("doc").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_twice() {
     let p = project().file("src/lib.rs", "pub fn foo() {}").build();
 
-    p.cargo("doc")
+    p.payload("doc")
         .with_stderr(
             "\
 [DOCUMENTING] foo v0.0.1 ([CWD])
@@ -73,14 +73,14 @@ fn doc_twice() {
         )
         .run();
 
-    p.cargo("doc").with_stdout("").run();
+    p.payload("doc").with_stdout("").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_deps() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -92,11 +92,11 @@ fn doc_deps() {
             "#,
         )
         .file("src/lib.rs", "extern crate bar; pub fn foo() {}")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.0.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.0.1"))
         .file("bar/src/lib.rs", "pub fn bar() {}")
         .build();
 
-    p.cargo("doc")
+    p.payload("doc")
         .with_stderr(
             "\
 [..] bar v0.0.1 ([CWD]/bar)
@@ -115,8 +115,8 @@ fn doc_deps() {
     assert_eq!(p.glob("target/debug/**/*.rlib").count(), 0);
     assert_eq!(p.glob("target/debug/deps/libbar-*.rmeta").count(), 1);
 
-    p.cargo("doc")
-        .env("CARGO_LOG", "cargo::ops::cargo_rustc::fingerprint")
+    p.payload("doc")
+        .env("PAYLOAD_LOG", "payload::ops::payload_rustc::fingerprint")
         .with_stdout("")
         .run();
 
@@ -125,11 +125,11 @@ fn doc_deps() {
     assert!(p.root().join("target/doc/bar/index.html").is_file());
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_no_deps() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -141,11 +141,11 @@ fn doc_no_deps() {
             "#,
         )
         .file("src/lib.rs", "extern crate bar; pub fn foo() {}")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.0.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.0.1"))
         .file("bar/src/lib.rs", "pub fn bar() {}")
         .build();
 
-    p.cargo("doc --no-deps")
+    p.payload("doc --no-deps")
         .with_stderr(
             "\
 [CHECKING] bar v0.0.1 ([CWD]/bar)
@@ -160,11 +160,11 @@ fn doc_no_deps() {
     assert!(!p.root().join("target/doc/bar/index.html").is_file());
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_only_bin() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -176,29 +176,29 @@ fn doc_only_bin() {
             "#,
         )
         .file("src/main.rs", "extern crate bar; pub fn foo() {}")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.0.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.0.1"))
         .file("bar/src/lib.rs", "pub fn bar() {}")
         .build();
 
-    p.cargo("doc -v").run();
+    p.payload("doc -v").run();
 
     assert!(p.root().join("target/doc").is_dir());
     assert!(p.root().join("target/doc/bar/index.html").is_file());
     assert!(p.root().join("target/doc/foo/index.html").is_file());
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_multiple_targets_same_name_lib() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["foo", "bar"]
             "#,
         )
         .file(
-            "foo/Cargo.toml",
+            "foo/Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -209,7 +209,7 @@ fn doc_multiple_targets_same_name_lib() {
         )
         .file("foo/src/lib.rs", "")
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -221,7 +221,7 @@ fn doc_multiple_targets_same_name_lib() {
         .file("bar/src/lib.rs", "")
         .build();
 
-    p.cargo("doc --workspace")
+    p.payload("doc --workspace")
         .with_status(101)
         .with_stderr_contains("[..] library `foo_lib` is specified [..]")
         .with_stderr_contains("[..] `foo v0.1.0[..]` [..]")
@@ -229,18 +229,18 @@ fn doc_multiple_targets_same_name_lib() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_multiple_targets_same_name() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["foo", "bar"]
             "#,
         )
         .file(
-            "foo/Cargo.toml",
+            "foo/Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -252,7 +252,7 @@ fn doc_multiple_targets_same_name() {
         )
         .file("foo/src/foo_lib.rs", "")
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -264,7 +264,7 @@ fn doc_multiple_targets_same_name() {
         .file("bar/src/lib.rs", "")
         .build();
 
-    p.cargo("doc --workspace")
+    p.payload("doc --workspace")
         .with_stderr_contains("[DOCUMENTING] foo v0.1.0 ([CWD]/foo)")
         .with_stderr_contains("[DOCUMENTING] bar v0.1.0 ([CWD]/bar)")
         .with_stderr_contains("[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]")
@@ -274,18 +274,18 @@ fn doc_multiple_targets_same_name() {
     assert!(doc_file.is_file());
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_multiple_targets_same_name_bin() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["foo", "bar"]
             "#,
         )
         .file(
-            "foo/Cargo.toml",
+            "foo/Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -296,7 +296,7 @@ fn doc_multiple_targets_same_name_bin() {
         )
         .file("foo/src/foo-cli.rs", "")
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -308,7 +308,7 @@ fn doc_multiple_targets_same_name_bin() {
         .file("bar/src/foo-cli.rs", "")
         .build();
 
-    p.cargo("doc --workspace")
+    p.payload("doc --workspace")
         .with_status(101)
         .with_stderr_contains("[..] binary `foo_cli` is specified [..]")
         .with_stderr_contains("[..] `foo v0.1.0[..]` [..]")
@@ -316,18 +316,18 @@ fn doc_multiple_targets_same_name_bin() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_multiple_targets_same_name_undoced() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["foo", "bar"]
             "#,
         )
         .file(
-            "foo/Cargo.toml",
+            "foo/Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -338,7 +338,7 @@ fn doc_multiple_targets_same_name_undoced() {
         )
         .file("foo/src/foo-cli.rs", "")
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -351,10 +351,10 @@ fn doc_multiple_targets_same_name_undoced() {
         .file("bar/src/foo-cli.rs", "")
         .build();
 
-    p.cargo("doc --workspace").run();
+    p.payload("doc --workspace").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_lib_bin_same_name_documents_lib() {
     let p = project()
         .file(
@@ -376,7 +376,7 @@ fn doc_lib_bin_same_name_documents_lib() {
         )
         .build();
 
-    p.cargo("doc")
+    p.payload("doc")
         .with_stderr(
             "\
 [DOCUMENTING] foo v0.0.1 ([CWD])
@@ -389,7 +389,7 @@ fn doc_lib_bin_same_name_documents_lib() {
     assert!(!doc_html.contains("Binary"));
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_lib_bin_same_name_documents_lib_when_requested() {
     let p = project()
         .file(
@@ -411,7 +411,7 @@ fn doc_lib_bin_same_name_documents_lib_when_requested() {
         )
         .build();
 
-    p.cargo("doc --lib")
+    p.payload("doc --lib")
         .with_stderr(
             "\
 [DOCUMENTING] foo v0.0.1 ([CWD])
@@ -424,7 +424,7 @@ fn doc_lib_bin_same_name_documents_lib_when_requested() {
     assert!(!doc_html.contains("Binary"));
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_lib_bin_same_name_documents_named_bin_when_requested() {
     let p = project()
         .file(
@@ -446,7 +446,7 @@ fn doc_lib_bin_same_name_documents_named_bin_when_requested() {
         )
         .build();
 
-    p.cargo("doc --bin foo")
+    p.payload("doc --bin foo")
         .with_stderr(
             "\
 [CHECKING] foo v0.0.1 ([CWD])
@@ -460,7 +460,7 @@ fn doc_lib_bin_same_name_documents_named_bin_when_requested() {
     assert!(doc_html.contains("Binary"));
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_lib_bin_same_name_documents_bins_when_requested() {
     let p = project()
         .file(
@@ -482,7 +482,7 @@ fn doc_lib_bin_same_name_documents_bins_when_requested() {
         )
         .build();
 
-    p.cargo("doc --bins")
+    p.payload("doc --bins")
         .with_stderr(
             "\
 [CHECKING] foo v0.0.1 ([CWD])
@@ -496,11 +496,11 @@ fn doc_lib_bin_same_name_documents_bins_when_requested() {
     assert!(doc_html.contains("Binary"));
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_dash_p() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -513,7 +513,7 @@ fn doc_dash_p() {
         )
         .file("src/lib.rs", "extern crate a;")
         .file(
-            "a/Cargo.toml",
+            "a/Payload.toml",
             r#"
                 [package]
                 name = "a"
@@ -525,11 +525,11 @@ fn doc_dash_p() {
             "#,
         )
         .file("a/src/lib.rs", "extern crate b;")
-        .file("b/Cargo.toml", &basic_manifest("b", "0.0.1"))
+        .file("b/Payload.toml", &basic_manifest("b", "0.0.1"))
         .file("b/src/lib.rs", "")
         .build();
 
-    p.cargo("doc -p a")
+    p.payload("doc -p a")
         .with_stderr(
             "\
 [..] b v0.0.1 ([CWD]/b)
@@ -541,23 +541,23 @@ fn doc_dash_p() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_all_exclude() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["bar", "baz"]
             "#,
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "pub fn bar() {}")
-        .file("baz/Cargo.toml", &basic_manifest("baz", "0.1.0"))
+        .file("baz/Payload.toml", &basic_manifest("baz", "0.1.0"))
         .file("baz/src/lib.rs", "pub fn baz() { break_the_build(); }")
         .build();
 
-    p.cargo("doc --workspace --exclude baz")
+    p.payload("doc --workspace --exclude baz")
         .with_stderr_does_not_contain("[DOCUMENTING] baz v0.1.0 [..]")
         .with_stderr(
             "\
@@ -568,23 +568,23 @@ fn doc_all_exclude() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_all_exclude_glob() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["bar", "baz"]
             "#,
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "pub fn bar() {}")
-        .file("baz/Cargo.toml", &basic_manifest("baz", "0.1.0"))
+        .file("baz/Payload.toml", &basic_manifest("baz", "0.1.0"))
         .file("baz/src/lib.rs", "pub fn baz() { break_the_build(); }")
         .build();
 
-    p.cargo("doc --workspace --exclude '*z'")
+    p.payload("doc --workspace --exclude '*z'")
         .with_stderr_does_not_contain("[DOCUMENTING] baz v0.1.0 [..]")
         .with_stderr(
             "\
@@ -595,7 +595,7 @@ fn doc_all_exclude_glob() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_same_name() {
     let p = project()
         .file("src/lib.rs", "")
@@ -604,10 +604,10 @@ fn doc_same_name() {
         .file("tests/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("doc").run();
+    p.payload("doc").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_target() {
     if !is_nightly() {
         // no_core, lang_items requires nightly.
@@ -632,7 +632,7 @@ fn doc_target() {
         )
         .build();
 
-    p.cargo("doc --verbose --target").arg(TARGET).run();
+    p.payload("doc --verbose --target").arg(TARGET).run();
     assert!(p.root().join(&format!("target/{}/doc", TARGET)).is_dir());
     assert!(p
         .root()
@@ -640,11 +640,11 @@ fn doc_target() {
         .is_file());
 }
 
-#[cargo_test]
+#[payload_test]
 fn target_specific_not_documented() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -656,18 +656,18 @@ fn target_specific_not_documented() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("a/Cargo.toml", &basic_manifest("a", "0.0.1"))
+        .file("a/Payload.toml", &basic_manifest("a", "0.0.1"))
         .file("a/src/lib.rs", "not rust")
         .build();
 
-    p.cargo("doc").run();
+    p.payload("doc").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn output_not_captured() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -679,7 +679,7 @@ fn output_not_captured() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("a/Cargo.toml", &basic_manifest("a", "0.0.1"))
+        .file("a/Payload.toml", &basic_manifest("a", "0.0.1"))
         .file(
             "a/src/lib.rs",
             "
@@ -691,18 +691,18 @@ fn output_not_captured() {
         )
         .build();
 
-    p.cargo("doc")
+    p.payload("doc")
         .without_status()
         .with_stderr_contains("[..]☃")
         .with_stderr_contains(r"[..]unknown start of token: \u{2603}")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn target_specific_documented() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                     [package]
@@ -727,7 +727,7 @@ fn target_specific_documented() {
             pub fn foo() {}
         ",
         )
-        .file("a/Cargo.toml", &basic_manifest("a", "0.0.1"))
+        .file("a/Payload.toml", &basic_manifest("a", "0.0.1"))
         .file(
             "a/src/lib.rs",
             "
@@ -737,14 +737,14 @@ fn target_specific_documented() {
         )
         .build();
 
-    p.cargo("doc").run();
+    p.payload("doc").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn no_document_build_deps() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -756,7 +756,7 @@ fn no_document_build_deps() {
             "#,
         )
         .file("src/lib.rs", "pub fn foo() {}")
-        .file("a/Cargo.toml", &basic_manifest("a", "0.0.1"))
+        .file("a/Payload.toml", &basic_manifest("a", "0.0.1"))
         .file(
             "a/src/lib.rs",
             "
@@ -768,15 +768,15 @@ fn no_document_build_deps() {
         )
         .build();
 
-    p.cargo("doc").run();
+    p.payload("doc").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_release() {
     let p = project().file("src/lib.rs", "").build();
 
-    p.cargo("build --release").run();
-    p.cargo("doc --release -v")
+    p.payload("build --release").run();
+    p.payload("doc --release -v")
         .with_stderr(
             "\
 [DOCUMENTING] foo v0.0.1 ([..])
@@ -787,11 +787,11 @@ fn doc_release() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_multiple_deps() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -806,24 +806,24 @@ fn doc_multiple_deps() {
             "#,
         )
         .file("src/lib.rs", "extern crate bar; pub fn foo() {}")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.0.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.0.1"))
         .file("bar/src/lib.rs", "pub fn bar() {}")
-        .file("baz/Cargo.toml", &basic_manifest("baz", "0.0.1"))
+        .file("baz/Payload.toml", &basic_manifest("baz", "0.0.1"))
         .file("baz/src/lib.rs", "pub fn baz() {}")
         .build();
 
-    p.cargo("doc -p bar -p baz -v").run();
+    p.payload("doc -p bar -p baz -v").run();
 
     assert!(p.root().join("target/doc").is_dir());
     assert!(p.root().join("target/doc/bar/index.html").is_file());
     assert!(p.root().join("target/doc/baz/index.html").is_file());
 }
 
-#[cargo_test]
+#[payload_test]
 fn features() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -839,7 +839,7 @@ fn features() {
         )
         .file("src/lib.rs", r#"#[cfg(feature = "foo")] pub fn foo() {}"#)
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -854,7 +854,7 @@ fn features() {
             "bar/build.rs",
             r#"
                 fn main() {
-                    println!("cargo:rustc-cfg=bar");
+                    println!("payload:rustc-cfg=bar");
                 }
             "#,
         )
@@ -863,13 +863,13 @@ fn features() {
             r#"#[cfg(feature = "bar")] pub fn bar() {}"#,
         )
         .build();
-    p.cargo("doc --features foo").run();
+    p.payload("doc --features foo").run();
     assert!(p.root().join("target/doc").is_dir());
     assert!(p.root().join("target/doc/foo/fn.foo.html").is_file());
     assert!(p.root().join("target/doc/bar/fn.bar.html").is_file());
 }
 
-#[cargo_test]
+#[payload_test]
 fn rerun_when_dir_removed() {
     let p = project()
         .file(
@@ -881,16 +881,16 @@ fn rerun_when_dir_removed() {
         )
         .build();
 
-    p.cargo("doc").run();
+    p.payload("doc").run();
     assert!(p.root().join("target/doc/foo/index.html").is_file());
 
     fs::remove_dir_all(p.root().join("target/doc/foo")).unwrap();
 
-    p.cargo("doc").run();
+    p.payload("doc").run();
     assert!(p.root().join("target/doc/foo/index.html").is_file());
 }
 
-#[cargo_test]
+#[payload_test]
 fn document_only_lib() {
     let p = project()
         .file(
@@ -911,15 +911,15 @@ fn document_only_lib() {
             "#,
         )
         .build();
-    p.cargo("doc --lib").run();
+    p.payload("doc --lib").run();
     assert!(p.root().join("target/doc/foo/index.html").is_file());
 }
 
-#[cargo_test]
+#[payload_test]
 fn plugins_no_use_target() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -932,14 +932,14 @@ fn plugins_no_use_target() {
         )
         .file("src/lib.rs", "")
         .build();
-    p.cargo("doc --target=x86_64-unknown-openbsd -v").run();
+    p.payload("doc --target=x86_64-unknown-openbsd -v").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_all_workspace() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -952,81 +952,81 @@ fn doc_all_workspace() {
             "#,
         )
         .file("src/main.rs", "fn main() {}")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "pub fn bar() {}")
         .build();
 
     // The order in which bar is compiled or documented is not deterministic
-    p.cargo("doc --workspace")
+    p.payload("doc --workspace")
         .with_stderr_contains("[..] Documenting bar v0.1.0 ([..])")
         .with_stderr_contains("[..] Checking bar v0.1.0 ([..])")
         .with_stderr_contains("[..] Documenting foo v0.1.0 ([..])")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_all_virtual_manifest() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["bar", "baz"]
             "#,
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "pub fn bar() {}")
-        .file("baz/Cargo.toml", &basic_manifest("baz", "0.1.0"))
+        .file("baz/Payload.toml", &basic_manifest("baz", "0.1.0"))
         .file("baz/src/lib.rs", "pub fn baz() {}")
         .build();
 
     // The order in which bar and baz are documented is not guaranteed
-    p.cargo("doc --workspace")
+    p.payload("doc --workspace")
         .with_stderr_contains("[..] Documenting baz v0.1.0 ([..])")
         .with_stderr_contains("[..] Documenting bar v0.1.0 ([..])")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_virtual_manifest_all_implied() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["bar", "baz"]
             "#,
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "pub fn bar() {}")
-        .file("baz/Cargo.toml", &basic_manifest("baz", "0.1.0"))
+        .file("baz/Payload.toml", &basic_manifest("baz", "0.1.0"))
         .file("baz/src/lib.rs", "pub fn baz() {}")
         .build();
 
     // The order in which bar and baz are documented is not guaranteed
-    p.cargo("doc")
+    p.payload("doc")
         .with_stderr_contains("[..] Documenting baz v0.1.0 ([..])")
         .with_stderr_contains("[..] Documenting bar v0.1.0 ([..])")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_virtual_manifest_one_project() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["bar", "baz"]
             "#,
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "pub fn bar() {}")
-        .file("baz/Cargo.toml", &basic_manifest("baz", "0.1.0"))
+        .file("baz/Payload.toml", &basic_manifest("baz", "0.1.0"))
         .file("baz/src/lib.rs", "pub fn baz() { break_the_build(); }")
         .build();
 
-    p.cargo("doc -p bar")
+    p.payload("doc -p bar")
         .with_stderr_does_not_contain("[DOCUMENTING] baz v0.1.0 [..]")
         .with_stderr(
             "\
@@ -1037,23 +1037,23 @@ fn doc_virtual_manifest_one_project() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_virtual_manifest_glob() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["bar", "baz"]
             "#,
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "pub fn bar() {  break_the_build(); }")
-        .file("baz/Cargo.toml", &basic_manifest("baz", "0.1.0"))
+        .file("baz/Payload.toml", &basic_manifest("baz", "0.1.0"))
         .file("baz/src/lib.rs", "pub fn baz() {}")
         .build();
 
-    p.cargo("doc -p '*z'")
+    p.payload("doc -p '*z'")
         .with_stderr_does_not_contain("[DOCUMENTING] bar v0.1.0 [..]")
         .with_stderr(
             "\
@@ -1064,18 +1064,18 @@ fn doc_virtual_manifest_glob() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_all_member_dependency_same_name() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["bar"]
             "#,
         )
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [project]
                 name = "bar"
@@ -1090,31 +1090,31 @@ fn doc_all_member_dependency_same_name() {
 
     Package::new("bar", "0.1.0").publish();
 
-    p.cargo("doc --workspace")
+    p.payload("doc --workspace")
         .with_stderr_contains("[..] Updating `[..]` index")
         .with_stderr_contains("[..] Documenting bar v0.1.0 ([..])")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 #[cfg(not(windows))] // `echo` may not be available
 fn doc_workspace_open_help_message() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["foo", "bar"]
             "#,
         )
-        .file("foo/Cargo.toml", &basic_manifest("foo", "0.1.0"))
+        .file("foo/Payload.toml", &basic_manifest("foo", "0.1.0"))
         .file("foo/src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "")
         .build();
 
     // The order in which bar is compiled or documented is not deterministic
-    p.cargo("doc --workspace --open")
+    p.payload("doc --workspace --open")
         .env("BROWSER", "echo")
         .with_stderr_contains("[..] Documenting bar v0.1.0 ([..])")
         .with_stderr_contains("[..] Documenting foo v0.1.0 ([..])")
@@ -1122,19 +1122,19 @@ fn doc_workspace_open_help_message() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 #[cfg(not(windows))] // `echo` may not be available
 fn doc_workspace_open_different_library_and_package_names() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["foo"]
             "#,
         )
         .file(
-            "foo/Cargo.toml",
+            "foo/Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1146,26 +1146,26 @@ fn doc_workspace_open_different_library_and_package_names() {
         .file("foo/src/lib.rs", "")
         .build();
 
-    p.cargo("doc --open")
+    p.payload("doc --open")
         .env("BROWSER", "echo")
         .with_stderr_contains("[..] Documenting foo v0.1.0 ([..])")
         .with_stderr_contains("[..] [CWD]/target/doc/foolib/index.html")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 #[cfg(not(windows))] // `echo` may not be available
 fn doc_workspace_open_binary() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["foo"]
             "#,
         )
         .file(
-            "foo/Cargo.toml",
+            "foo/Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1178,26 +1178,26 @@ fn doc_workspace_open_binary() {
         .file("foo/src/main.rs", "")
         .build();
 
-    p.cargo("doc --open")
+    p.payload("doc --open")
         .env("BROWSER", "echo")
         .with_stderr_contains("[..] Documenting foo v0.1.0 ([..])")
         .with_stderr_contains("[..] Opening [CWD]/target/doc/foobin/index.html")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 #[cfg(not(windows))] // `echo` may not be available
 fn doc_workspace_open_binary_and_library() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["foo"]
             "#,
         )
         .file(
-            "foo/Cargo.toml",
+            "foo/Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1213,18 +1213,18 @@ fn doc_workspace_open_binary_and_library() {
         .file("foo/src/main.rs", "")
         .build();
 
-    p.cargo("doc --open")
+    p.payload("doc --open")
         .env("BROWSER", "echo")
         .with_stderr_contains("[..] Documenting foo v0.1.0 ([..])")
         .with_stderr_contains("[..] Opening [CWD]/target/doc/foolib/index.html")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_edition() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1236,20 +1236,20 @@ fn doc_edition() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("doc -v")
+    p.payload("doc -v")
         .with_stderr_contains("[RUNNING] `rustdoc [..]--edition=2018[..]")
         .run();
 
-    p.cargo("test -v")
+    p.payload("test -v")
         .with_stderr_contains("[RUNNING] `rustdoc [..]--edition=2018[..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_target_edition() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1263,22 +1263,22 @@ fn doc_target_edition() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("doc -v")
+    p.payload("doc -v")
         .with_stderr_contains("[RUNNING] `rustdoc [..]--edition=2018[..]")
         .run();
 
-    p.cargo("test -v")
+    p.payload("test -v")
         .with_stderr_contains("[RUNNING] `rustdoc [..]--edition=2018[..]")
         .run();
 }
 
 // Tests an issue where depending on different versions of the same crate depending on `cfg`s
-// caused `cargo doc` to fail.
-#[cargo_test]
+// caused `payload doc` to fail.
+#[payload_test]
 fn issue_5345() {
     let foo = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1297,16 +1297,16 @@ fn issue_5345() {
     Package::new("bar", "0.1.0").publish();
     Package::new("bar", "0.2.0").publish();
 
-    foo.cargo("build").run();
-    foo.cargo("doc").run();
+    foo.payload("build").run();
+    foo.payload("doc").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_private_items() {
     let foo = project()
         .file("src/lib.rs", "mod private { fn private_item() {} }")
         .build();
-    foo.cargo("doc --document-private-items").run();
+    foo.payload("doc --document-private-items").run();
 
     assert!(foo.root().join("target/doc").is_dir());
     assert!(foo
@@ -1315,23 +1315,23 @@ fn doc_private_items() {
         .is_file());
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_private_ws() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["a", "b"]
             "#,
         )
-        .file("a/Cargo.toml", &basic_manifest("a", "0.0.1"))
+        .file("a/Payload.toml", &basic_manifest("a", "0.0.1"))
         .file("a/src/lib.rs", "fn p() {}")
-        .file("b/Cargo.toml", &basic_manifest("b", "0.0.1"))
+        .file("b/Payload.toml", &basic_manifest("b", "0.0.1"))
         .file("b/src/lib.rs", "fn p2() {}")
         .file("b/src/main.rs", "fn main() {}")
         .build();
-    p.cargo("doc --workspace --bins --lib --document-private-items -v")
+    p.payload("doc --workspace --bins --lib --document-private-items -v")
         .with_stderr_contains(
             "[RUNNING] `rustdoc [..] a/src/lib.rs [..]--document-private-items[..]",
         )
@@ -1351,16 +1351,16 @@ const BAD_INTRA_LINK_LIB: &str = r#"
 pub fn foo() {}
 "#;
 
-#[cargo_test]
+#[payload_test]
 fn doc_cap_lints() {
     let a = git::new("a", |p| {
-        p.file("Cargo.toml", &basic_lib_manifest("a"))
+        p.file("Payload.toml", &basic_lib_manifest("a"))
             .file("src/lib.rs", BAD_INTRA_LINK_LIB)
     });
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                     [package]
@@ -1377,7 +1377,7 @@ fn doc_cap_lints() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("doc")
+    p.payload("doc")
         .with_stderr_unordered(
             "\
 [UPDATING] git repository `[..]`
@@ -1391,16 +1391,16 @@ fn doc_cap_lints() {
 
     p.root().join("target").rm_rf();
 
-    p.cargo("doc -vv")
+    p.payload("doc -vv")
         .with_stderr_contains("[WARNING] [..]`bad_link`[..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_message_format() {
     let p = project().file("src/lib.rs", BAD_INTRA_LINK_LIB).build();
 
-    p.cargo("doc --message-format=json")
+    p.payload("doc --message-format=json")
         .with_status(101)
         .with_json_contains_unordered(
             r#"
@@ -1423,20 +1423,20 @@ fn doc_message_format() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn short_message_format() {
     let p = project().file("src/lib.rs", BAD_INTRA_LINK_LIB).build();
-    p.cargo("doc --message-format=short")
+    p.payload("doc --message-format=short")
         .with_status(101)
         .with_stderr_contains("src/lib.rs:4:6: error: [..]`bad_link`[..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_example() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -1461,7 +1461,7 @@ fn doc_example() {
         )
         .build();
 
-    p.cargo("doc").run();
+    p.payload("doc").run();
     assert!(p
         .build_dir()
         .join("doc")
@@ -1470,11 +1470,11 @@ fn doc_example() {
         .exists());
 }
 
-#[cargo_test]
+#[payload_test]
 fn bin_private_items() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1497,7 +1497,7 @@ fn bin_private_items() {
         )
         .build();
 
-    p.cargo("doc")
+    p.payload("doc")
         .with_stderr(
             "\
 [DOCUMENTING] foo v0.0.1 ([CWD])
@@ -1522,11 +1522,11 @@ fn bin_private_items() {
     assert!(p.root().join("target/doc/foo/foo_mod/index.html").is_file());
 }
 
-#[cargo_test]
+#[payload_test]
 fn bin_private_items_deps() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1544,7 +1544,7 @@ fn bin_private_items_deps() {
             pub fn foo_pub() {}
         ",
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.0.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.0.1"))
         .file(
             "bar/src/lib.rs",
             "
@@ -1555,7 +1555,7 @@ fn bin_private_items_deps() {
         )
         .build();
 
-    p.cargo("doc")
+    p.payload("doc")
         .with_stderr_unordered(
             "\
 [DOCUMENTING] bar v0.0.1 ([..])
@@ -1575,11 +1575,11 @@ fn bin_private_items_deps() {
     assert!(!p.root().join("target/doc/bar/fn.bar_priv.html").exists());
 }
 
-#[cargo_test]
+#[payload_test]
 fn crate_versions() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1590,7 +1590,7 @@ fn crate_versions() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("doc -v")
+    p.payload("doc -v")
         .with_stderr(
             "\
 [DOCUMENTING] foo v1.2.4 [..]
@@ -1606,11 +1606,11 @@ fn crate_versions() {
     assert!(output_documentation.contains("Version 1.2.4"));
 }
 
-#[cargo_test]
+#[payload_test]
 fn crate_versions_flag_is_overridden() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1630,18 +1630,18 @@ fn crate_versions_flag_is_overridden() {
         assert!(html.contains("Version 2.0.3"));
     };
 
-    p.cargo("doc")
+    p.payload("doc")
         .env("RUSTDOCFLAGS", "--crate-version 2.0.3")
         .run();
     asserts(output_documentation());
 
     p.build_dir().rm_rf();
 
-    p.cargo("rustdoc -- --crate-version 2.0.3").run();
+    p.payload("rustdoc -- --crate-version 2.0.3").run();
     asserts(output_documentation());
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_test_in_workspace() {
     if !is_nightly() {
         // -Zdoctest-in-workspace is unstable
@@ -1650,7 +1650,7 @@ fn doc_test_in_workspace() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = [
@@ -1660,7 +1660,7 @@ fn doc_test_in_workspace() {
             "#,
         )
         .file(
-            "crate-a/Cargo.toml",
+            "crate-a/Payload.toml",
             r#"
                 [project]
                 name = "crate-a"
@@ -1676,7 +1676,7 @@ fn doc_test_in_workspace() {
             ",
         )
         .file(
-            "crate-b/Cargo.toml",
+            "crate-b/Payload.toml",
             r#"
                 [project]
                 name = "crate-b"
@@ -1692,8 +1692,8 @@ fn doc_test_in_workspace() {
             ",
         )
         .build();
-    p.cargo("test -Zdoctest-in-workspace --doc -vv")
-        .masquerade_as_nightly_cargo()
+    p.payload("test -Zdoctest-in-workspace --doc -vv")
+        .masquerade_as_nightly_payload()
         .with_stderr_contains("[DOCTEST] crate-a")
         .with_stdout_contains(
             "
@@ -1717,7 +1717,7 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out[..]
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc_fingerprint_is_versioning_consistent() {
     // Random rustc verbose version
     let old_rustc_verbose_version = format!(
@@ -1736,7 +1736,7 @@ LLVM version: 9.0
     // Create the dummy project.
     let dummy_project = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -1747,7 +1747,7 @@ LLVM version: 9.0
         .file("src/lib.rs", "//! These are the docs!")
         .build();
 
-    dummy_project.cargo("doc").run();
+    dummy_project.payload("doc").run();
 
     let fingerprint: RustDocFingerprint =
         serde_json::from_str(&dummy_project.read_file("target/.rustdoc_fingerprint.json"))
@@ -1781,10 +1781,10 @@ LLVM version: 9.0
     .expect("Error writing test bogus file");
 
     // Now if we trigger another compilation, since the fingerprint contains an old version
-    // of rustc, cargo should remove the entire `/doc` folder (including the fingerprint)
+    // of rustc, payload should remove the entire `/doc` folder (including the fingerprint)
     // and generating another one with the actual version.
     // It should also remove the bogus file we created above.
-    dummy_project.cargo("doc").run();
+    dummy_project.payload("doc").run();
 
     assert!(!dummy_project.build_dir().join("doc/bogus_file").exists());
 
@@ -1801,7 +1801,7 @@ LLVM version: 9.0
 }
 
 #[cfg(target_os = "linux")]
-#[cargo_test]
+#[payload_test]
 fn doc_fingerprint_respects_target_paths() {
     // Random rustc verbose version
     let old_rustc_verbose_version = format!(
@@ -1820,7 +1820,7 @@ LLVM version: 9.0
     // Create the dummy project.
     let dummy_project = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -1832,7 +1832,7 @@ LLVM version: 9.0
         .build();
 
     dummy_project
-        .cargo("doc --target x86_64-unknown-linux-gnu")
+        .payload("doc --target x86_64-unknown-linux-gnu")
         .run();
 
     let fingerprint: RustDocFingerprint =
@@ -1869,11 +1869,11 @@ LLVM version: 9.0
     .expect("Error writing test bogus file");
 
     // Now if we trigger another compilation, since the fingerprint contains an old version
-    // of rustc, cargo should remove the entire `/doc` folder (including the fingerprint)
+    // of rustc, payload should remove the entire `/doc` folder (including the fingerprint)
     // and generating another one with the actual version.
     // It should also remove the bogus file we created above.
     dummy_project
-        .cargo("doc --target x86_64-unknown-linux-gnu")
+        .payload("doc --target x86_64-unknown-linux-gnu")
         .run();
 
     assert!(!dummy_project

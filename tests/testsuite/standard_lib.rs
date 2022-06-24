@@ -4,9 +4,9 @@
 //! rebuild the real one. There is a separate integration test `build-std`
 //! which builds the real thing, but that should be avoided if possible.
 
-use cargo_test_support::registry::{Dependency, Package};
-use cargo_test_support::ProjectBuilder;
-use cargo_test_support::{is_nightly, paths, project, rustc_host, Execs};
+use payload_test_support::registry::{Dependency, Package};
+use payload_test_support::ProjectBuilder;
+use payload_test_support::{is_nightly, paths, project, rustc_host, Execs};
 use std::path::{Path, PathBuf};
 
 struct Setup {
@@ -17,13 +17,13 @@ struct Setup {
 fn setup() -> Option<Setup> {
     if !is_nightly() {
         // -Zbuild-std is nightly
-        // We don't want these tests to run on rust-lang/rust.
+        // We don't want these tests to run on dustlang/rust.
         return None;
     }
 
     if cfg!(all(target_os = "windows", target_env = "gnu")) {
         // FIXME: contains object files that we don't handle yet:
-        // https://github.com/rust-lang/wg-cargo-std-aware/issues/46
+        // https://github.com/dustlang/wg-payload-std-aware/issues/46
         return None;
     }
 
@@ -120,7 +120,7 @@ fn setup() -> Option<Setup> {
             "#,
         )
         .build();
-    p.cargo("build").run();
+    p.payload("build").run();
 
     Some(Setup {
         rustc_wrapper: p.bin("foo"),
@@ -129,12 +129,12 @@ fn setup() -> Option<Setup> {
 }
 
 fn enable_build_std(e: &mut Execs, setup: &Setup) {
-    // First up, force Cargo to use our "mock sysroot" which mimics what
+    // First up, force Payload to use our "mock sysroot" which mimics what
     // libstd looks like upstream.
-    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/testsuite/mock-std");
-    e.env("__CARGO_TESTS_ONLY_SRC_ROOT", &root);
+    let root = Path::new(env!("PAYLOAD_MANIFEST_DIR")).join("tests/testsuite/mock-std");
+    e.env("__PAYLOAD_TESTS_ONLY_SRC_ROOT", &root);
 
-    e.masquerade_as_nightly_cargo();
+    e.masquerade_as_nightly_payload();
 
     // We do various shenanigans to ensure our "mock sysroot" actually links
     // with the real sysroot, so we don't have to actually recompile std for
@@ -184,7 +184,7 @@ impl BuildStd for Execs {
     }
 }
 
-#[cargo_test]
+#[payload_test]
 fn basic() {
     let setup = match setup() {
         Some(s) => s,
@@ -242,44 +242,44 @@ fn basic() {
         )
         .build();
 
-    p.cargo("check -v").build_std(&setup).target_host().run();
-    p.cargo("build").build_std(&setup).target_host().run();
-    p.cargo("run").build_std(&setup).target_host().run();
-    p.cargo("test").build_std(&setup).target_host().run();
+    p.payload("check -v").build_std(&setup).target_host().run();
+    p.payload("build").build_std(&setup).target_host().run();
+    p.payload("run").build_std(&setup).target_host().run();
+    p.payload("test").build_std(&setup).target_host().run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn simple_lib_std() {
     let setup = match setup() {
         Some(s) => s,
         None => return,
     };
     let p = project().file("src/lib.rs", "").build();
-    p.cargo("build -v")
+    p.payload("build -v")
         .build_std(&setup)
         .target_host()
         .with_stderr_contains("[RUNNING] `[..]--crate-name std [..]`")
         .run();
     // Check freshness.
     p.change_file("src/lib.rs", " ");
-    p.cargo("build -v")
+    p.payload("build -v")
         .build_std(&setup)
         .target_host()
         .with_stderr_contains("[FRESH] std[..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn simple_bin_std() {
     let setup = match setup() {
         Some(s) => s,
         None => return,
     };
     let p = project().file("src/main.rs", "fn main() {}").build();
-    p.cargo("run -v").build_std(&setup).target_host().run();
+    p.payload("run -v").build_std(&setup).target_host().run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn lib_nostd() {
     let setup = match setup() {
         Some(s) => s,
@@ -296,14 +296,14 @@ fn lib_nostd() {
             "#,
         )
         .build();
-    p.cargo("build -v --lib")
+    p.payload("build -v --lib")
         .build_std_arg(&setup, "core")
         .target_host()
         .with_stderr_does_not_contain("[..]libstd[..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn check_core() {
     let setup = match setup() {
         Some(s) => s,
@@ -313,14 +313,14 @@ fn check_core() {
         .file("src/lib.rs", "#![no_std] fn unused_fn() {}")
         .build();
 
-    p.cargo("check -v")
+    p.payload("check -v")
         .build_std_arg(&setup, "core")
         .target_host()
         .with_stderr_contains("[WARNING] [..]unused_fn[..]`")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn depend_same_as_std() {
     let setup = match setup() {
         Some(s) => s,
@@ -339,7 +339,7 @@ fn depend_same_as_std() {
             "#,
         )
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -354,10 +354,10 @@ fn depend_same_as_std() {
         )
         .build();
 
-    p.cargo("build -v").build_std(&setup).target_host().run();
+    p.payload("build -v").build_std(&setup).target_host().run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn test() {
     let setup = match setup() {
         Some(s) => s,
@@ -378,14 +378,14 @@ fn test() {
         )
         .build();
 
-    p.cargo("test -v")
+    p.payload("test -v")
         .build_std(&setup)
         .target_host()
         .with_stdout_contains("test tests::it_works ... ok")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn target_proc_macro() {
     let setup = match setup() {
         Some(s) => s,
@@ -403,10 +403,10 @@ fn target_proc_macro() {
         )
         .build();
 
-    p.cargo("build -v").build_std(&setup).target_host().run();
+    p.payload("build -v").build_std(&setup).target_host().run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bench() {
     let setup = match setup() {
         Some(s) => s,
@@ -427,10 +427,10 @@ fn bench() {
         )
         .build();
 
-    p.cargo("bench -v").build_std(&setup).target_host().run();
+    p.payload("bench -v").build_std(&setup).target_host().run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn doc() {
     let setup = match setup() {
         Some(s) => s,
@@ -446,10 +446,10 @@ fn doc() {
         )
         .build();
 
-    p.cargo("doc -v").build_std(&setup).target_host().run();
+    p.payload("doc -v").build_std(&setup).target_host().run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn check_std() {
     let setup = match setup() {
         Some(s) => s,
@@ -477,17 +477,17 @@ fn check_std() {
         )
         .build();
 
-    p.cargo("check -v --all-targets")
+    p.payload("check -v --all-targets")
         .build_std(&setup)
         .target_host()
         .run();
-    p.cargo("check -v --all-targets --profile=test")
+    p.payload("check -v --all-targets --profile=test")
         .build_std(&setup)
         .target_host()
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn doctest() {
     let setup = match setup() {
         Some(s) => s,
@@ -506,14 +506,14 @@ fn doctest() {
         )
         .build();
 
-    p.cargo("test --doc -v -Zdoctest-xcompile")
+    p.payload("test --doc -v -Zdoctest-xcompile")
         .build_std(&setup)
         .with_stdout_contains("test src/lib.rs - f [..] ... ok")
         .target_host()
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn no_implicit_alloc() {
     // Demonstrate that alloc is not implicitly in scope.
     let setup = match setup() {
@@ -531,7 +531,7 @@ fn no_implicit_alloc() {
         )
         .build();
 
-    p.cargo("build -v")
+    p.payload("build -v")
         .build_std(&setup)
         .target_host()
         .with_stderr_contains("[..]use of undeclared [..]`alloc`")
@@ -539,12 +539,12 @@ fn no_implicit_alloc() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn macro_expanded_shadow() {
     // This tests a bug caused by the previous use of `--extern` to directly
     // load sysroot crates. This necessitated the switch to `--sysroot` to
     // retain existing behavior. See
-    // https://github.com/rust-lang/wg-cargo-std-aware/issues/40 for more
+    // https://github.com/dustlang/wg-payload-std-aware/issues/40 for more
     // detail.
     let setup = match setup() {
         Some(s) => s,
@@ -562,10 +562,10 @@ fn macro_expanded_shadow() {
         )
         .build();
 
-    p.cargo("build -v").build_std(&setup).target_host().run();
+    p.payload("build -v").build_std(&setup).target_host().run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn ignores_incremental() {
     // Incremental is not really needed for std, make sure it is disabled.
     // Incremental also tends to have bugs that affect std libraries more than
@@ -575,8 +575,8 @@ fn ignores_incremental() {
         None => return,
     };
     let p = project().file("src/lib.rs", "").build();
-    p.cargo("build")
-        .env("CARGO_INCREMENTAL", "1")
+    p.payload("build")
+        .env("PAYLOAD_INCREMENTAL", "1")
         .build_std(&setup)
         .target_host()
         .run();
@@ -593,8 +593,8 @@ fn ignores_incremental() {
         .starts_with("foo-"));
 }
 
-#[cargo_test]
-fn cargo_config_injects_compiler_builtins() {
+#[payload_test]
+fn payload_config_injects_compiler_builtins() {
     let setup = match setup() {
         Some(s) => s,
         None => return,
@@ -610,14 +610,14 @@ fn cargo_config_injects_compiler_builtins() {
             "#,
         )
         .file(
-            ".cargo/config.toml",
+            ".payload/config.toml",
             r#"
                 [unstable]
                 build-std = ['core']
             "#,
         )
         .build();
-    let mut build = p.cargo("build -v --lib");
+    let mut build = p.payload("build -v --lib");
     enable_build_std(&mut build, &setup);
     build
         .target_host()
@@ -625,7 +625,7 @@ fn cargo_config_injects_compiler_builtins() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn different_features() {
     let setup = match setup() {
         Some(s) => s,
@@ -641,14 +641,14 @@ fn different_features() {
             ",
         )
         .build();
-    p.cargo("build")
+    p.payload("build")
         .build_std(&setup)
         .arg("-Zbuild-std-features=feature1")
         .target_host()
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn no_roots() {
     // Checks for a bug where it would panic if there are no roots.
     let setup = match setup() {
@@ -656,7 +656,7 @@ fn no_roots() {
         None => return,
     };
     let p = project().file("tests/t1.rs", "").build();
-    p.cargo("build")
+    p.payload("build")
         .build_std(&setup)
         .target_host()
         .with_stderr_contains("[FINISHED] [..]")

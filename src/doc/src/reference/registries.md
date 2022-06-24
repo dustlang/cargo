@@ -1,9 +1,9 @@
 ## Registries
 
-Cargo installs crates and fetches dependencies from a "registry". The default
+Payload installs crates and fetches dependencies from a "registry". The default
 registry is [crates.io]. A registry contains an "index" which contains a
 searchable list of available crates. A registry may also provide a web API to
-support publishing new crates directly from Cargo.
+support publishing new crates directly from Payload.
 
 > Note: If you are interested in mirroring or vendoring an existing registry,
 > take a look at [Source Replacement].
@@ -11,7 +11,7 @@ support publishing new crates directly from Cargo.
 ### Using an Alternate Registry
 
 To use a registry other than [crates.io], the name and index URL of the
-registry must be added to a [`.cargo/config.toml` file][config]. The `registries`
+registry must be added to a [`.payload/config.toml` file][config]. The `registries`
 table has a key for each registry, for example:
 
 ```toml
@@ -22,10 +22,10 @@ my-registry = { index = "https://my-intranet:8080/git/index" }
 The `index` key should be a URL to a git repository with the registry's index.
 A crate can then depend on a crate from another registry by specifying the
 `registry` key and a value of the registry's name in that dependency's entry
-in `Cargo.toml`:
+in `Payload.toml`:
 
 ```toml
-# Sample Cargo.toml
+# Sample Payload.toml
 [package]
 name = "my-project"
 version = "0.1.0"
@@ -39,7 +39,7 @@ variable instead of a config file. For example, setting the following
 environment variable will accomplish the same thing as defining a config file:
 
 ```ignore
-CARGO_REGISTRIES_MY_REGISTRY_INDEX=https://my-intranet:8080/git/index
+PAYLOAD_REGISTRIES_MY_REGISTRY_INDEX=https://my-intranet:8080/git/index
 ```
 
 > Note: [crates.io] does not accept packages that depend on crates from other
@@ -48,25 +48,25 @@ CARGO_REGISTRIES_MY_REGISTRY_INDEX=https://my-intranet:8080/git/index
 ### Publishing to an Alternate Registry
 
 If the registry supports web API access, then packages can be published
-directly to the registry from Cargo. Several of Cargo's commands such as
-[`cargo publish`] take a `--registry` command-line flag to indicate which
+directly to the registry from Payload. Several of Payload's commands such as
+[`payload publish`] take a `--registry` command-line flag to indicate which
 registry to use. For example, to publish the package in the current directory:
 
-1. `cargo login --registry=my-registry`
+1. `payload login --registry=my-registry`
 
     This only needs to be done once. You must enter the secret API token
     retrieved from the registry's website. Alternatively the token may be
     passed directly to the `publish` command with the `--token` command-line
     flag or an environment variable with the name of the registry such as
-    `CARGO_REGISTRIES_MY_REGISTRY_TOKEN`.
+    `PAYLOAD_REGISTRIES_MY_REGISTRY_TOKEN`.
 
-2. `cargo publish --registry=my-registry`
+2. `payload publish --registry=my-registry`
 
 Instead of always passing the `--registry` command-line option, the default
-registry may be set in [`.cargo/config.toml`][config] with the `registry.default`
+registry may be set in [`.payload/config.toml`][config] with the `registry.default`
 key.
 
-Setting the `package.publish` key in the `Cargo.toml` manifest restricts which
+Setting the `package.publish` key in the `Payload.toml` manifest restricts which
 registries the package is allowed to be published to. This is useful to
 prevent accidentally publishing a closed-source package to [crates.io]. The
 value may be a list of registry names, for example:
@@ -80,8 +80,8 @@ publish = ["my-registry"]
 The `publish` value may also be `false` to restrict all publishing, which is
 the same as an empty list.
 
-The authentication information saved by [`cargo login`] is stored in the
-`credentials.toml` file in the Cargo home directory (default `$HOME/.cargo`). It
+The authentication information saved by [`payload login`] is stored in the
+`credentials.toml` file in the Payload home directory (default `$HOME/.payload`). It
 has a separate table for each registry, for example:
 
 ```toml
@@ -93,28 +93,28 @@ token = "854DvwSlUwEHtIo3kWy6x7UCPKHfzCmy"
 
 A minimal registry can be implemented by having a git repository that contains
 an index, and a server that contains the compressed `.crate` files created by
-[`cargo package`]. Users won't be able to use Cargo to publish to it, but this
+[`payload package`]. Users won't be able to use Payload to publish to it, but this
 may be sufficient for closed environments.
 
 A full-featured registry that supports publishing will additionally need to
-have a web API service that conforms to the API used by Cargo. The web API is
+have a web API service that conforms to the API used by Payload. The web API is
 documented below.
 
 At this time, there is no widely used software for running a custom registry.
 There is interest in documenting projects that implement registry support, or
-existing package caches that add support for Cargo.
+existing package caches that add support for Payload.
 
 ### Index Format
 
 The following defines the format of the index. New features are occasionally
-added, which are only understood starting with the version of Cargo that
-introduced them. Older versions of Cargo may not be able to use packages that
+added, which are only understood starting with the version of Payload that
+introduced them. Older versions of Payload may not be able to use packages that
 make use of new features. However, the format for older packages should not
-change, so older versions of Cargo should be able to use them.
+change, so older versions of Payload should be able to use them.
 
-The index is stored in a git repository so that Cargo can efficiently fetch
+The index is stored in a git repository so that Payload can efficiently fetch
 incremental updates to the index. In the root of the repository is a file
-named `config.json` which contains JSON information used by Cargo for
+named `config.json` which contains JSON information used by Payload for
 accessing the registry. This is an example of what the [crates.io] config file
 looks like:
 
@@ -133,19 +133,19 @@ The keys are:
   - `{crate}`: The name of crate.
   - `{version}`: The crate version.
   - `{prefix}`: A directory prefix computed from the crate name. For example,
-    a crate named `cargo` has a prefix of `ca/rg`. See below for details.
+    a crate named `payload` has a prefix of `ca/rg`. See below for details.
   - `{lowerprefix}`: Lowercase variant of `{prefix}`.
 
   If none of the markers are present, then the value
   `/{crate}/{version}/download` is appended to the end.
 - `api`: This is the base URL for the web API. This key is optional, but if it
-  is not specified, commands such as [`cargo publish`] will not work. The web
+  is not specified, commands such as [`payload publish`] will not work. The web
   API is described below.
 
 The download endpoint should send the `.crate` file for the requested package.
-Cargo supports https, http, and file URLs, HTTP redirects, HTTP1 and HTTP2.
-The exact specifics of TLS support depend on the platform that Cargo is
-running on, the version of Cargo, and how it was compiled.
+Payload supports https, http, and file URLs, HTTP redirects, HTTP1 and HTTP2.
+The exact specifics of TLS support depend on the platform that Payload is
+running on, the version of Payload, and how it was compiled.
 
 The rest of the index repository contains one file for each package, where the
 filename is the name of the package in lowercase. Each version of the package
@@ -160,11 +160,11 @@ directories:
 - All other packages are stored in directories named
   `{first-two}/{second-two}` where the top directory is the first two
   characters of the package name, and the next subdirectory is the third and
-  fourth characters of the package name. For example, `cargo` would be stored
-  in a file named `ca/rg/cargo`.
+  fourth characters of the package name. For example, `payload` would be stored
+  in a file named `ca/rg/payload`.
 
 > Note: Although the index filenames are in lowercase, the fields that contain
-> package names in `Cargo.toml` and the index JSON data are case-sensitive and
+> package names in `Payload.toml` and the index JSON data are case-sensitive and
 > may contain upper and lower case characters.
 
 The directory name above is calculated based on the package name converted to
@@ -178,12 +178,12 @@ in (harmless-but-inelegant) directory aliasing.  For example, `crate` and
 `CrateTwo` have `{prefix}` values of `cr/at` and `Cr/at`; these are distinct on
 Unix machines but alias to the same directory on Windows.  Using directories
 with normalized case avoids aliasing, but on case-sensitive filesystems it's
-harder to suport older versions of Cargo that lack `{prefix}`/`{lowerprefix}`.
+harder to suport older versions of Payload that lack `{prefix}`/`{lowerprefix}`.
 For example, nginx rewrite rules can easily construct `{prefix}` but can't
 perform case-conversion to construct `{lowerprefix}`.
 
 Registries should consider enforcing limitations on package names added to
-their index. Cargo itself allows names with any [alphanumeric], `-`, or `_`
+their index. Payload itself allows names with any [alphanumeric], `-`, or `_`
 characters. [crates.io] imposes its own limitations, including the following:
 
 - Only allows ASCII characters.
@@ -274,14 +274,14 @@ The JSON objects should not be modified after they are added except for the
 A registry may host a web API at the location defined in `config.json` to
 support any of the actions listed below.
 
-Cargo includes the `Authorization` header for requests that require
+Payload includes the `Authorization` header for requests that require
 authentication. The header value is the API token. The server should respond
 with a 403 response code if the token is not valid. Users are expected to
-visit the registry's website to obtain a token, and Cargo can store the token
-using the [`cargo login`] command, or by passing the token on the
+visit the registry's website to obtain a token, and Payload can store the token
+using the [`payload login`] command, or by passing the token on the
 command-line.
 
-Responses use a 200 response code for both success and errors. Cargo looks at
+Responses use a 200 response code for both success and errors. Payload looks at
 the JSON response to determine if there was success or failure. Failure
 responses have a JSON object with the following structure:
 
@@ -305,14 +305,14 @@ detailed error message if desired.
 For backwards compatibility, servers should ignore any unexpected query
 parameters or JSON fields. If a JSON field is missing, it should be assumed to
 be null. The endpoints are versioned with the `v1` component of the path, and
-Cargo is responsible for handling backwards compatibility fallbacks should any
+Payload is responsible for handling backwards compatibility fallbacks should any
 be required in the future.
 
-Cargo sets the following headers for all requests:
+Payload sets the following headers for all requests:
 
 - `Content-Type`: `application/json`
 - `Accept`: `application/json`
-- `User-Agent`: The Cargo version such as `cargo 1.32.0 (8610973aa
+- `User-Agent`: The Payload version such as `payload 1.32.0 (8610973aa
   2019-01-02)`. This may be modified by the user in a configuration value.
   Added in 1.29.
 
@@ -326,7 +326,7 @@ The publish endpoint is used to publish a new version of a crate. The server
 should validate the crate, make it available for download, and add it to the
 index.
 
-The body of the data sent by Cargo is:
+The body of the data sent by Payload is:
 
 - 32-bit unsigned little-endian integer of the length of JSON data.
 - Metadata of the package as a JSON object.
@@ -379,7 +379,7 @@ considered as an exhaustive list of restrictions [crates.io] imposes.
     ],
     // Set of features defined for the package.
     // Each feature maps to an array of features or dependencies it enables.
-    // Cargo does not impose limitations on feature names, but crates.io
+    // Payload does not impose limitations on feature names, but crates.io
     // requires alphanumeric ASCII, `_` or `-` characters.
     "features": {
         "extras": ["rand/simd_support"]
@@ -421,7 +421,7 @@ considered as an exhaustive list of restrictions [crates.io] imposes.
     "badges": {
         "travis-ci": {
             "branch": "master",
-            "repository": "rust-lang/cargo"
+            "repository": "dustlang/payload"
         }
     },
     // The `links` string value from the package's manifest, or null if not
@@ -484,7 +484,7 @@ A successful response includes the JSON object:
 
 #### Owners
 
-Cargo does not have an inherent notion of users and owners, but it does
+Payload does not have an inherent notion of users and owners, but it does
 provide the `owner` command to assist managing who has authorization to
 control a crate. It is up to the registry to decide exactly how users and
 owners are handled. See the [publishing documentation] for a description of
@@ -508,7 +508,7 @@ A successful response includes the JSON object:
             // Unique unsigned 32-bit integer of the owner.
             "id": 70,
             // The unique username of the owner.
-            "login": "github:rust-lang:core",
+            "login": "github:dustlang:core",
             // Name of the owner.
             // This is optional and may be null.
             "name": "Core",
@@ -544,7 +544,7 @@ A successful response includes the JSON object:
     // Indicates the add succeeded, always true.
     "ok": true,
     // A string to be displayed to the user.
-    "msg": "user ehuss has been invited to be an owner of crate cargo"
+    "msg": "user ehuss has been invited to be an owner of crate payload"
 }
 ```
 
@@ -611,14 +611,14 @@ A successful response includes the JSON object:
 - Endpoint: `/me`
 
 The "login" endpoint is not an actual API request. It exists solely for the
-[`cargo login`] command to display a URL to instruct a user to visit in a web
+[`payload login`] command to display a URL to instruct a user to visit in a web
 browser to log in and retrieve an API token.
 
 [Source Replacement]: source-replacement.md
-[`cargo login`]: ../commands/cargo-login.md
-[`cargo package`]: ../commands/cargo-package.md
-[`cargo publish`]: ../commands/cargo-publish.md
+[`payload login`]: ../commands/payload-login.md
+[`payload package`]: ../commands/payload-package.md
+[`payload publish`]: ../commands/payload-publish.md
 [alphanumeric]: ../../std/primitive.char.html#method.is_alphanumeric
 [config]: config.md
 [crates.io]: https://crates.io/
-[publishing documentation]: publishing.md#cargo-owner
+[publishing documentation]: publishing.md#payload-owner

@@ -1,21 +1,21 @@
-//! Tests for some invalid .cargo/config files.
+//! Tests for some invalid .payload/config files.
 
-use cargo_test_support::registry::Package;
-use cargo_test_support::{basic_manifest, project, rustc_host};
+use payload_test_support::registry::Package;
+use payload_test_support::{basic_manifest, project, rustc_host};
 
-#[cargo_test]
+#[payload_test]
 fn bad1() {
     let p = project()
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
                   [target]
                   nonexistent-target = "foo"
             "#,
         )
         .build();
-    p.cargo("build -v --target=nonexistent-target")
+    p.payload("build -v --target=nonexistent-target")
         .with_status(101)
         .with_stderr(
             "\
@@ -26,23 +26,23 @@ expected a table, but found a string for `[..]` in [..]config
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bad2() {
     let p = project()
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
                   [http]
                     proxy = 3.0
             "#,
         )
         .build();
-    p.cargo("publish -v")
+    p.payload("publish -v")
         .with_status(101)
         .with_stderr(
             "\
-[ERROR] could not load Cargo configuration
+[ERROR] could not load Payload configuration
 
 Caused by:
   failed to load TOML configuration from `[..]config`
@@ -60,12 +60,12 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bad3() {
     let p = project()
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
                 [http]
                   proxy = true
@@ -74,7 +74,7 @@ fn bad3() {
         .build();
     Package::new("foo", "1.0.0").publish();
 
-    p.cargo("publish -v")
+    p.payload("publish -v")
         .with_status(101)
         .with_stderr(
             "\
@@ -87,36 +87,36 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bad4() {
     let p = project()
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
-                [cargo-new]
+                [payload-new]
                   name = false
             "#,
         )
         .build();
-    p.cargo("new -v foo")
+    p.payload("new -v foo")
         .with_status(101)
         .with_stderr(
             "\
 [ERROR] Failed to create package `foo` at `[..]`
 
 Caused by:
-  error in [..]config: `cargo-new.name` expected a string, but found a boolean
+  error in [..]config: `payload-new.name` expected a string, but found a boolean
 ",
         )
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bad6() {
     let p = project()
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
                 [http]
                   user-agent = true
@@ -125,7 +125,7 @@ fn bad6() {
         .build();
     Package::new("foo", "1.0.0").publish();
 
-    p.cargo("publish -v")
+    p.payload("publish -v")
         .with_status(101)
         .with_stderr(
             "\
@@ -138,23 +138,23 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
-fn bad_cargo_config_jobs() {
+#[payload_test]
+fn bad_payload_config_jobs() {
     let p = project()
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
                 [build]
                 jobs = -1
             "#,
         )
         .build();
-    p.cargo("build -v")
+    p.payload("build -v")
         .with_status(101)
         .with_stderr(
             "\
-[ERROR] error in [..].cargo/config: \
+[ERROR] error in [..].payload/config: \
 could not load config key `build.jobs`
 
 Caused by:
@@ -164,11 +164,11 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn invalid_global_config() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -179,15 +179,15 @@ fn invalid_global_config() {
                 foo = "0.1.0"
             "#,
         )
-        .file(".cargo/config", "4")
+        .file(".payload/config", "4")
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build -v")
+    p.payload("build -v")
         .with_status(101)
         .with_stderr(
             "\
-[ERROR] could not load Cargo configuration
+[ERROR] could not load Payload configuration
 
 Caused by:
   could not parse TOML configuration in `[..]`
@@ -202,18 +202,18 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
-fn bad_cargo_lock() {
+#[payload_test]
+fn bad_payload_lock() {
     let p = project()
-        .file("Cargo.lock", "[[package]]\nfoo = 92")
+        .file("Payload.lock", "[[package]]\nfoo = 92")
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build -v")
+    p.payload("build -v")
         .with_status(101)
         .with_stderr(
             "\
-[ERROR] failed to parse lock file at: [..]Cargo.lock
+[ERROR] failed to parse lock file at: [..]Payload.lock
 
 Caused by:
   missing field `name` for key `package`
@@ -222,13 +222,13 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
-fn duplicate_packages_in_cargo_lock() {
+#[payload_test]
+fn duplicate_packages_in_payload_lock() {
     Package::new("bar", "0.1.0").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -241,29 +241,29 @@ fn duplicate_packages_in_cargo_lock() {
         )
         .file("src/lib.rs", "")
         .file(
-            "Cargo.lock",
+            "Payload.lock",
             r#"
                 [[package]]
                 name = "foo"
                 version = "0.0.1"
                 dependencies = [
-                 "bar 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+                 "bar 0.1.0 (registry+https://github.com/dustlang/crates.io-index)",
                 ]
 
                 [[package]]
                 name = "bar"
                 version = "0.1.0"
-                source = "registry+https://github.com/rust-lang/crates.io-index"
+                source = "registry+https://github.com/dustlang/crates.io-index"
 
                 [[package]]
                 name = "bar"
                 version = "0.1.0"
-                source = "registry+https://github.com/rust-lang/crates.io-index"
+                source = "registry+https://github.com/dustlang/crates.io-index"
             "#,
         )
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "\
@@ -276,13 +276,13 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
-fn bad_source_in_cargo_lock() {
+#[payload_test]
+fn bad_source_in_payload_lock() {
     Package::new("bar", "0.1.0").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -295,13 +295,13 @@ fn bad_source_in_cargo_lock() {
         )
         .file("src/lib.rs", "")
         .file(
-            "Cargo.lock",
+            "Payload.lock",
             r#"
                 [[package]]
                 name = "foo"
                 version = "0.0.1"
                 dependencies = [
-                 "bar 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+                 "bar 0.1.0 (registry+https://github.com/dustlang/crates.io-index)",
                 ]
 
                 [[package]]
@@ -312,7 +312,7 @@ fn bad_source_in_cargo_lock() {
         )
         .build();
 
-    p.cargo("build --verbose")
+    p.payload("build --verbose")
         .with_status(101)
         .with_stderr(
             "\
@@ -325,31 +325,31 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bad_dependency_in_lockfile() {
     let p = project()
         .file("src/lib.rs", "")
         .file(
-            "Cargo.lock",
+            "Payload.lock",
             r#"
                 [[package]]
                 name = "foo"
                 version = "0.0.1"
                 dependencies = [
-                 "bar 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+                 "bar 0.1.0 (registry+https://github.com/dustlang/crates.io-index)",
                 ]
             "#,
         )
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bad_git_dependency() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -363,7 +363,7 @@ fn bad_git_dependency() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build -v")
+    p.payload("build -v")
         .with_status(101)
         .with_stderr(
             "\
@@ -386,11 +386,11 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bad_crate_type() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -404,7 +404,7 @@ fn bad_crate_type() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build -v")
+    p.payload("build -v")
         .with_status(101)
         .with_stderr_contains(
             "error: failed to run `rustc` to learn about crate-type bad_type information",
@@ -412,11 +412,11 @@ fn bad_crate_type() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn malformed_override() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -432,7 +432,7 @@ fn malformed_override() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "\
@@ -448,11 +448,11 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn duplicate_binary_names() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                [package]
                name = "qqq"
@@ -472,7 +472,7 @@ fn duplicate_binary_names() {
         .file("b.rs", r#"fn main() -> () {}"#)
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "\
@@ -485,11 +485,11 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn duplicate_example_names() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                [package]
                name = "qqq"
@@ -509,7 +509,7 @@ fn duplicate_example_names() {
         .file("examples/ex2.rs", r#"fn main () -> () {}"#)
         .build();
 
-    p.cargo("build --example ex")
+    p.payload("build --example ex")
         .with_status(101)
         .with_stderr(
             "\
@@ -522,11 +522,11 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn duplicate_bench_names() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                [package]
                name = "qqq"
@@ -546,7 +546,7 @@ fn duplicate_bench_names() {
         .file("benches/ex2.rs", r#"fn main () {}"#)
         .build();
 
-    p.cargo("bench")
+    p.payload("bench")
         .with_status(101)
         .with_stderr(
             "\
@@ -559,15 +559,15 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn duplicate_deps() {
     let p = project()
-        .file("shim-bar/Cargo.toml", &basic_manifest("bar", "0.0.1"))
+        .file("shim-bar/Payload.toml", &basic_manifest("bar", "0.0.1"))
         .file("shim-bar/src/lib.rs", "pub fn a() {}")
-        .file("linux-bar/Cargo.toml", &basic_manifest("bar", "0.0.1"))
+        .file("linux-bar/Payload.toml", &basic_manifest("bar", "0.0.1"))
         .file("linux-bar/src/lib.rs", "pub fn a() {}")
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                [package]
                name = "qqq"
@@ -584,7 +584,7 @@ fn duplicate_deps() {
         .file("src/main.rs", r#"fn main () {}"#)
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "\
@@ -598,15 +598,15 @@ have a single canonical source path irrespective of build target.
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn duplicate_deps_diff_sources() {
     let p = project()
-        .file("shim-bar/Cargo.toml", &basic_manifest("bar", "0.0.1"))
+        .file("shim-bar/Payload.toml", &basic_manifest("bar", "0.0.1"))
         .file("shim-bar/src/lib.rs", "pub fn a() {}")
-        .file("linux-bar/Cargo.toml", &basic_manifest("bar", "0.0.1"))
+        .file("linux-bar/Payload.toml", &basic_manifest("bar", "0.0.1"))
         .file("linux-bar/src/lib.rs", "pub fn a() {}")
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                [package]
                name = "qqq"
@@ -623,7 +623,7 @@ fn duplicate_deps_diff_sources() {
         .file("src/main.rs", r#"fn main () {}"#)
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "\
@@ -637,11 +637,11 @@ have a single canonical source path irrespective of build target.
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn unused_keys() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                [package]
                name = "foo"
@@ -655,7 +655,7 @@ fn unused_keys() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 warning: unused manifest key: target.foo.bar
@@ -667,9 +667,9 @@ warning: unused manifest key: target.foo.bar
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-               cargo-features = ["named-profiles"]
+               payload-features = ["named-profiles"]
 
                [package]
                name = "foo"
@@ -684,8 +684,8 @@ warning: unused manifest key: target.foo.bar
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build -Z named-profiles")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -Z named-profiles")
+        .masquerade_as_nightly_payload()
         .with_stderr(
             "\
 warning: use `[profile.dev]` to configure debug builds
@@ -694,13 +694,13 @@ warning: use `[profile.dev]` to configure debug builds
         )
         .run();
 
-    p.cargo("build -Z named-profiles")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -Z named-profiles")
+        .masquerade_as_nightly_payload()
         .run();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
 
@@ -712,7 +712,7 @@ warning: use `[profile.dev]` to configure debug builds
         )
         .file("src/lib.rs", "pub fn foo() {}")
         .build();
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 warning: unused manifest key: project.bulid
@@ -725,7 +725,7 @@ warning: unused manifest key: project.bulid
     let p = project()
         .at("bar")
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
 
@@ -739,7 +739,7 @@ warning: unused manifest key: project.bulid
         )
         .file("src/lib.rs", "pub fn foo() {}")
         .build();
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 warning: unused manifest key: lib.build
@@ -750,24 +750,24 @@ warning: unused manifest key: lib.build
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn unused_keys_in_virtual_manifest() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["bar"]
                 bulid = "foo"
             "#,
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.0.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.0.1"))
         .file("bar/src/lib.rs", "")
         .build();
-    p.cargo("build --workspace")
+    p.payload("build --workspace")
         .with_stderr(
             "\
-[WARNING] [..]/foo/Cargo.toml: unused manifest key: workspace.bulid
+[WARNING] [..]/foo/Payload.toml: unused manifest key: workspace.bulid
 [COMPILING] bar [..]
 [FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
 ",
@@ -775,11 +775,11 @@ fn unused_keys_in_virtual_manifest() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn empty_dependencies() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -795,7 +795,7 @@ fn empty_dependencies() {
 
     Package::new("bar", "0.0.1").publish();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr_contains(
             "\
 warning: dependency (bar) specified without providing a local path, Git repository, or version \
@@ -805,14 +805,14 @@ to use. This will be considered an error in future versions
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn invalid_toml_historically_allowed_is_warned() {
     let p = project()
-        .file(".cargo/config", "[bar] baz = 2")
+        .file(".payload/config", "[bar] baz = 2")
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 warning: TOML file found which contains invalid syntax and will soon not parse
@@ -829,11 +829,11 @@ in the future.
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn ambiguous_git_reference() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -849,7 +849,7 @@ fn ambiguous_git_reference() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build -v")
+    p.payload("build -v")
         .with_status(101)
         .with_stderr(
             "\
@@ -862,11 +862,11 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn fragment_in_git_url() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -880,7 +880,7 @@ fn fragment_in_git_url() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build -v")
+    p.payload("build -v")
         .with_status(101)
         .with_stderr_contains(
             "\
@@ -892,24 +892,24 @@ use `rev = \"foo\"` in the dependency declaration.
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bad_source_config1() {
     let p = project()
         .file("src/lib.rs", "")
-        .file(".cargo/config", "[source.foo]")
+        .file(".payload/config", "[source.foo]")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr("error: no source location specified for `source.foo`, need [..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bad_source_config2() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -922,7 +922,7 @@ fn bad_source_config2() {
         )
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
                 [source.crates-io]
                 registry = 'http://example.com'
@@ -931,7 +931,7 @@ fn bad_source_config2() {
         )
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "\
@@ -951,11 +951,11 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bad_source_config3() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -968,7 +968,7 @@ fn bad_source_config3() {
         )
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
                 [source.crates-io]
                 registry = 'https://example.com'
@@ -977,7 +977,7 @@ fn bad_source_config3() {
         )
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "\
@@ -996,11 +996,11 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bad_source_config4() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1013,7 +1013,7 @@ fn bad_source_config4() {
         )
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
                 [source.crates-io]
                 replace-with = 'bar'
@@ -1025,7 +1025,7 @@ fn bad_source_config4() {
         )
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "\
@@ -1045,11 +1045,11 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bad_source_config5() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1062,7 +1062,7 @@ fn bad_source_config5() {
         )
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
                 [source.crates-io]
                 registry = 'https://example.com'
@@ -1074,7 +1074,7 @@ fn bad_source_config5() {
         )
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "\
@@ -1087,11 +1087,11 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn both_git_and_path_specified() {
     let foo = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1106,7 +1106,7 @@ fn both_git_and_path_specified() {
         .file("src/lib.rs", "")
         .build();
 
-    foo.cargo("build -v")
+    foo.payload("build -v")
         .with_status(101)
         .with_stderr_contains(
             "\
@@ -1118,11 +1118,11 @@ This will be considered an error in future versions
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bad_source_config6() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1135,7 +1135,7 @@ fn bad_source_config6() {
         )
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
                 [source.crates-io]
                 registry = 'https://example.com'
@@ -1144,24 +1144,24 @@ fn bad_source_config6() {
         )
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "\
-[ERROR] error in [..]/foo/.cargo/config: could not load config key `source.crates-io.replace-with`
+[ERROR] error in [..]/foo/.payload/config: could not load config key `source.crates-io.replace-with`
 
 Caused by:
-  error in [..]/foo/.cargo/config: `source.crates-io.replace-with` expected a string, but found a array
+  error in [..]/foo/.payload/config: `source.crates-io.replace-with` expected a string, but found a array
 "
         )
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn ignored_git_revision() {
     let foo = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1176,7 +1176,7 @@ fn ignored_git_revision() {
         .file("src/lib.rs", "")
         .build();
 
-    foo.cargo("build -v")
+    foo.payload("build -v")
         .with_status(101)
         .with_stderr_contains(
             "[WARNING] key `branch` is ignored for dependency (bar). \
@@ -1185,11 +1185,11 @@ fn ignored_git_revision() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bad_source_config7() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1202,7 +1202,7 @@ fn bad_source_config7() {
         )
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
                 [source.foo]
                 registry = 'https://example.com'
@@ -1213,17 +1213,17 @@ fn bad_source_config7() {
 
     Package::new("bar", "0.1.0").publish();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr("error: more than one source location specified for `source.foo`")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bad_source_config8() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1236,7 +1236,7 @@ fn bad_source_config8() {
         )
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
                 [source.foo]
                 branch = "somebranch"
@@ -1244,20 +1244,20 @@ fn bad_source_config8() {
         )
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "[ERROR] source definition `source.foo` specifies `branch`, \
-             but that requires a `git` key to be specified (in [..]/foo/.cargo/config)",
+             but that requires a `git` key to be specified (in [..]/foo/.payload/config)",
         )
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bad_dependency() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1271,7 +1271,7 @@ fn bad_dependency() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "\
@@ -1284,11 +1284,11 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bad_debuginfo() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1302,7 +1302,7 @@ fn bad_debuginfo() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "\
@@ -1315,11 +1315,11 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bad_opt_level() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1331,7 +1331,7 @@ fn bad_opt_level() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "\
@@ -1344,12 +1344,12 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn warn_semver_metadata() {
     Package::new("bar", "1.0.0").publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -1361,12 +1361,12 @@ fn warn_semver_metadata() {
         )
         .file("src/lib.rs", "")
         .build();
-    p.cargo("check")
+    p.payload("check")
         .with_stderr_contains("[WARNING] version requirement `1.0.0+1234` for dependency `bar`[..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bad_target_cfg() {
     // Invalid type in a StringList.
     //
@@ -1377,7 +1377,7 @@ fn bad_target_cfg() {
     // the message.
     let p = project()
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
             [target.'cfg(not(target_os = "none"))']
             runner = false
@@ -1386,27 +1386,27 @@ fn bad_target_cfg() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("check")
+    p.payload("check")
         .with_status(101)
         .with_stderr(
             "\
-[ERROR] error in [..]/foo/.cargo/config: \
+[ERROR] error in [..]/foo/.payload/config: \
 could not load config key `target.cfg(not(target_os = \"none\")).runner`
 
 Caused by:
-  error in [..]/foo/.cargo/config: \
+  error in [..]/foo/.payload/config: \
   could not load config key `target.cfg(not(target_os = \"none\")).runner`
 
 Caused by:
   invalid configuration for key `target.cfg(not(target_os = \"none\")).runner`
   expected a string or array of strings, but found a boolean for \
-  `target.cfg(not(target_os = \"none\")).runner` in [..]/foo/.cargo/config
+  `target.cfg(not(target_os = \"none\")).runner` in [..]/foo/.payload/config
 ",
         )
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bad_target_links_overrides() {
     // Invalid parsing of links overrides.
     //
@@ -1416,7 +1416,7 @@ fn bad_target_links_overrides() {
     // currently is designed with serde.
     let p = project()
         .file(
-            ".cargo/config",
+            ".payload/config",
             &format!(
                 r#"
                 [target.{}.somelib]
@@ -1428,16 +1428,16 @@ fn bad_target_links_overrides() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("check")
+    p.payload("check")
         .with_status(101)
         .with_stderr(
             "[ERROR] Only `-l` and `-L` flags are allowed in target config \
-             `target.[..].rustc-flags` (in [..]foo/.cargo/config): `foo`",
+             `target.[..].rustc-flags` (in [..]foo/.payload/config): `foo`",
         )
         .run();
 
     p.change_file(
-        ".cargo/config",
+        ".payload/config",
         &format!(
             "[target.{}.somelib]
             warning = \"foo\"
@@ -1445,31 +1445,31 @@ fn bad_target_links_overrides() {
             rustc_host(),
         ),
     );
-    p.cargo("check")
+    p.payload("check")
         .with_status(101)
         .with_stderr("[ERROR] `warning` is not supported in build script overrides")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn redefined_sources() {
     // Cannot define a source multiple times.
     let p = project()
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
             [source.foo]
-            registry = "https://github.com/rust-lang/crates.io-index"
+            registry = "https://github.com/dustlang/crates.io-index"
             "#,
         )
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("check")
+    p.payload("check")
         .with_status(101)
         .with_stderr(
             "\
-[ERROR] source `foo` defines source registry `https://github.com/rust-lang/crates.io-index`, \
+[ERROR] source `foo` defines source registry `https://github.com/dustlang/crates.io-index`, \
     but that source is already defined by `crates-io`
 note: Sources are not allowed to be defined multiple times.
 ",
@@ -1477,7 +1477,7 @@ note: Sources are not allowed to be defined multiple times.
         .run();
 
     p.change_file(
-        ".cargo/config",
+        ".payload/config",
         r#"
         [source.one]
         directory = "index"
@@ -1488,7 +1488,7 @@ note: Sources are not allowed to be defined multiple times.
     );
 
     // Name is `[..]` because we can't guarantee the order.
-    p.cargo("check")
+    p.payload("check")
         .with_status(101)
         .with_stderr(
             "\

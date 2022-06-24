@@ -5,7 +5,7 @@ dependencies in the [overriding dependencies] section of this
 documentation.
 
 A *source* is a provider that contains crates that may be included as
-dependencies for a package. Cargo supports the ability to **replace one source
+dependencies for a package. Payload supports the ability to **replace one source
 with another** to express strategies such as:
 
 * Vendoring - custom sources can be defined which represent crates on the local
@@ -15,13 +15,13 @@ with another** to express strategies such as:
 * Mirroring - sources can be replaced with an equivalent version which acts as a
   cache for crates.io itself.
 
-Cargo has a core assumption about source replacement that the source code is
+Payload has a core assumption about source replacement that the source code is
 exactly the same from both sources. Note that this also means that
 a replacement source is not allowed to have crates which are not present in the
 original source.
 
 As a consequence, source replacement is not appropriate for situations such as
-patching a dependency or a private registry. Cargo supports patching
+patching a dependency or a private registry. Payload supports patching
 dependencies through the usage of [the `[patch]` key][overriding
 dependencies], and private registry support is described in [the Registries
 chapter][registries].
@@ -31,7 +31,7 @@ chapter][registries].
 
 ### Configuration
 
-Configuration of replacement sources is done through [`.cargo/config.toml`][config]
+Configuration of replacement sources is done through [`.payload/config.toml`][config]
 and the full set of available keys are:
 
 ```toml
@@ -42,7 +42,7 @@ and the full set of available keys are:
 # Under the `source` table are a number of other tables whose keys are a
 # name for the relevant source. For example this section defines a new
 # source, called `my-vendor-source`, which comes from a directory
-# located at `vendor` relative to the directory containing this `.cargo/config.toml`
+# located at `vendor` relative to the directory containing this `.payload/config.toml`
 # file
 [source.my-vendor-source]
 directory = "vendor"
@@ -78,7 +78,7 @@ git = "https://example.com/path/to/repo"
 
 A "registry source" is one that is the same as crates.io itself. That is, it has
 an index served in a git repository which matches the format of the
-[crates.io index](https://github.com/rust-lang/crates.io-index). That repository
+[crates.io index](https://github.com/dustlang/crates.io-index). That repository
 then has configuration indicating where to download crates from.
 
 Currently there is not an already-available project for setting up a mirror of
@@ -88,15 +88,15 @@ crates.io. Stay tuned though!
 
 A "local registry source" is intended to be a subset of another registry
 source, but available on the local filesystem (aka vendoring). Local registries
-are downloaded ahead of time, typically sync'd with a `Cargo.lock`, and are
+are downloaded ahead of time, typically sync'd with a `Payload.lock`, and are
 made up of a set of `*.crate` files and an index like the normal registry is.
 
 The primary way to manage and create local registry sources is through the
-[`cargo-local-registry`][cargo-local-registry] subcommand,
-[available on crates.io][cargo-local-registry] and can be installed with
-`cargo install cargo-local-registry`.
+[`payload-local-registry`][payload-local-registry] subcommand,
+[available on crates.io][payload-local-registry] and can be installed with
+`payload install payload-local-registry`.
 
-[cargo-local-registry]: https://crates.io/crates/cargo-local-registry
+[payload-local-registry]: https://crates.io/crates/payload-local-registry
 
 Local registries are contained within one directory and contain a number of
 `*.crate` files downloaded from crates.io as well as an `index` directory with
@@ -107,7 +107,7 @@ the crates that are present).
 
 A "directory source" is similar to a local registry source where it contains a
 number of crates available on the local filesystem, suitable for vendoring
-dependencies. Directory sources are primarily managed the `cargo vendor`
+dependencies. Directory sources are primarily managed the `payload vendor`
 subcommand.
 
 Directory sources are distinct from local registries though in that they contain

@@ -1,21 +1,21 @@
-//! Tests for the `cargo package` command.
+//! Tests for the `payload package` command.
 
-use cargo_test_support::paths::CargoPathExt;
-use cargo_test_support::publish::validate_crate_contents;
-use cargo_test_support::registry::{self, Package};
-use cargo_test_support::{
-    basic_manifest, cargo_process, git, path2url, paths, project, symlink_supported, t,
+use payload_test_support::paths::PayloadPathExt;
+use payload_test_support::publish::validate_crate_contents;
+use payload_test_support::registry::{self, Package};
+use payload_test_support::{
+    basic_manifest, payload_process, git, path2url, paths, project, symlink_supported, t,
 };
 use flate2::read::GzDecoder;
 use std::fs::{self, read_to_string, File};
 use std::path::Path;
 use tar::Archive;
 
-#[cargo_test]
+#[payload_test]
 fn simple() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -30,7 +30,7 @@ fn simple() {
         .file("src/bar.txt", "") // should be ignored when packaging
         .build();
 
-    p.cargo("package")
+    p.payload("package")
         .with_stderr(
             "\
 [WARNING] manifest has no documentation[..]
@@ -43,36 +43,36 @@ See [..]
         )
         .run();
     assert!(p.root().join("target/package/foo-0.0.1.crate").is_file());
-    p.cargo("package -l")
+    p.payload("package -l")
         .with_stdout(
             "\
-Cargo.lock
-Cargo.toml
-Cargo.toml.orig
+Payload.lock
+Payload.toml
+Payload.toml.orig
 src/main.rs
 ",
         )
         .run();
-    p.cargo("package").with_stdout("").run();
+    p.payload("package").with_stdout("").run();
 
     let f = File::open(&p.root().join("target/package/foo-0.0.1.crate")).unwrap();
     validate_crate_contents(
         f,
         "foo-0.0.1.crate",
-        &["Cargo.lock", "Cargo.toml", "Cargo.toml.orig", "src/main.rs"],
+        &["Payload.lock", "Payload.toml", "Payload.toml.orig", "src/main.rs"],
         &[],
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn metadata_warning() {
     let p = project().file("src/main.rs", "fn main() {}").build();
-    p.cargo("package")
+    p.payload("package")
         .with_stderr(
             "\
 warning: manifest has no description, license, license-file, documentation, \
 homepage or repository.
-See https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata for more info.
+See https://doc.dustlang.com/payload/reference/manifest.html#package-metadata for more info.
 [PACKAGING] foo v0.0.1 ([CWD])
 [VERIFYING] foo v0.0.1 ([CWD])
 [COMPILING] foo v0.0.1 ([CWD][..])
@@ -83,7 +83,7 @@ See https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata for
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -94,11 +94,11 @@ See https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata for
         )
         .file("src/main.rs", "fn main() {}")
         .build();
-    p.cargo("package")
+    p.payload("package")
         .with_stderr(
             "\
 warning: manifest has no description, documentation, homepage or repository.
-See https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata for more info.
+See https://doc.dustlang.com/payload/reference/manifest.html#package-metadata for more info.
 [PACKAGING] foo v0.0.1 ([CWD])
 [VERIFYING] foo v0.0.1 ([CWD])
 [COMPILING] foo v0.0.1 ([CWD][..])
@@ -109,7 +109,7 @@ See https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata for
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -122,7 +122,7 @@ See https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata for
         )
         .file("src/main.rs", "fn main() {}")
         .build();
-    p.cargo("package")
+    p.payload("package")
         .with_stderr(
             "\
 [PACKAGING] foo v0.0.1 ([CWD])
@@ -134,29 +134,29 @@ See https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata for
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn package_verbose() {
     let root = paths::root().join("all");
     let repo = git::repo(&root)
-        .file("Cargo.toml", &basic_manifest("foo", "0.0.1"))
+        .file("Payload.toml", &basic_manifest("foo", "0.0.1"))
         .file("src/main.rs", "fn main() {}")
-        .file("a/Cargo.toml", &basic_manifest("a", "0.0.1"))
+        .file("a/Payload.toml", &basic_manifest("a", "0.0.1"))
         .file("a/src/lib.rs", "")
         .build();
-    cargo_process("build").cwd(repo.root()).run();
+    payload_process("build").cwd(repo.root()).run();
 
     println!("package main repo");
-    cargo_process("package -v --no-verify")
+    payload_process("package -v --no-verify")
         .cwd(repo.root())
         .with_stderr(
             "\
 [WARNING] manifest has no description[..]
-See https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata for more info.
+See https://doc.dustlang.com/payload/reference/manifest.html#package-metadata for more info.
 [PACKAGING] foo v0.0.1 ([..])
-[ARCHIVING] .cargo_vcs_info.json
-[ARCHIVING] Cargo.lock
-[ARCHIVING] Cargo.toml
-[ARCHIVING] Cargo.toml.orig
+[ARCHIVING] .payload_vcs_info.json
+[ARCHIVING] Payload.lock
+[ARCHIVING] Payload.toml
+[ARCHIVING] Payload.toml.orig
 [ARCHIVING] src/main.rs
 ",
         )
@@ -176,41 +176,41 @@ See https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata for
         f,
         "foo-0.0.1.crate",
         &[
-            "Cargo.lock",
-            "Cargo.toml",
-            "Cargo.toml.orig",
+            "Payload.lock",
+            "Payload.toml",
+            "Payload.toml.orig",
             "src/main.rs",
-            ".cargo_vcs_info.json",
+            ".payload_vcs_info.json",
         ],
-        &[(".cargo_vcs_info.json", &vcs_contents)],
+        &[(".payload_vcs_info.json", &vcs_contents)],
     );
 
     println!("package sub-repo");
-    cargo_process("package -v --no-verify")
+    payload_process("package -v --no-verify")
         .cwd(repo.root().join("a"))
         .with_stderr(
             "\
 [WARNING] manifest has no description[..]
-See https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata for more info.
+See https://doc.dustlang.com/payload/reference/manifest.html#package-metadata for more info.
 [PACKAGING] a v0.0.1 ([..])
-[ARCHIVING] .cargo_vcs_info.json
-[ARCHIVING] Cargo.toml
-[ARCHIVING] Cargo.toml.orig
+[ARCHIVING] .payload_vcs_info.json
+[ARCHIVING] Payload.toml
+[ARCHIVING] Payload.toml.orig
 [ARCHIVING] src/lib.rs
 ",
         )
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn package_verification() {
     let p = project().file("src/main.rs", "fn main() {}").build();
-    p.cargo("build").run();
-    p.cargo("package")
+    p.payload("build").run();
+    p.payload("package")
         .with_stderr(
             "\
 [WARNING] manifest has no description[..]
-See https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata for more info.
+See https://doc.dustlang.com/payload/reference/manifest.html#package-metadata for more info.
 [PACKAGING] foo v0.0.1 ([CWD])
 [VERIFYING] foo v0.0.1 ([CWD])
 [COMPILING] foo v0.0.1 ([CWD][..])
@@ -220,12 +220,12 @@ See https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata for
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn vcs_file_collision() {
     let p = project().build();
     let _ = git::repo(&paths::root().join("foo"))
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -245,25 +245,25 @@ fn vcs_file_collision() {
                 fn main() {}
             "#,
         )
-        .file(".cargo_vcs_info.json", "foo")
+        .file(".payload_vcs_info.json", "foo")
         .build();
-    p.cargo("package")
+    p.payload("package")
         .arg("--no-verify")
         .with_status(101)
         .with_stderr(
             "\
-[ERROR] invalid inclusion of reserved file name .cargo_vcs_info.json \
+[ERROR] invalid inclusion of reserved file name .payload_vcs_info.json \
 in package source
 ",
         )
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn path_dependency_no_version() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -277,16 +277,16 @@ fn path_dependency_no_version() {
             "#,
         )
         .file("src/main.rs", "fn main() {}")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "")
         .build();
 
-    p.cargo("package")
+    p.payload("package")
         .with_status(101)
         .with_stderr(
             "\
 [WARNING] manifest has no documentation, homepage or repository.
-See https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata for more info.
+See https://doc.dustlang.com/payload/reference/manifest.html#package-metadata for more info.
 [ERROR] all path dependencies must have a version specified when packaging.
 dependency `bar` does not specify a version.
 ",
@@ -294,12 +294,12 @@ dependency `bar` does not specify a version.
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn exclude() {
     let root = paths::root().join("exclude");
     let repo = git::repo(&root)
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -363,18 +363,18 @@ fn exclude() {
         .file("some_dir/dir_deep_5/some_dir/file", "")
         .build();
 
-    cargo_process("package --no-verify -v")
+    payload_process("package --no-verify -v")
         .cwd(repo.root())
         .with_stdout("")
         .with_stderr(
             "\
 [WARNING] manifest has no description[..]
-See https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata for more info.
+See https://doc.dustlang.com/payload/reference/manifest.html#package-metadata for more info.
 [PACKAGING] foo v0.0.1 ([..])
-[ARCHIVING] .cargo_vcs_info.json
-[ARCHIVING] Cargo.lock
-[ARCHIVING] Cargo.toml
-[ARCHIVING] Cargo.toml.orig
+[ARCHIVING] .payload_vcs_info.json
+[ARCHIVING] Payload.lock
+[ARCHIVING] Payload.toml
+[ARCHIVING] Payload.toml.orig
 [ARCHIVING] file_root_3
 [ARCHIVING] file_root_4
 [ARCHIVING] file_root_5
@@ -392,14 +392,14 @@ See https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata for
 
     assert!(repo.root().join("target/package/foo-0.0.1.crate").is_file());
 
-    cargo_process("package -l")
+    payload_process("package -l")
         .cwd(repo.root())
         .with_stdout(
             "\
-.cargo_vcs_info.json
-Cargo.lock
-Cargo.toml
-Cargo.toml.orig
+.payload_vcs_info.json
+Payload.lock
+Payload.toml
+Payload.toml.orig
 file_root_3
 file_root_4
 file_root_5
@@ -416,19 +416,19 @@ src/main.rs
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn include() {
     let root = paths::root().join("include");
     let repo = git::repo(&root)
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
                 exclude = ["*.txt"]
-                include = ["foo.txt", "**/*.rs", "Cargo.toml", ".dotfile"]
+                include = ["foo.txt", "**/*.rs", "Payload.toml", ".dotfile"]
             "#,
         )
         .file("foo.txt", "")
@@ -438,19 +438,19 @@ fn include() {
         .file("src/bar.txt", "")
         .build();
 
-    cargo_process("package --no-verify -v")
+    payload_process("package --no-verify -v")
         .cwd(repo.root())
         .with_stderr(
             "\
 [WARNING] manifest has no description[..]
-See https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata for more info.
+See https://doc.dustlang.com/payload/reference/manifest.html#package-metadata for more info.
 [WARNING] both package.include and package.exclude are specified; the exclude list will be ignored
 [PACKAGING] foo v0.0.1 ([..])
-[ARCHIVING] .cargo_vcs_info.json
+[ARCHIVING] .payload_vcs_info.json
 [ARCHIVING] .dotfile
-[ARCHIVING] Cargo.lock
-[ARCHIVING] Cargo.toml
-[ARCHIVING] Cargo.toml.orig
+[ARCHIVING] Payload.lock
+[ARCHIVING] Payload.toml
+[ARCHIVING] Payload.toml.orig
 [ARCHIVING] foo.txt
 [ARCHIVING] src/main.rs
 ",
@@ -458,22 +458,22 @@ See https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata for
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn package_lib_with_bin() {
     let p = project()
         .file("src/main.rs", "extern crate foo; fn main() {}")
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("package -v").run();
+    p.payload("package -v").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn package_git_submodule() {
     let project = git::new("foo", |project| {
         project
             .file(
-                "Cargo.toml",
+                "Payload.toml",
                 r#"
                     [project]
                     name = "foo"
@@ -505,12 +505,12 @@ fn package_git_submodule() {
         .unwrap();
 
     project
-        .cargo("package --no-verify -v")
+        .payload("package --no-verify -v")
         .with_stderr_contains("[ARCHIVING] bar/Makefile")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 /// Tests if a symlink to a git submodule is properly handled.
 ///
 /// This test requires you to be able to make symlinks.
@@ -553,31 +553,31 @@ fn package_symlink_to_submodule() {
         .unwrap();
 
     project
-        .cargo("package --no-verify -v")
+        .payload("package --no-verify -v")
         .with_stderr_contains("[ARCHIVING] submodule/Makefile")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn no_duplicates_from_modified_tracked_files() {
     let p = git::new("all", |p| p.file("src/main.rs", "fn main() {}"));
     p.change_file("src/main.rs", r#"fn main() { println!("A change!"); }"#);
-    p.cargo("build").run();
-    p.cargo("package --list --allow-dirty")
+    p.payload("build").run();
+    p.payload("package --list --allow-dirty")
         .with_stdout(
             "\
-Cargo.lock
-Cargo.toml
-Cargo.toml.orig
+Payload.lock
+Payload.toml
+Payload.toml.orig
 src/main.rs
 ",
         )
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn ignore_nested() {
-    let cargo_toml = r#"
+    let payload_toml = r#"
             [project]
             name = "foo"
             version = "0.0.1"
@@ -589,19 +589,19 @@ fn ignore_nested() {
             fn main() { println!("hello"); }
         "#;
     let p = project()
-        .file("Cargo.toml", cargo_toml)
+        .file("Payload.toml", payload_toml)
         .file("src/main.rs", main_rs)
         // If a project happens to contain a copy of itself, we should
         // ignore it.
-        .file("a_dir/foo/Cargo.toml", cargo_toml)
+        .file("a_dir/foo/Payload.toml", payload_toml)
         .file("a_dir/foo/src/main.rs", main_rs)
         .build();
 
-    p.cargo("package")
+    p.payload("package")
         .with_stderr(
             "\
 [WARNING] manifest has no documentation[..]
-See https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata for more info.
+See https://doc.dustlang.com/payload/reference/manifest.html#package-metadata for more info.
 [PACKAGING] foo v0.0.1 ([CWD])
 [VERIFYING] foo v0.0.1 ([CWD])
 [COMPILING] foo v0.0.1 ([CWD][..])
@@ -610,37 +610,37 @@ See https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata for
         )
         .run();
     assert!(p.root().join("target/package/foo-0.0.1.crate").is_file());
-    p.cargo("package -l")
+    p.payload("package -l")
         .with_stdout(
             "\
-Cargo.lock
-Cargo.toml
-Cargo.toml.orig
+Payload.lock
+Payload.toml
+Payload.toml.orig
 src/main.rs
 ",
         )
         .run();
-    p.cargo("package").with_stdout("").run();
+    p.payload("package").with_stdout("").run();
 
     let f = File::open(&p.root().join("target/package/foo-0.0.1.crate")).unwrap();
     validate_crate_contents(
         f,
         "foo-0.0.1.crate",
-        &["Cargo.lock", "Cargo.toml", "Cargo.toml.orig", "src/main.rs"],
+        &["Payload.lock", "Payload.toml", "Payload.toml.orig", "src/main.rs"],
         &[],
     );
 }
 
 // Windows doesn't allow these characters in filenames.
 #[cfg(unix)]
-#[cargo_test]
+#[payload_test]
 fn package_weird_characters() {
     let p = project()
         .file("src/main.rs", r#"fn main() { println!("hello"); }"#)
         .file("src/:foo", "")
         .build();
 
-    p.cargo("package")
+    p.payload("package")
         .with_status(101)
         .with_stderr(
             "\
@@ -652,19 +652,19 @@ See [..]
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn repackage_on_source_change() {
     let p = project()
         .file("src/main.rs", r#"fn main() { println!("hello"); }"#)
         .build();
 
-    p.cargo("package").run();
+    p.payload("package").run();
 
     // Add another source file
     p.change_file("src/foo.rs", r#"fn main() { println!("foo"); }"#);
 
-    // Check that cargo rebuilds the tarball
-    p.cargo("package")
+    // Check that payload rebuilds the tarball
+    p.payload("package")
         .with_stderr(
             "\
 [WARNING] [..]
@@ -683,9 +683,9 @@ See [..]
         f,
         "foo-0.0.1.crate",
         &[
-            "Cargo.lock",
-            "Cargo.toml",
-            "Cargo.toml.orig",
+            "Payload.lock",
+            "Payload.toml",
+            "Payload.toml.orig",
             "src/main.rs",
             "src/foo.rs",
         ],
@@ -693,7 +693,7 @@ See [..]
     );
 }
 
-#[cargo_test]
+#[payload_test]
 /// Tests if a broken symlink is properly handled when packaging.
 ///
 /// This test requires you to be able to make symlinks.
@@ -710,7 +710,7 @@ fn broken_symlink() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -727,7 +727,7 @@ fn broken_symlink() {
         .build();
     t!(symlink("nowhere", &p.root().join("src/foo.rs")));
 
-    p.cargo("package -v")
+    p.payload("package -v")
         .with_status(101)
         .with_stderr_contains(
             "\
@@ -743,7 +743,7 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 /// Tests if a symlink to a directory is properly included.
 ///
 /// This test requires you to be able to make symlinks.
@@ -758,19 +758,19 @@ fn package_symlink_to_dir() {
         .file("bla/Makefile", "all:")
         .symlink_dir("bla", "foo")
         .build()
-        .cargo("package -v")
+        .payload("package -v")
         .with_stderr_contains("[ARCHIVING] foo/Makefile")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn do_not_package_if_repository_is_dirty() {
     let p = project().build();
 
     // Create a Git repository containing a minimal Rust project.
     let _ = git::repo(&paths::root().join("foo"))
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -785,9 +785,9 @@ fn do_not_package_if_repository_is_dirty() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    // Modify Cargo.toml without committing the change.
+    // Modify Payload.toml without committing the change.
     p.change_file(
-        "Cargo.toml",
+        "Payload.toml",
         r#"
             [project]
             name = "foo"
@@ -801,14 +801,14 @@ fn do_not_package_if_repository_is_dirty() {
         "#,
     );
 
-    p.cargo("package")
+    p.payload("package")
         .with_status(101)
         .with_stderr(
             "\
 error: 1 files in the working directory contain changes that were not yet \
 committed into git:
 
-Cargo.toml
+Payload.toml
 
 to proceed despite this and include the uncommitted changes, pass the `--allow-dirty` flag
 ",
@@ -816,7 +816,7 @@ to proceed despite this and include the uncommitted changes, pass the `--allow-d
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn generated_manifest() {
     registry::alt_init();
     Package::new("abc", "1.0.0").publish();
@@ -826,7 +826,7 @@ fn generated_manifest() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -849,11 +849,11 @@ fn generated_manifest() {
             "#,
         )
         .file("src/main.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "")
         .build();
 
-    p.cargo("package --no-verify").run();
+    p.payload("package --no-verify").run();
 
     let f = File::open(&p.root().join("target/package/foo-0.0.1.crate")).unwrap();
     let rewritten_toml = format!(
@@ -881,23 +881,23 @@ registry-index = "{}"
 [dependencies.ghi]
 version = "1.0"
 "#,
-        cargo::core::package::MANIFEST_PREAMBLE,
+        payload::core::package::MANIFEST_PREAMBLE,
         registry::alt_registry_url()
     );
 
     validate_crate_contents(
         f,
         "foo-0.0.1.crate",
-        &["Cargo.lock", "Cargo.toml", "Cargo.toml.orig", "src/main.rs"],
-        &[("Cargo.toml", &rewritten_toml)],
+        &["Payload.lock", "Payload.toml", "Payload.toml.orig", "src/main.rs"],
+        &[("Payload.toml", &rewritten_toml)],
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn ignore_workspace_specifier() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -913,7 +913,7 @@ fn ignore_workspace_specifier() {
         )
         .file("src/main.rs", "")
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -925,7 +925,7 @@ fn ignore_workspace_specifier() {
         .file("bar/src/lib.rs", "")
         .build();
 
-    p.cargo("package --no-verify").cwd("bar").run();
+    p.payload("package --no-verify").cwd("bar").run();
 
     let f = File::open(&p.root().join("target/package/bar-0.1.0.crate")).unwrap();
     let rewritten_toml = format!(
@@ -935,23 +935,23 @@ name = "bar"
 version = "0.1.0"
 authors = []
 "#,
-        cargo::core::package::MANIFEST_PREAMBLE
+        payload::core::package::MANIFEST_PREAMBLE
     );
     validate_crate_contents(
         f,
         "bar-0.1.0.crate",
-        &["Cargo.toml", "Cargo.toml.orig", "src/lib.rs"],
-        &[("Cargo.toml", &rewritten_toml)],
+        &["Payload.toml", "Payload.toml.orig", "src/lib.rs"],
+        &[("Payload.toml", &rewritten_toml)],
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn package_two_kinds_of_deps() {
     Package::new("other", "1.0.0").publish();
     Package::new("other1", "1.0.0").publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -966,16 +966,16 @@ fn package_two_kinds_of_deps() {
         .file("src/main.rs", "")
         .build();
 
-    p.cargo("package --no-verify").run();
+    p.payload("package --no-verify").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn test_edition() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-                cargo-features = ["edition"]
+                payload-features = ["edition"]
                 [package]
                 name = "foo"
                 version = "0.0.1"
@@ -986,7 +986,7 @@ fn test_edition() {
         .file("src/lib.rs", r#" "#)
         .build();
 
-    p.cargo("build -v")
+    p.payload("build -v")
         .with_stderr_contains(
             "\
 [COMPILING] foo v0.0.1 ([..])
@@ -996,11 +996,11 @@ fn test_edition() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn edition_with_metadata() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1015,14 +1015,14 @@ fn edition_with_metadata() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("package").run();
+    p.payload("package").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn test_edition_malformed() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1034,7 +1034,7 @@ fn test_edition_malformed() {
         .file("src/lib.rs", r#" "#)
         .build();
 
-    p.cargo("build -v")
+    p.payload("build -v")
         .with_status(101)
         .with_stderr(
             "\
@@ -1051,11 +1051,11 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn test_edition_from_the_future() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"[package]
                 edition = "2038"
                 name = "foo"
@@ -1066,7 +1066,7 @@ fn test_edition_from_the_future() {
         .file("src/main.rs", r#""#)
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "\
@@ -1076,14 +1076,14 @@ Caused by:
   failed to parse the `edition` key
 
 Caused by:
-  this version of Cargo is older than the `2038` edition, and only supports `2015`, `2018`, and `2021` editions.
+  this version of Payload is older than the `2038` edition, and only supports `2015`, `2018`, and `2021` editions.
 "
             .to_string(),
         )
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn do_not_package_if_src_was_modified() {
     let p = project()
         .file("src/main.rs", r#"fn main() { println!("hello"); }"#)
@@ -1107,14 +1107,14 @@ fn do_not_package_if_src_was_modified() {
         )
         .build();
 
-    p.cargo("package")
+    p.payload("package")
         .with_status(101)
         .with_stderr_contains(
             "\
 error: failed to verify package tarball
 
 Caused by:
-  Source directory was modified by build.rs during cargo publish. \
+  Source directory was modified by build.rs during payload publish. \
   Build scripts should not modify anything outside of OUT_DIR.
   Changed: [CWD]/target/package/foo-0.0.1/bar.txt
   Added: [CWD]/target/package/foo-0.0.1/new-dir
@@ -1126,14 +1126,14 @@ Caused by:
         )
         .run();
 
-    p.cargo("package --no-verify").run();
+    p.payload("package --no-verify").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn package_with_select_features() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1155,14 +1155,14 @@ fn package_with_select_features() {
         )
         .build();
 
-    p.cargo("package --features required").run();
+    p.payload("package --features required").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn package_with_all_features() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1184,14 +1184,14 @@ fn package_with_all_features() {
         )
         .build();
 
-    p.cargo("package --all-features").run();
+    p.payload("package --all-features").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn package_no_default_features() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1213,17 +1213,17 @@ fn package_no_default_features() {
         )
         .build();
 
-    p.cargo("package --no-default-features")
+    p.payload("package --no-default-features")
         .with_stderr_contains("error: This crate requires `required` feature!")
         .with_status(101)
         .run();
 }
 
-#[cargo_test]
-fn include_cargo_toml_implicit() {
+#[payload_test]
+fn include_payload_toml_implicit() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -1234,14 +1234,14 @@ fn include_cargo_toml_implicit() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("package --list")
-        .with_stdout("Cargo.toml\nCargo.toml.orig\nsrc/lib.rs\n")
+    p.payload("package --list")
+        .with_stdout("Payload.toml\nPayload.toml.orig\nsrc/lib.rs\n")
         .run();
 }
 
 fn include_exclude_test(include: &str, exclude: &str, files: &[&str], expected: &str) {
     let mut pb = project().file(
-        "Cargo.toml",
+        "Payload.toml",
         &format!(
             r#"
             [package]
@@ -1264,14 +1264,14 @@ fn include_exclude_test(include: &str, exclude: &str, files: &[&str], expected: 
     }
     let p = pb.build();
 
-    p.cargo("package --list")
+    p.payload("package --list")
         .with_stderr("")
         .with_stdout(expected)
         .run();
     p.root().rm_rf();
 }
 
-#[cargo_test]
+#[payload_test]
 fn package_include_ignore_only() {
     // Test with a gitignore pattern that fails to parse with glob.
     // This is a somewhat nonsense pattern, but is an example of something git
@@ -1279,11 +1279,11 @@ fn package_include_ignore_only() {
     assert!(glob::Pattern::new("src/abc**").is_err());
 
     include_exclude_test(
-        r#"["Cargo.toml", "src/abc**", "src/lib.rs"]"#,
+        r#"["Payload.toml", "src/abc**", "src/lib.rs"]"#,
         "[]",
         &["src/lib.rs", "src/abc1.rs", "src/abc2.rs", "src/abc/mod.rs"],
-        "Cargo.toml\n\
-         Cargo.toml.orig\n\
+        "Payload.toml\n\
+         Payload.toml.orig\n\
          src/abc/mod.rs\n\
          src/abc1.rs\n\
          src/abc2.rs\n\
@@ -1292,14 +1292,14 @@ fn package_include_ignore_only() {
     )
 }
 
-#[cargo_test]
+#[payload_test]
 fn gitignore_patterns() {
     include_exclude_test(
-        r#"["Cargo.toml", "foo"]"#, // include
+        r#"["Payload.toml", "foo"]"#, // include
         "[]",
         &["src/lib.rs", "foo", "a/foo", "a/b/foo", "x/foo/y", "bar"],
-        "Cargo.toml\n\
-         Cargo.toml.orig\n\
+        "Payload.toml\n\
+         Payload.toml.orig\n\
          a/b/foo\n\
          a/foo\n\
          foo\n\
@@ -1308,11 +1308,11 @@ fn gitignore_patterns() {
     );
 
     include_exclude_test(
-        r#"["Cargo.toml", "/foo"]"#, // include
+        r#"["Payload.toml", "/foo"]"#, // include
         "[]",
         &["src/lib.rs", "foo", "a/foo", "a/b/foo", "x/foo/y", "bar"],
-        "Cargo.toml\n\
-         Cargo.toml.orig\n\
+        "Payload.toml\n\
+         Payload.toml.orig\n\
          foo\n\
          ",
     );
@@ -1321,8 +1321,8 @@ fn gitignore_patterns() {
         "[]",
         r#"["foo/"]"#, // exclude
         &["src/lib.rs", "foo", "a/foo", "x/foo/y", "bar"],
-        "Cargo.toml\n\
-         Cargo.toml.orig\n\
+        "Payload.toml\n\
+         Payload.toml.orig\n\
          a/foo\n\
          bar\n\
          foo\n\
@@ -1345,8 +1345,8 @@ fn gitignore_patterns() {
             "y",
             "z",
         ],
-        "Cargo.toml\n\
-         Cargo.toml.orig\n\
+        "Payload.toml\n\
+         Payload.toml.orig\n\
          c\n\
          other\n\
          src/lib.rs\n\
@@ -1354,31 +1354,31 @@ fn gitignore_patterns() {
     );
 
     include_exclude_test(
-        r#"["Cargo.toml", "**/foo/bar"]"#, // include
+        r#"["Payload.toml", "**/foo/bar"]"#, // include
         "[]",
         &["src/lib.rs", "a/foo/bar", "foo", "bar"],
-        "Cargo.toml\n\
-         Cargo.toml.orig\n\
+        "Payload.toml\n\
+         Payload.toml.orig\n\
          a/foo/bar\n\
          ",
     );
 
     include_exclude_test(
-        r#"["Cargo.toml", "foo/**"]"#, // include
+        r#"["Payload.toml", "foo/**"]"#, // include
         "[]",
         &["src/lib.rs", "a/foo/bar", "foo/x/y/z"],
-        "Cargo.toml\n\
-         Cargo.toml.orig\n\
+        "Payload.toml\n\
+         Payload.toml.orig\n\
          foo/x/y/z\n\
          ",
     );
 
     include_exclude_test(
-        r#"["Cargo.toml", "a/**/b"]"#, // include
+        r#"["Payload.toml", "a/**/b"]"#, // include
         "[]",
         &["src/lib.rs", "a/b", "a/x/b", "a/x/y/b"],
-        "Cargo.toml\n\
-         Cargo.toml.orig\n\
+        "Payload.toml\n\
+         Payload.toml.orig\n\
          a/b\n\
          a/x/b\n\
          a/x/y/b\n\
@@ -1386,39 +1386,39 @@ fn gitignore_patterns() {
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn gitignore_negate() {
     include_exclude_test(
-        r#"["Cargo.toml", "*.rs", "!foo.rs", "\\!important"]"#, // include
+        r#"["Payload.toml", "*.rs", "!foo.rs", "\\!important"]"#, // include
         "[]",
         &["src/lib.rs", "foo.rs", "!important"],
         "!important\n\
-         Cargo.toml\n\
-         Cargo.toml.orig\n\
+         Payload.toml\n\
+         Payload.toml.orig\n\
          src/lib.rs\n\
          ",
     );
 
     // NOTE: This is unusual compared to git. Git treats `src/` as a
     // short-circuit which means rules like `!src/foo.rs` would never run.
-    // However, because Cargo only works by iterating over *files*, it doesn't
+    // However, because Payload only works by iterating over *files*, it doesn't
     // short-circuit.
     include_exclude_test(
-        r#"["Cargo.toml", "src/", "!src/foo.rs"]"#, // include
+        r#"["Payload.toml", "src/", "!src/foo.rs"]"#, // include
         "[]",
         &["src/lib.rs", "src/foo.rs"],
-        "Cargo.toml\n\
-         Cargo.toml.orig\n\
+        "Payload.toml\n\
+         Payload.toml.orig\n\
          src/lib.rs\n\
          ",
     );
 
     include_exclude_test(
-        r#"["Cargo.toml", "src/*.rs", "!foo.rs"]"#, // include
+        r#"["Payload.toml", "src/*.rs", "!foo.rs"]"#, // include
         "[]",
         &["src/lib.rs", "foo.rs", "src/foo.rs", "src/bar/foo.rs"],
-        "Cargo.toml\n\
-         Cargo.toml.orig\n\
+        "Payload.toml\n\
+         Payload.toml.orig\n\
          src/lib.rs\n\
          ",
     );
@@ -1427,44 +1427,44 @@ fn gitignore_negate() {
         "[]",
         r#"["*.rs", "!foo.rs", "\\!important"]"#, // exclude
         &["src/lib.rs", "foo.rs", "!important"],
-        "Cargo.toml\n\
-         Cargo.toml.orig\n\
+        "Payload.toml\n\
+         Payload.toml.orig\n\
          foo.rs\n\
          ",
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn exclude_dot_files_and_directories_by_default() {
     include_exclude_test(
         "[]",
         "[]",
         &["src/lib.rs", ".dotfile", ".dotdir/file"],
-        "Cargo.toml\n\
-         Cargo.toml.orig\n\
+        "Payload.toml\n\
+         Payload.toml.orig\n\
          src/lib.rs\n\
          ",
     );
 
     include_exclude_test(
-        r#"["Cargo.toml", "src/lib.rs", ".dotfile", ".dotdir/file"]"#,
+        r#"["Payload.toml", "src/lib.rs", ".dotfile", ".dotdir/file"]"#,
         "[]",
         &["src/lib.rs", ".dotfile", ".dotdir/file"],
         ".dotdir/file\n\
          .dotfile\n\
-         Cargo.toml\n\
-         Cargo.toml.orig\n\
+         Payload.toml\n\
+         Payload.toml.orig\n\
          src/lib.rs\n\
          ",
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn invalid_license_file_path() {
     // Test warning when license-file points to a non-existent file.
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -1477,11 +1477,11 @@ fn invalid_license_file_path() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("package --no-verify")
+    p.payload("package --no-verify")
         .with_stderr(
             "\
 [WARNING] license-file `does-not-exist` does not appear to exist (relative to `[..]/foo`).
-Please update the license-file setting in the manifest at `[..]/foo/Cargo.toml`
+Please update the license-file setting in the manifest at `[..]/foo/Payload.toml`
 This may become a hard error in the future.
 [PACKAGING] foo v1.0.0 ([..]/foo)
 ",
@@ -1489,12 +1489,12 @@ This may become a hard error in the future.
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn license_file_implicit_include() {
     // license-file should be automatically included even if not listed.
     let p = git::new("foo", |p| {
         p.file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -1509,12 +1509,12 @@ fn license_file_implicit_include() {
         .file("subdir/LICENSE", "license text")
     });
 
-    p.cargo("package --list")
+    p.payload("package --list")
         .with_stdout(
             "\
-.cargo_vcs_info.json
-Cargo.toml
-Cargo.toml.orig
+.payload_vcs_info.json
+Payload.toml
+Payload.toml.orig
 src/lib.rs
 subdir/LICENSE
 ",
@@ -1522,13 +1522,13 @@ subdir/LICENSE
         .with_stderr("")
         .run();
 
-    p.cargo("package --no-verify -v")
+    p.payload("package --no-verify -v")
         .with_stderr(
             "\
 [PACKAGING] foo v1.0.0 [..]
-[ARCHIVING] .cargo_vcs_info.json
-[ARCHIVING] Cargo.toml
-[ARCHIVING] Cargo.toml.orig
+[ARCHIVING] .payload_vcs_info.json
+[ARCHIVING] Payload.toml
+[ARCHIVING] Payload.toml.orig
 [ARCHIVING] src/lib.rs
 [ARCHIVING] subdir/LICENSE
 ",
@@ -1539,9 +1539,9 @@ subdir/LICENSE
         f,
         "foo-1.0.0.crate",
         &[
-            ".cargo_vcs_info.json",
-            "Cargo.toml",
-            "Cargo.toml.orig",
+            ".payload_vcs_info.json",
+            "Payload.toml",
+            "Payload.toml.orig",
             "subdir/LICENSE",
             "src/lib.rs",
         ],
@@ -1549,12 +1549,12 @@ subdir/LICENSE
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn relative_license_included() {
     // license-file path outside of package will copy into root.
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -1568,11 +1568,11 @@ fn relative_license_included() {
         .file("../LICENSE", "license text")
         .build();
 
-    p.cargo("package --list")
+    p.payload("package --list")
         .with_stdout(
             "\
-Cargo.toml
-Cargo.toml.orig
+Payload.toml
+Payload.toml.orig
 LICENSE
 src/lib.rs
 ",
@@ -1580,7 +1580,7 @@ src/lib.rs
         .with_stderr("")
         .run();
 
-    p.cargo("package")
+    p.payload("package")
         .with_stderr(
             "\
 [PACKAGING] foo v1.0.0 [..]
@@ -1594,23 +1594,23 @@ src/lib.rs
     validate_crate_contents(
         f,
         "foo-1.0.0.crate",
-        &["Cargo.toml", "Cargo.toml.orig", "LICENSE", "src/lib.rs"],
+        &["Payload.toml", "Payload.toml.orig", "LICENSE", "src/lib.rs"],
         &[("LICENSE", "license text")],
     );
     let manifest =
-        std::fs::read_to_string(p.root().join("target/package/foo-1.0.0/Cargo.toml")).unwrap();
+        std::fs::read_to_string(p.root().join("target/package/foo-1.0.0/Payload.toml")).unwrap();
     assert!(manifest.contains("license-file = \"LICENSE\""));
     let orig =
-        std::fs::read_to_string(p.root().join("target/package/foo-1.0.0/Cargo.toml.orig")).unwrap();
+        std::fs::read_to_string(p.root().join("target/package/foo-1.0.0/Payload.toml.orig")).unwrap();
     assert!(orig.contains("license-file = \"../LICENSE\""));
 }
 
-#[cargo_test]
+#[payload_test]
 fn relative_license_include_collision() {
     // Can't copy a relative license-file if there is a file with that name already.
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -1625,11 +1625,11 @@ fn relative_license_include_collision() {
         .file("LICENSE", "inner license")
         .build();
 
-    p.cargo("package --list")
+    p.payload("package --list")
         .with_stdout(
             "\
-Cargo.toml
-Cargo.toml.orig
+Payload.toml
+Payload.toml.orig
 LICENSE
 src/lib.rs
 ",
@@ -1637,7 +1637,7 @@ src/lib.rs
         .with_stderr("[WARNING] license-file `../LICENSE` appears to be [..]")
         .run();
 
-    p.cargo("package")
+    p.payload("package")
         .with_stderr(
             "\
 [WARNING] license-file `../LICENSE` appears to be [..]
@@ -1652,21 +1652,21 @@ src/lib.rs
     validate_crate_contents(
         f,
         "foo-1.0.0.crate",
-        &["Cargo.toml", "Cargo.toml.orig", "LICENSE", "src/lib.rs"],
+        &["Payload.toml", "Payload.toml.orig", "LICENSE", "src/lib.rs"],
         &[("LICENSE", "inner license")],
     );
-    let manifest = read_to_string(p.root().join("target/package/foo-1.0.0/Cargo.toml")).unwrap();
+    let manifest = read_to_string(p.root().join("target/package/foo-1.0.0/Payload.toml")).unwrap();
     assert!(manifest.contains("license-file = \"LICENSE\""));
-    let orig = read_to_string(p.root().join("target/package/foo-1.0.0/Cargo.toml.orig")).unwrap();
+    let orig = read_to_string(p.root().join("target/package/foo-1.0.0/Payload.toml.orig")).unwrap();
     assert!(orig.contains("license-file = \"../LICENSE\""));
 }
 
-#[cargo_test]
+#[payload_test]
 #[cfg(not(windows))] // Don't want to create invalid files on Windows.
 fn package_restricted_windows() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -1681,7 +1681,7 @@ fn package_restricted_windows() {
         .file("src/aux/mod.rs", "pub fn f() {}")
         .build();
 
-    p.cargo("package")
+    p.payload("package")
         .with_stderr(
             "\
 [WARNING] file src/aux/mod.rs is a reserved Windows filename, it will not work on Windows platforms
@@ -1695,14 +1695,14 @@ fn package_restricted_windows() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn finds_git_in_parent() {
-    // Test where `Cargo.toml` is not in the root of the git repo.
+    // Test where `Payload.toml` is not in the root of the git repo.
     let repo_path = paths::root().join("repo");
     fs::create_dir(&repo_path).unwrap();
     let p = project()
         .at("repo/foo")
-        .file("Cargo.toml", &basic_manifest("foo", "0.1.0"))
+        .file("Payload.toml", &basic_manifest("foo", "0.1.0"))
         .file("src/lib.rs", "")
         .build();
     let repo = git::init(&repo_path);
@@ -1710,11 +1710,11 @@ fn finds_git_in_parent() {
     git::commit(&repo);
     p.change_file("ignoreme", "");
     p.change_file("ignoreme2", "");
-    p.cargo("package --list --allow-dirty")
+    p.payload("package --list --allow-dirty")
         .with_stdout(
             "\
-Cargo.toml
-Cargo.toml.orig
+Payload.toml
+Payload.toml.orig
 ignoreme
 ignoreme2
 src/lib.rs
@@ -1723,12 +1723,12 @@ src/lib.rs
         .run();
 
     p.change_file(".gitignore", "ignoreme");
-    p.cargo("package --list --allow-dirty")
+    p.payload("package --list --allow-dirty")
         .with_stdout(
             "\
 .gitignore
-Cargo.toml
-Cargo.toml.orig
+Payload.toml
+Payload.toml.orig
 ignoreme2
 src/lib.rs
 ",
@@ -1736,19 +1736,19 @@ src/lib.rs
         .run();
 
     fs::write(repo_path.join(".gitignore"), "ignoreme2").unwrap();
-    p.cargo("package --list --allow-dirty")
+    p.payload("package --list --allow-dirty")
         .with_stdout(
             "\
 .gitignore
-Cargo.toml
-Cargo.toml.orig
+Payload.toml
+Payload.toml.orig
 src/lib.rs
 ",
         )
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 #[cfg(windows)]
 fn reserved_windows_name() {
     Package::new("bar", "1.0.0")
@@ -1758,7 +1758,7 @@ fn reserved_windows_name() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1773,7 +1773,7 @@ fn reserved_windows_name() {
         )
         .file("src/main.rs", "extern crate bar;\nfn main() {  }")
         .build();
-    p.cargo("package")
+    p.payload("package")
         .with_status(101)
         .with_stderr_contains(
             "\
@@ -1800,7 +1800,7 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn list_with_path_and_lock() {
     // Allow --list even for something that isn't packageable.
 
@@ -1809,7 +1809,7 @@ fn list_with_path_and_lock() {
     registry::init();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -1823,22 +1823,22 @@ fn list_with_path_and_lock() {
             "#,
         )
         .file("src/main.rs", "fn main() {}")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "")
         .build();
 
-    p.cargo("package --list")
+    p.payload("package --list")
         .with_stdout(
             "\
-Cargo.lock
-Cargo.toml
-Cargo.toml.orig
+Payload.lock
+Payload.toml
+Payload.toml.orig
 src/main.rs
 ",
         )
         .run();
 
-    p.cargo("package")
+    p.payload("package")
         .with_status(101)
         .with_stderr(
             "\
@@ -1849,7 +1849,7 @@ dependency `bar` does not specify a version.
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn long_file_names() {
     // Filenames over 100 characters require a GNU extension tarfile.
     // See #8453.
@@ -1864,10 +1864,10 @@ fn long_file_names() {
         // Long paths on Windows require a special registry entry that is
         // disabled by default (even on Windows 10).
         // https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
-        // If the directory where Cargo runs happens to be more than 80 characters
+        // If the directory where Payload runs happens to be more than 80 characters
         // long, then it will bump into this limit.
         //
-        // First create a directory to account for various paths Cargo will
+        // First create a directory to account for various paths Payload will
         // be using in the target directory (such as "target/package/foo-0.1.0").
         let test_path = paths::root().join("test-dir-probe-long-path-support");
         test_path.mkdir_p();
@@ -1890,7 +1890,7 @@ fn long_file_names() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -1906,14 +1906,14 @@ fn long_file_names() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("package").run();
-    p.cargo("package --list")
+    p.payload("package").run();
+    p.payload("package --list")
         .with_stdout(&format!(
             "\
 {}
-Cargo.lock
-Cargo.toml
-Cargo.toml.orig
+Payload.lock
+Payload.toml
+Payload.toml.orig
 src/main.rs
 ",
             long_name
@@ -1921,11 +1921,11 @@ src/main.rs
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn reproducible_output() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1939,7 +1939,7 @@ fn reproducible_output() {
         .file("src/main.rs", r#"fn main() { println!("hello"); }"#)
         .build();
 
-    p.cargo("package").run();
+    p.payload("package").run();
     assert!(p.root().join("target/package/foo-0.0.1.crate").is_file());
 
     let f = File::open(&p.root().join("target/package/foo-0.0.1.crate")).unwrap();

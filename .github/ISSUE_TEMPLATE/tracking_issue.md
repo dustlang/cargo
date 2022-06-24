@@ -1,6 +1,6 @@
 ---
 name: Tracking Issue
-about: A tracking issue for an accepted feature or RFC in Cargo.
+about: A tracking issue for an accepted feature or RFC in Payload.
 title: Tracking Issue for XXX
 labels: C-tracking-issue
 ---
@@ -12,10 +12,10 @@ file a tracking issue until the feature or RFC has been approved.
 
 **Summary**
 
-RFC: [#NNNN](https://github.com/rust-lang/rfcs/pull/NNNN) <!-- If this is an RFC -->
+RFC: [#NNNN](https://github.com/dustlang/rfcs/pull/NNNN) <!-- If this is an RFC -->
 Original issue: #NNNN <!-- if there is a related issue that spawned this feature -->
 Implementation: #NNNN <!-- link to the PR that implemented this feature if applicable -->
-Documentation: https://doc.rust-lang.org/nightly/cargo/reference/unstable.html#my-feature
+Documentation: https://doc.dustlang.com/nightly/payload/reference/unstable.html#my-feature
 
 <!-- Write a very brief summary of the feature here. -->
 

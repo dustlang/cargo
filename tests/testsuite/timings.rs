@@ -1,15 +1,15 @@
 //! Tests for -Ztimings.
 
-use cargo_test_support::project;
-use cargo_test_support::registry::Package;
+use payload_test_support::project;
+use payload_test_support::registry::Package;
 
-#[cargo_test]
+#[payload_test]
 fn timings_works() {
     Package::new("dep", "0.1.0").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -25,8 +25,8 @@ fn timings_works() {
         .file("examples/ex1.rs", "fn main() {}")
         .build();
 
-    p.cargo("build --all-targets -Ztimings")
-        .masquerade_as_nightly_cargo()
+    p.payload("build --all-targets -Ztimings")
+        .masquerade_as_nightly_payload()
         .with_stderr_unordered(
             "\
 [UPDATING] [..]
@@ -42,24 +42,24 @@ fn timings_works() {
 [COMPLETED] foo v0.1.0 bin \"foo\" (test) in [..]s
 [COMPLETED] foo v0.1.0 test \"t1\" (test) in [..]s
 [FINISHED] [..]
-      Timing report saved to [..]/foo/cargo-timing-[..].html
+      Timing report saved to [..]/foo/payload-timing-[..].html
 ",
         )
         .run();
 
-    p.cargo("clean").run();
+    p.payload("clean").run();
 
-    p.cargo("test -Ztimings")
-        .masquerade_as_nightly_cargo()
+    p.payload("test -Ztimings")
+        .masquerade_as_nightly_payload()
         .run();
 
-    p.cargo("clean").run();
+    p.payload("clean").run();
 
-    p.cargo("check -Ztimings")
-        .masquerade_as_nightly_cargo()
+    p.payload("check -Ztimings")
+        .masquerade_as_nightly_payload()
         .run();
 
-    p.cargo("clean").run();
+    p.payload("clean").run();
 
-    p.cargo("doc -Ztimings").masquerade_as_nightly_cargo().run();
+    p.payload("doc -Ztimings").masquerade_as_nightly_payload().run();
 }

@@ -1,7 +1,7 @@
 # Issue Tracker
 
-Cargo's issue tracker is located at
-<https://github.com/rust-lang/cargo/issues/>. This is the primary spot where
+Payload's issue tracker is located at
+<https://github.com/dustlang/payload/issues/>. This is the primary spot where
 we track bugs and small feature requests. See [Process] for more about our
 process for proposing changes.
 
@@ -11,7 +11,7 @@ We can't fix what we don't know about, so please report problems liberally.
 This includes problems with understanding the documentation, unhelpful error
 messages, and unexpected behavior.
 
-**If you think that you have identified an issue with Cargo that might
+**If you think that you have identified an issue with Payload that might
 compromise its users' security, please do not open a public issue on GitHub.
 Instead, we ask you to refer to Rust's [security policy].**
 
@@ -26,38 +26,38 @@ If you file in the wrong tracker, someone will either transfer it to the
 correct one or ask you to move it. Some other repositories that may be
 relevant are:
 
-* [`rust-lang/rust`] — Home for the [`rustc`] compiler and [`rustdoc`].
-* [`rust-lang/rustup`] — Home for the [`rustup`] toolchain installer.
-* [`rust-lang/rustfmt`] — Home for the `rustfmt` tool, which also includes `cargo fmt`.
-* [`rust-lang/rust-clippy`] — Home for the `clippy` tool, which also includes `cargo clippy`.
-* [`rust-lang/crates.io`] — Home for the [crates.io] website.
+* [`dustlang/rust`] — Home for the [`rustc`] compiler and [`rustdoc`].
+* [`dustlang/rustup`] — Home for the [`rustup`] toolchain installer.
+* [`dustlang/rustfmt`] — Home for the `rustfmt` tool, which also includes `payload fmt`.
+* [`dustlang/rust-clippy`] — Home for the `clippy` tool, which also includes `payload clippy`.
+* [`dustlang/crates.io`] — Home for the [crates.io] website.
 
-Issues with [`cargo fix`] can be tricky to know where they should be filed,
+Issues with [`payload fix`] can be tricky to know where they should be filed,
 since the fixes are driven by `rustc`, processed by [`rustfix`], and the
-front-interface is implemented in Cargo. Feel free to file in the Cargo issue
+front-interface is implemented in Payload. Feel free to file in the Payload issue
 tracker, and it will get moved to one of the other issue trackers if
 necessary.
 
 [Process]: process/index.md
-[security policy]: https://www.rust-lang.org/security.html
-[new-issues]: https://github.com/rust-lang/cargo/issues/new/choose
-[Open a blank issue]: https://github.com/rust-lang/cargo/issues/new
-[`rust-lang/rust`]: https://github.com/rust-lang/rust
-[`rust-lang/rustup`]: https://github.com/rust-lang/rustup
-[`rust-lang/rustfmt`]: https://github.com/rust-lang/rustfmt
-[`rust-lang/rust-clippy`]: https://github.com/rust-lang/rust-clippy
-[`rustc`]: https://doc.rust-lang.org/rustc/
-[`rustdoc`]: https://doc.rust-lang.org/rustdoc/
-[`rustup`]: https://rust-lang.github.io/rustup/
-[`rust-lang/crates.io`]: https://github.com/rust-lang/crates.io
+[security policy]: https://www.dustlang.com/security.html
+[new-issues]: https://github.com/dustlang/payload/issues/new/choose
+[Open a blank issue]: https://github.com/dustlang/payload/issues/new
+[`dustlang/rust`]: https://github.com/dustlang/rust
+[`dustlang/rustup`]: https://github.com/dustlang/rustup
+[`dustlang/rustfmt`]: https://github.com/dustlang/rustfmt
+[`dustlang/rust-clippy`]: https://github.com/dustlang/rust-clippy
+[`rustc`]: https://doc.dustlang.com/rustc/
+[`rustdoc`]: https://doc.dustlang.com/rustdoc/
+[`rustup`]: https://dustlang.github.io/rustup/
+[`dustlang/crates.io`]: https://github.com/dustlang/crates.io
 [crates.io]: https://crates.io/
-[`rustfix`]: https://github.com/rust-lang/rustfix/
-[`cargo fix`]: https://doc.rust-lang.org/cargo/commands/cargo-fix.html
+[`rustfix`]: https://github.com/dustlang/rustfix/
+[`payload fix`]: https://doc.dustlang.com/payload/commands/payload-fix.html
 
 ## Issue labels
 
 [Issue labels] are very helpful to identify the types of issues and which
-category they are related to. The Cargo team typically manages assigning
+category they are related to. The Payload team typically manages assigning
 labels. The labels use a naming convention with short prefixes and colors to
 indicate the kind of label:
 
@@ -69,10 +69,10 @@ indicate the kind of label:
   an issue is **C-feature-request**, but is not **[Feature accepted]** or
   **[I-nominated]**, then it was not thoroughly discussed, and might need some
   additional design or perhaps should be implemented as an external subcommand
-  first. Ping @rust-lang/cargo if you want to send a PR for such issue.
+  first. Ping @dustlang/payload if you want to send a PR for such issue.
 
 * Dark purple, **Command**-prefixed labels mean the issue has to do with a
-  specific cargo command.
+  specific payload command.
 
 * Green, **E**-prefixed labels indicate the level of **experience** or
   **effort** necessary to fix the issue. **[E-mentor]** issues also
@@ -97,13 +97,13 @@ indicate the kind of label:
 
 * Dark blue, **Z**-prefixed labels are for unstable, [nightly features].
 
-[Issue labels]: https://github.com/rust-lang/cargo/labels
-[E-easy]: https://github.com/rust-lang/cargo/labels/E-easy
-[E-mentor]: https://github.com/rust-lang/cargo/labels/E-mentor
-[I-nominated]: https://github.com/rust-lang/cargo/labels/I-nominated
-[C-feature-request]: https://github.com/rust-lang/cargo/labels/C-feature-request
-[Feature accepted]: https://github.com/rust-lang/cargo/labels/Feature%20accepted
-[S-blocked]: https://github.com/rust-lang/cargo/labels/S-blocked
-[Rust release notes]: https://github.com/rust-lang/rust/blob/master/RELEASES.md
-[nightly features]: https://doc.rust-lang.org/nightly/cargo/reference/unstable.html
-[relnotes]: https://github.com/rust-lang/cargo/issues?q=label%3Arelnotes
+[Issue labels]: https://github.com/dustlang/payload/labels
+[E-easy]: https://github.com/dustlang/payload/labels/E-easy
+[E-mentor]: https://github.com/dustlang/payload/labels/E-mentor
+[I-nominated]: https://github.com/dustlang/payload/labels/I-nominated
+[C-feature-request]: https://github.com/dustlang/payload/labels/C-feature-request
+[Feature accepted]: https://github.com/dustlang/payload/labels/Feature%20accepted
+[S-blocked]: https://github.com/dustlang/payload/labels/S-blocked
+[Rust release notes]: https://github.com/dustlang/rust/blob/master/RELEASES.md
+[nightly features]: https://doc.dustlang.com/nightly/payload/reference/unstable.html
+[relnotes]: https://github.com/dustlang/payload/issues?q=label%3Arelnotes

@@ -14,8 +14,8 @@ and consists of comma-separated values. Valid values:
 - `json-diagnostic-rendered-ansi`: Ensure the `rendered` field of JSON messages
   contains embedded ANSI color codes for respecting rustc's default color
   scheme. Cannot be used with `human` or `short`.
-- `json-render-diagnostics`: Instruct Cargo to not include rustc diagnostics in
-  in JSON messages printed, but instead Cargo itself should render the
-  JSON diagnostics coming from rustc. Cargo's own JSON diagnostics and others
+- `json-render-diagnostics`: Instruct Payload to not include rustc diagnostics in
+  in JSON messages printed, but instead Payload itself should render the
+  JSON diagnostics coming from rustc. Payload's own JSON diagnostics and others
   coming from rustc are still emitted. Cannot be used with `human` or `short`.
 {{/option}}

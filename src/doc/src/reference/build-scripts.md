@@ -6,16 +6,16 @@ located on the system or possibly need to be built from source. Others still
 need facilities for functionality such as code generation before building (think
 parser generators).
 
-Cargo does not aim to replace other tools that are well-optimized for these
+Payload does not aim to replace other tools that are well-optimized for these
 tasks, but it does integrate with them with custom build scripts. Placing a
-file named `build.rs` in the root of a package will cause Cargo to compile
+file named `build.rs` in the root of a package will cause Payload to compile
 that script and execute it just before building the package.
 
 ```rust,ignore
 // Example custom build script.
 fn main() {
-    // Tell Cargo that if the given file changes, to rerun this build script.
-    println!("cargo:rerun-if-changed=src/hello.c");
+    // Tell Payload that if the given file changes, to rerun this build script.
+    println!("payload:rerun-if-changed=src/hello.c");
     // Use the `cc` crate to build a C file and statically link it.
     cc::Build::new()
         .file("src/hello.c")
@@ -39,15 +39,15 @@ scripts.
 
 ### Life Cycle of a Build Script
 
-Just before a package is built, Cargo will compile a build script into an
+Just before a package is built, Payload will compile a build script into an
 executable (if it has not already been built). It will then run the script,
-which may perform any number of tasks. The script may communicate with Cargo
-by printing specially formatted commands prefixed with `cargo:` to stdout.
+which may perform any number of tasks. The script may communicate with Payload
+by printing specially formatted commands prefixed with `payload:` to stdout.
 
 The build script will be rebuilt if any of its source files or dependencies
 change.
 
-By default, Cargo will re-run the build script if any of the files in the
+By default, Payload will re-run the build script if any of the files in the
 package changes. Typically it is best to use the `rerun-if` commands,
 described in the [change detection](#change-detection) section below, to
 narrow the focus of what triggers a build script to run again.
@@ -65,7 +65,7 @@ all passed in the form of [environment variables][build-env].
 In addition to environment variables, the build script’s current directory is
 the source directory of the build script’s package.
 
-[build-env]: environment-variables.md#environment-variables-cargo-sets-for-build-scripts
+[build-env]: environment-variables.md#environment-variables-payload-sets-for-build-scripts
 
 ### Outputs of the Build Script
 
@@ -73,47 +73,47 @@ Build scripts may save any output files in the directory specified in the
 [`OUT_DIR` environment variable][build-env]. Scripts should not modify any
 files outside of that directory.
 
-Build scripts communicate with Cargo by printing to stdout. Cargo will
-interpret each line that starts with `cargo:` as an instruction that will
+Build scripts communicate with Payload by printing to stdout. Payload will
+interpret each line that starts with `payload:` as an instruction that will
 influence compilation of the package. All other lines are ignored.
 
 The output of the script is hidden from the terminal during normal
 compilation. If you would like to see the output directly in your terminal,
-invoke Cargo as "very verbose" with the `-vv` flag. This only happens when the
-build script is run. If Cargo determines nothing has changed, it will not
+invoke Payload as "very verbose" with the `-vv` flag. This only happens when the
+build script is run. If Payload determines nothing has changed, it will not
 re-run the script, see [change detection](#change-detection) below for more.
 
 All the lines printed to stdout by a build script are written to a file like
 `target/debug/build/<pkg>/output` (the precise location may depend on your
 configuration). The stderr output is also saved in that same directory.
 
-The following is a summary of the instructions that Cargo recognizes, with each
+The following is a summary of the instructions that Payload recognizes, with each
 one detailed below.
 
-* [`cargo:rerun-if-changed=PATH`](#rerun-if-changed) — Tells Cargo when to
+* [`payload:rerun-if-changed=PATH`](#rerun-if-changed) — Tells Payload when to
   re-run the script.
-* [`cargo:rerun-if-env-changed=VAR`](#rerun-if-env-changed) — Tells Cargo when
+* [`payload:rerun-if-env-changed=VAR`](#rerun-if-env-changed) — Tells Payload when
   to re-run the script.
-* [`cargo:rustc-link-lib=[KIND=]NAME`](#rustc-link-lib) — Adds a library to
+* [`payload:rustc-link-lib=[KIND=]NAME`](#rustc-link-lib) — Adds a library to
   link.
-* [`cargo:rustc-link-search=[KIND=]PATH`](#rustc-link-search) — Adds to the
+* [`payload:rustc-link-search=[KIND=]PATH`](#rustc-link-search) — Adds to the
   library search path.
-* [`cargo:rustc-flags=FLAGS`](#rustc-flags) — Passes certain flags to the
+* [`payload:rustc-flags=FLAGS`](#rustc-flags) — Passes certain flags to the
   compiler.
-* [`cargo:rustc-cfg=KEY[="VALUE"]`](#rustc-cfg) — Enables compile-time `cfg`
+* [`payload:rustc-cfg=KEY[="VALUE"]`](#rustc-cfg) — Enables compile-time `cfg`
   settings.
-* [`cargo:rustc-env=VAR=VALUE`](#rustc-env) — Sets an environment variable.
-* [`cargo:rustc-cdylib-link-arg=FLAG`](#rustc-cdylib-link-arg) — Passes custom
+* [`payload:rustc-env=VAR=VALUE`](#rustc-env) — Sets an environment variable.
+* [`payload:rustc-cdylib-link-arg=FLAG`](#rustc-cdylib-link-arg) — Passes custom
   flags to a linker for cdylib crates.
-* [`cargo:warning=MESSAGE`](#cargo-warning) — Displays a warning on the
+* [`payload:warning=MESSAGE`](#payload-warning) — Displays a warning on the
   terminal.
-* [`cargo:KEY=VALUE`](#the-links-manifest-key) — Metadata, used by `links`
+* [`payload:KEY=VALUE`](#the-links-manifest-key) — Metadata, used by `links`
   scripts.
 
 <a id="rustc-link-lib"></a>
-#### `cargo:rustc-link-lib=[KIND=]NAME`
+#### `payload:rustc-link-lib=[KIND=]NAME`
 
-The `rustc-link-lib` instruction tells Cargo to link the given library using
+The `rustc-link-lib` instruction tells Payload to link the given library using
 the compiler's [`-l` flag][option-link]. This is typically used to link a
 native library using [FFI].
 
@@ -132,9 +132,9 @@ The optional `KIND` may be one of `dylib`, `static`, or `framework`. See the
 [FFI]: ../../nomicon/ffi.md
 
 <a id="rustc-link-search"></a>
-#### `cargo:rustc-link-search=[KIND=]PATH`
+#### `payload:rustc-link-search=[KIND=]PATH`
 
-The `rustc-link-search` instruction tells Cargo to pass the [`-L`
+The `rustc-link-search` instruction tells Payload to pass the [`-L`
 flag][option-search] to the compiler to add a directory to the library search
 path.
 
@@ -151,78 +151,78 @@ is fine).
 [option-search]: ../../rustc/command-line-arguments.md#option-l-search-path
 
 <a id="rustc-flags"></a>
-#### `cargo:rustc-flags=FLAGS`
+#### `payload:rustc-flags=FLAGS`
 
-The `rustc-flags` instruction tells Cargo to pass the given space-separated
+The `rustc-flags` instruction tells Payload to pass the given space-separated
 flags to the compiler. This only allows the `-l` and `-L` flags, and is
 equivalent to using [`rustc-link-lib`](#rustc-link-lib) and
 [`rustc-link-search`](#rustc-link-search).
 
 <a id="rustc-cfg"></a>
-#### `cargo:rustc-cfg=KEY[="VALUE"]`
+#### `payload:rustc-cfg=KEY[="VALUE"]`
 
-The `rustc-cfg` instruction tells Cargo to pass the given value to the
+The `rustc-cfg` instruction tells Payload to pass the given value to the
 [`--cfg` flag][option-cfg] to the compiler. This may be used for compile-time
 detection of features to enable [conditional compilation].
 
-Note that this does *not* affect Cargo's dependency resolution. This cannot be
-used to enable an optional dependency, or enable other Cargo features.
+Note that this does *not* affect Payload's dependency resolution. This cannot be
+used to enable an optional dependency, or enable other Payload features.
 
-Be aware that [Cargo features] use the form `feature="foo"`. `cfg` values
+Be aware that [Payload features] use the form `feature="foo"`. `cfg` values
 passed with this flag are not restricted to that form, and may provide just a
 single identifier, or any arbitrary key/value pair. For example, emitting
-`cargo:rustc-cfg=abc` will then allow code to use `#[cfg(abc)]` (note the lack
+`payload:rustc-cfg=abc` will then allow code to use `#[cfg(abc)]` (note the lack
 of `feature=`). Or an arbitrary key/value pair may be used with an `=` symbol
-like `cargo:rustc-cfg=my_component="foo"`. The key should be a Rust
+like `payload:rustc-cfg=my_component="foo"`. The key should be a Rust
 identifier, the value should be a string.
 
-[cargo features]: features.md
+[payload features]: features.md
 [conditional compilation]: ../../reference/conditional-compilation.md
 [option-cfg]: ../../rustc/command-line-arguments.md#option-cfg
 
 <a id="rustc-env"></a>
-#### `cargo:rustc-env=VAR=VALUE`
+#### `payload:rustc-env=VAR=VALUE`
 
-The `rustc-env` instruction tells Cargo to set the given environment variable
+The `rustc-env` instruction tells Payload to set the given environment variable
 when compiling the package. The value can be then retrieved by the [`env!`
 macro][env-macro] in the compiled crate. This is useful for embedding
 additional metadata in crate's code, such as the hash of git HEAD or the
 unique identifier of a continuous integration server.
 
 See also the [environment variables automatically included by
-Cargo][env-cargo].
+Payload][env-payload].
 
 > **Note**: These environment variables are also set when running an
-> executable with `cargo run` or `cargo test`. However, this usage is
-> discouraged since it ties the executable to Cargo's execution environment.
+> executable with `payload run` or `payload test`. However, this usage is
+> discouraged since it ties the executable to Payload's execution environment.
 > Normally, these environment variables should only be checked at compile-time
 > with the `env!` macro.
 
 [env-macro]: ../../std/macro.env.html
-[env-cargo]: environment-variables.md#environment-variables-cargo-sets-for-crates
+[env-payload]: environment-variables.md#environment-variables-payload-sets-for-crates
 
 <a id="rustc-cdylib-link-arg"></a>
-#### `cargo:rustc-cdylib-link-arg=FLAG`
+#### `payload:rustc-cdylib-link-arg=FLAG`
 
-The `rustc-cdylib-link-arg` instruction tells Cargo to pass the [`-C
+The `rustc-cdylib-link-arg` instruction tells Payload to pass the [`-C
 link-arg=FLAG` option][link-arg] to the compiler, but only when building a
 `cdylib` library target. Its usage is highly platform specific. It is useful
 to set the shared library version or the runtime-path.
 
 [link-arg]: ../../rustc/codegen-options/index.md#link-arg
 
-<a id="cargo-warning"></a>
-#### `cargo:warning=MESSAGE`
+<a id="payload-warning"></a>
+#### `payload:warning=MESSAGE`
 
-The `warning` instruction tells Cargo to display a warning after the build
+The `warning` instruction tells Payload to display a warning after the build
 script has finished running. Warnings are only shown for `path` dependencies
 (that is, those you're working on locally), so for example warnings printed
 out in [crates.io] crates are not emitted by default. The `-vv` "very verbose"
-flag may be used to have Cargo display warnings for all crates.
+flag may be used to have Payload display warnings for all crates.
 
 ### Build Dependencies
 
-Build scripts are also allowed to have dependencies on other Cargo-based crates.
+Build scripts are also allowed to have dependencies on other Payload-based crates.
 Dependencies are declared through the `build-dependencies` section of the
 manifest.
 
@@ -237,29 +237,29 @@ build dependencies are not available to the package itself unless also
 explicitly added in the `[dependencies]` table.
 
 It is recommended to carefully consider each dependency you add, weighing
-against the impact on compile time, licensing, maintenance, etc. Cargo will
+against the impact on compile time, licensing, maintenance, etc. Payload will
 attempt to reuse a dependency if it is shared between build dependencies and
 normal dependencies. However, this is not always possible, for example when
 cross-compiling, so keep that in consideration of the impact on compile time.
 
 ### Change Detection
 
-When rebuilding a package, Cargo does not necessarily know if the build script
+When rebuilding a package, Payload does not necessarily know if the build script
 needs to be run again. By default, it takes a conservative approach of always
 re-running the build script if any file within the package is changed (or the
 list of files controlled by the [`exclude` and `include` fields]). For most
 cases, this is not a good choice, so it is recommended that every build script
 emit at least one of the `rerun-if` instructions (described below). If these
-are emitted, then Cargo will only re-run the script if the given value has
+are emitted, then Payload will only re-run the script if the given value has
 changed.
 
 [`exclude` and `include` fields]: manifest.md#the-exclude-and-include-fields
 
 <a id="rerun-if-changed"></a>
-#### `cargo:rerun-if-changed=PATH`
+#### `payload:rerun-if-changed=PATH`
 
-The `rerun-if-changed` instruction tells Cargo to re-run the build script if
-the file at the given path has changed. Currently, Cargo only uses the
+The `rerun-if-changed` instruction tells Payload to re-run the build script if
+the file at the given path has changed. Currently, Payload only uses the
 filesystem last-modified "mtime" timestamp to determine if the file has
 changed. It compares against an internal cached timestamp of when the build
 script last ran.
@@ -268,29 +268,29 @@ If the path points to a directory, it will scan the entire directory for
 any modifications.
 
 If the build script inherently does not need to re-run under any circumstance,
-then emitting `cargo:rerun-if-changed=build.rs` is a simple way to prevent it
+then emitting `payload:rerun-if-changed=build.rs` is a simple way to prevent it
 from being re-run (otherwise, the default if no `rerun-if` instructions are
-emitted is to scan the entire package directory for changes). Cargo
+emitted is to scan the entire package directory for changes). Payload
 automatically handles whether or not the script itself needs to be recompiled,
 and of course the script will be re-run after it has been recompiled.
 Otherwise, specifying `build.rs` is redundant and unnecessary.
 
 <a id="rerun-if-env-changed"></a>
-#### `cargo:rerun-if-env-changed=NAME`
+#### `payload:rerun-if-env-changed=NAME`
 
-The `rerun-if-env-changed` instruction tells Cargo to re-run the build script
+The `rerun-if-env-changed` instruction tells Payload to re-run the build script
 if the value of an environment variable of the given name has changed.
 
 Note that the environment variables here are intended for global environment
 variables like `CC` and such, it is not necessary to use this for environment
-variables like `TARGET` that Cargo sets.
+variables like `TARGET` that Payload sets.
 
 
 ### The `links` Manifest Key
 
-The `package.links` key may be set in the `Cargo.toml` manifest to declare
+The `package.links` key may be set in the `Payload.toml` manifest to declare
 that the package links with the given native library. The purpose of this
-manifest key is to give Cargo an understanding about the set of native
+manifest key is to give Payload an understanding about the set of native
 dependencies that a package has, as well as providing a principled system of
 passing metadata between package build scripts.
 
@@ -305,7 +305,7 @@ When using the `links` key, the package must have a build script, and the
 build script should use the [`rustc-link-lib` instruction](#rustc-link-lib) to
 link the library.
 
-Primarily, Cargo requires that there is at most one package per `links` value.
+Primarily, Payload requires that there is at most one package per `links` value.
 In other words, it is forbidden to have two packages link to the same native
 library. This helps prevent duplicate symbols between crates. Note, however,
 that there are [conventions in place](#-sys-packages) to alleviate this.
@@ -326,7 +326,7 @@ dependents.
 
 ### `*-sys` Packages
 
-Some Cargo packages that link to system libraries have a naming convention of
+Some Payload packages that link to system libraries have a naming convention of
 having a `-sys` suffix. Any package named `foo-sys` should provide two major
 pieces of functionality:
 
@@ -359,13 +359,13 @@ example, the [`git2` crate] provides a high-level interface to the
 
 ### Overriding Build Scripts
 
-If a manifest contains a `links` key, then Cargo supports overriding the build
+If a manifest contains a `links` key, then Payload supports overriding the build
 script specified with a custom library. The purpose of this functionality is to
 prevent running the build script in question altogether and instead supply the
 metadata ahead of time.
 
 To override a build script, place the following configuration in any acceptable
-Cargo [configuration location](config.md).
+Payload [configuration location](config.md).
 
 ```toml
 [target.x86_64-unknown-linux-gnu.foo]
@@ -388,14 +388,14 @@ be used and will be ignored.
 
 ### Jobserver
 
-Cargo and `rustc` use the [jobserver protocol], developed for GNU make, to
+Payload and `rustc` use the [jobserver protocol], developed for GNU make, to
 coordinate concurrency across processes. It is essentially a semaphore that
 controls the number of jobs running concurrently. The concurrency may be set
 with the `--jobs` flag, which defaults to the number of logical CPUs.
 
-Each build script inherits one job slot from Cargo, and should endeavor to
+Each build script inherits one job slot from Payload, and should endeavor to
 only use one CPU while it runs. If the script wants to use more CPUs in
-parallel, it should use the [`jobserver` crate] to coordinate with Cargo.
+parallel, it should use the [`jobserver` crate] to coordinate with Payload.
 
 As an example, the [`cc` crate] may enable the optional `parallel` feature
 which will use the jobserver protocol to attempt to build multiple C files

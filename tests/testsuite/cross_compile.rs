@@ -1,11 +1,11 @@
 //! Tests for cross compiling with --target.
 //!
-//! See `cargo_test_support::cross_compile` for more detail.
+//! See `payload_test_support::cross_compile` for more detail.
 
-use cargo_test_support::{basic_bin_manifest, basic_manifest, cross_compile, project};
-use cargo_test_support::{is_nightly, rustc_host};
+use payload_test_support::{basic_bin_manifest, basic_manifest, cross_compile, project};
+use payload_test_support::{is_nightly, rustc_host};
 
-#[cargo_test]
+#[payload_test]
 fn simple_cross() {
     if cross_compile::disabled() {
         return;
@@ -13,7 +13,7 @@ fn simple_cross() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -48,7 +48,7 @@ fn simple_cross() {
         .build();
 
     let target = cross_compile::alternate();
-    p.cargo("build -v --target").arg(&target).run();
+    p.payload("build -v --target").arg(&target).run();
     assert!(p.target_bin(target, "foo").is_file());
 
     if cross_compile::can_run_on_host() {
@@ -56,7 +56,7 @@ fn simple_cross() {
     }
 }
 
-#[cargo_test]
+#[payload_test]
 fn simple_cross_config() {
     if cross_compile::disabled() {
         return;
@@ -64,7 +64,7 @@ fn simple_cross_config() {
 
     let p = project()
         .file(
-            ".cargo/config",
+            ".payload/config",
             &format!(
                 r#"
                     [build]
@@ -74,7 +74,7 @@ fn simple_cross_config() {
             ),
         )
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -109,7 +109,7 @@ fn simple_cross_config() {
         .build();
 
     let target = cross_compile::alternate();
-    p.cargo("build -v").run();
+    p.payload("build -v").run();
     assert!(p.target_bin(target, "foo").is_file());
 
     if cross_compile::can_run_on_host() {
@@ -117,7 +117,7 @@ fn simple_cross_config() {
     }
 }
 
-#[cargo_test]
+#[payload_test]
 fn simple_deps() {
     if cross_compile::disabled() {
         return;
@@ -125,7 +125,7 @@ fn simple_deps() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -140,12 +140,12 @@ fn simple_deps() {
         .build();
     let _p2 = project()
         .at("bar")
-        .file("Cargo.toml", &basic_manifest("bar", "0.0.1"))
+        .file("Payload.toml", &basic_manifest("bar", "0.0.1"))
         .file("src/lib.rs", "pub fn bar() {}")
         .build();
 
     let target = cross_compile::alternate();
-    p.cargo("build --target").arg(&target).run();
+    p.payload("build --target").arg(&target).run();
     assert!(p.target_bin(target, "foo").is_file());
 
     if cross_compile::can_run_on_host() {
@@ -153,7 +153,7 @@ fn simple_deps() {
     }
 }
 
-#[cargo_test]
+#[payload_test]
 fn linker() {
     if cross_compile::disabled() {
         return;
@@ -162,7 +162,7 @@ fn linker() {
     let target = cross_compile::alternate();
     let p = project()
         .file(
-            ".cargo/config",
+            ".payload/config",
             &format!(
                 r#"
                     [target.{}]
@@ -171,7 +171,7 @@ fn linker() {
                 target
             ),
         )
-        .file("Cargo.toml", &basic_bin_manifest("foo"))
+        .file("Payload.toml", &basic_bin_manifest("foo"))
         .file(
             "src/foo.rs",
             &format!(
@@ -186,7 +186,7 @@ fn linker() {
         )
         .build();
 
-    p.cargo("build -v --target")
+    p.payload("build -v --target")
         .arg(&target)
         .with_status(101)
         .with_stderr_contains(&format!(
@@ -206,7 +206,7 @@ fn linker() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn plugin_with_extra_dylib_dep() {
     if cross_compile::disabled() {
         return;
@@ -218,7 +218,7 @@ fn plugin_with_extra_dylib_dep() {
 
     let foo = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -242,7 +242,7 @@ fn plugin_with_extra_dylib_dep() {
     let _bar = project()
         .at("bar")
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -277,7 +277,7 @@ fn plugin_with_extra_dylib_dep() {
     let _baz = project()
         .at("baz")
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "baz"
@@ -293,10 +293,10 @@ fn plugin_with_extra_dylib_dep() {
         .build();
 
     let target = cross_compile::alternate();
-    foo.cargo("build --target").arg(&target).run();
+    foo.payload("build --target").arg(&target).run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn cross_tests() {
     if !cross_compile::can_run_on_host() {
         return;
@@ -304,7 +304,7 @@ fn cross_tests() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -344,7 +344,7 @@ fn cross_tests() {
         .build();
 
     let target = cross_compile::alternate();
-    p.cargo("test --target")
+    p.payload("test --target")
         .arg(&target)
         .with_stderr(&format!(
             "\
@@ -359,7 +359,7 @@ fn cross_tests() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn no_cross_doctests() {
     if cross_compile::disabled() {
         return;
@@ -385,11 +385,11 @@ fn no_cross_doctests() {
 ";
 
     println!("a");
-    p.cargo("test").with_stderr(&host_output).run();
+    p.payload("test").with_stderr(&host_output).run();
 
     println!("b");
     let target = rustc_host();
-    p.cargo("test --target")
+    p.payload("test --target")
         .arg(&target)
         .with_stderr(&format!(
             "\
@@ -407,7 +407,7 @@ fn no_cross_doctests() {
 
     // This will build the library, but does not build or run doc tests.
     // This should probably be a warning or error.
-    p.cargo("test -v --doc --target")
+    p.payload("test -v --doc --target")
         .arg(&target)
         .with_stderr(
             "\
@@ -423,7 +423,7 @@ fn no_cross_doctests() {
     }
 
     // This tests the library, but does not run the doc tests.
-    p.cargo("test -v --target")
+    p.payload("test -v --target")
         .arg(&target)
         .with_stderr(&format!(
             "\
@@ -437,8 +437,8 @@ fn no_cross_doctests() {
         .run();
 }
 
-#[cargo_test]
-fn simple_cargo_run() {
+#[payload_test]
+fn simple_payload_run() {
     if !cross_compile::can_run_on_host() {
         return;
     }
@@ -459,10 +459,10 @@ fn simple_cargo_run() {
         .build();
 
     let target = cross_compile::alternate();
-    p.cargo("run --target").arg(&target).run();
+    p.payload("run --target").arg(&target).run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn cross_with_a_build_script() {
     if cross_compile::disabled() {
         return;
@@ -471,7 +471,7 @@ fn cross_with_a_build_script() {
     let target = cross_compile::alternate();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -509,7 +509,7 @@ fn cross_with_a_build_script() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("build -v --target")
+    p.payload("build -v --target")
         .arg(&target)
         .with_stderr(&format!(
             "\
@@ -524,7 +524,7 @@ fn cross_with_a_build_script() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn build_script_needed_for_host_and_target() {
     if cross_compile::disabled() {
         return;
@@ -534,7 +534,7 @@ fn build_script_needed_for_host_and_target() {
     let host = rustc_host();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -565,7 +565,7 @@ fn build_script_needed_for_host_and_target() {
         ",
         )
         .file(
-            "d1/Cargo.toml",
+            "d1/Payload.toml",
             r#"
                 [package]
                 name = "d1"
@@ -581,12 +581,12 @@ fn build_script_needed_for_host_and_target() {
                 use std::env;
                 fn main() {
                     let target = env::var("TARGET").unwrap();
-                    println!("cargo:rustc-flags=-L /path/to/{}", target);
+                    println!("payload:rustc-flags=-L /path/to/{}", target);
                 }
             "#,
         )
         .file(
-            "d2/Cargo.toml",
+            "d2/Payload.toml",
             r#"
                 [package]
                 name = "d2"
@@ -607,7 +607,7 @@ fn build_script_needed_for_host_and_target() {
         )
         .build();
 
-    p.cargo("build -v --target")
+    p.payload("build -v --target")
         .arg(&target)
         .with_stderr_contains(&"[COMPILING] d1 v0.0.0 ([CWD]/d1)")
         .with_stderr_contains(
@@ -634,7 +634,7 @@ fn build_script_needed_for_host_and_target() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn build_deps_for_the_right_arch() {
     if cross_compile::disabled() {
         return;
@@ -642,7 +642,7 @@ fn build_deps_for_the_right_arch() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -654,10 +654,10 @@ fn build_deps_for_the_right_arch() {
             "#,
         )
         .file("src/main.rs", "extern crate d2; fn main() {}")
-        .file("d1/Cargo.toml", &basic_manifest("d1", "0.0.0"))
+        .file("d1/Payload.toml", &basic_manifest("d1", "0.0.0"))
         .file("d1/src/lib.rs", "pub fn d1() {}")
         .file(
-            "d2/Cargo.toml",
+            "d2/Payload.toml",
             r#"
                 [package]
                 name = "d2"
@@ -674,10 +674,10 @@ fn build_deps_for_the_right_arch() {
         .build();
 
     let target = cross_compile::alternate();
-    p.cargo("build -v --target").arg(&target).run();
+    p.payload("build -v --target").arg(&target).run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn build_script_only_host() {
     if cross_compile::disabled() {
         return;
@@ -685,7 +685,7 @@ fn build_script_only_host() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -700,7 +700,7 @@ fn build_script_only_host() {
         .file("src/main.rs", "fn main() {}")
         .file("build.rs", "extern crate d1; fn main() {}")
         .file(
-            "d1/Cargo.toml",
+            "d1/Payload.toml",
             r#"
                 [package]
                 name = "d1"
@@ -725,17 +725,17 @@ fn build_script_only_host() {
         .build();
 
     let target = cross_compile::alternate();
-    p.cargo("build -v --target").arg(&target).run();
+    p.payload("build -v --target").arg(&target).run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn plugin_build_script_right_arch() {
     if cross_compile::disabled() {
         return;
     }
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -752,7 +752,7 @@ fn plugin_build_script_right_arch() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build -v --target")
+    p.payload("build -v --target")
         .arg(cross_compile::alternate())
         .with_stderr(
             "\
@@ -766,7 +766,7 @@ fn plugin_build_script_right_arch() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn build_script_with_platform_specific_dependencies() {
     if cross_compile::disabled() {
         return;
@@ -776,7 +776,7 @@ fn build_script_with_platform_specific_dependencies() {
     let host = rustc_host();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -798,7 +798,7 @@ fn build_script_with_platform_specific_dependencies() {
         )
         .file("src/lib.rs", "")
         .file(
-            "d1/Cargo.toml",
+            "d1/Payload.toml",
             &format!(
                 r#"
                     [package]
@@ -816,11 +816,11 @@ fn build_script_with_platform_specific_dependencies() {
             "d1/src/lib.rs",
             "#[allow(unused_extern_crates)] extern crate d2;",
         )
-        .file("d2/Cargo.toml", &basic_manifest("d2", "0.0.0"))
+        .file("d2/Payload.toml", &basic_manifest("d2", "0.0.0"))
         .file("d2/src/lib.rs", "")
         .build();
 
-    p.cargo("build -v --target")
+    p.payload("build -v --target")
         .arg(&target)
         .with_stderr(&format!(
             "\
@@ -839,7 +839,7 @@ fn build_script_with_platform_specific_dependencies() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn platform_specific_dependencies_do_not_leak() {
     if cross_compile::disabled() {
         return;
@@ -849,7 +849,7 @@ fn platform_specific_dependencies_do_not_leak() {
     let host = rustc_host();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -867,7 +867,7 @@ fn platform_specific_dependencies_do_not_leak() {
         .file("build.rs", "extern crate d1; fn main() {}")
         .file("src/lib.rs", "")
         .file(
-            "d1/Cargo.toml",
+            "d1/Payload.toml",
             &format!(
                 r#"
                     [package]
@@ -882,18 +882,18 @@ fn platform_specific_dependencies_do_not_leak() {
             ),
         )
         .file("d1/src/lib.rs", "extern crate d2;")
-        .file("d1/Cargo.toml", &basic_manifest("d1", "0.0.0"))
+        .file("d1/Payload.toml", &basic_manifest("d1", "0.0.0"))
         .file("d2/src/lib.rs", "")
         .build();
 
-    p.cargo("build -v --target")
+    p.payload("build -v --target")
         .arg(&target)
         .with_status(101)
         .with_stderr_contains("[..] can't find crate for `d2`[..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn platform_specific_variables_reflected_in_build_scripts() {
     if cross_compile::disabled() {
         return;
@@ -903,7 +903,7 @@ fn platform_specific_variables_reflected_in_build_scripts() {
     let host = rustc_host();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                     [package]
@@ -948,7 +948,7 @@ fn platform_specific_variables_reflected_in_build_scripts() {
         )
         .file("src/lib.rs", "")
         .file(
-            "d1/Cargo.toml",
+            "d1/Payload.toml",
             r#"
                 [package]
                 name = "d1"
@@ -958,10 +958,10 @@ fn platform_specific_variables_reflected_in_build_scripts() {
                 build = "build.rs"
             "#,
         )
-        .file("d1/build.rs", r#"fn main() { println!("cargo:val=1") }"#)
+        .file("d1/build.rs", r#"fn main() { println!("payload:val=1") }"#)
         .file("d1/src/lib.rs", "")
         .file(
-            "d2/Cargo.toml",
+            "d2/Payload.toml",
             r#"
                 [package]
                 name = "d2"
@@ -971,15 +971,15 @@ fn platform_specific_variables_reflected_in_build_scripts() {
                 build = "build.rs"
             "#,
         )
-        .file("d2/build.rs", r#"fn main() { println!("cargo:val=1") }"#)
+        .file("d2/build.rs", r#"fn main() { println!("payload:val=1") }"#)
         .file("d2/src/lib.rs", "")
         .build();
 
-    p.cargo("build -v").run();
-    p.cargo("build -v --target").arg(&target).run();
+    p.payload("build -v").run();
+    p.payload("build -v --target").arg(&target).run();
 }
 
-#[cargo_test]
+#[payload_test]
 // Don't have a dylib cross target on macos.
 #[cfg_attr(target_os = "macos", ignore)]
 fn cross_test_dylib() {
@@ -991,7 +991,7 @@ fn cross_test_dylib() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1027,7 +1027,7 @@ fn cross_test_dylib() {
             "#,
         )
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -1053,7 +1053,7 @@ fn cross_test_dylib() {
         )
         .build();
 
-    p.cargo("test --target")
+    p.payload("test --target")
         .arg(&target)
         .with_stderr(&format!(
             "\
@@ -1068,7 +1068,7 @@ fn cross_test_dylib() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn doctest_xcompile_linker() {
     if cross_compile::disabled() {
         return;
@@ -1081,7 +1081,7 @@ fn doctest_xcompile_linker() {
     let target = cross_compile::alternate();
     let p = project()
         .file(
-            ".cargo/config",
+            ".payload/config",
             &format!(
                 r#"
                     [target.{}]
@@ -1090,7 +1090,7 @@ fn doctest_xcompile_linker() {
                 target
             ),
         )
-        .file("Cargo.toml", &basic_manifest("foo", "0.1.0"))
+        .file("Payload.toml", &basic_manifest("foo", "0.1.0"))
         .file(
             "src/lib.rs",
             r#"
@@ -1103,10 +1103,10 @@ fn doctest_xcompile_linker() {
         .build();
 
     // Fails because `my-linker-tool` doesn't actually exist.
-    p.cargo("test --doc -v -Zdoctest-xcompile --target")
+    p.payload("test --doc -v -Zdoctest-xcompile --target")
         .arg(&target)
         .with_status(101)
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_payload()
         .with_stderr_contains(&format!(
             "\
 [RUNNING] `rustdoc --crate-type lib --crate-name foo --test [..]\

@@ -1,12 +1,12 @@
-//! Tests for the `cargo fix` command.
+//! Tests for the `payload fix` command.
 
-use cargo::core::Edition;
-use cargo_test_support::git;
-use cargo_test_support::paths;
-use cargo_test_support::registry::{Dependency, Package};
-use cargo_test_support::{basic_manifest, is_nightly, project};
+use payload::core::Edition;
+use payload_test_support::git;
+use payload_test_support::paths;
+use payload_test_support::registry::{Dependency, Package};
+use payload_test_support::{basic_manifest, is_nightly, project};
 
-#[cargo_test]
+#[payload_test]
 fn do_not_fix_broken_builds() {
     let p = project()
         .file(
@@ -24,15 +24,15 @@ fn do_not_fix_broken_builds() {
         )
         .build();
 
-    p.cargo("fix --allow-no-vcs")
-        .env("__CARGO_FIX_YOLO", "1")
+    p.payload("fix --allow-no-vcs")
+        .env("__PAYLOAD_FIX_YOLO", "1")
         .with_status(101)
         .with_stderr_contains("[ERROR] could not compile `foo`")
         .run();
     assert!(p.read_file("src/lib.rs").contains("let mut x = 3;"));
 }
 
-#[cargo_test]
+#[payload_test]
 fn fix_broken_if_requested() {
     let p = project()
         .file(
@@ -46,12 +46,12 @@ fn fix_broken_if_requested() {
         )
         .build();
 
-    p.cargo("fix --allow-no-vcs --broken-code")
-        .env("__CARGO_FIX_YOLO", "1")
+    p.payload("fix --allow-no-vcs --broken-code")
+        .env("__PAYLOAD_FIX_YOLO", "1")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn broken_fixes_backed_out() {
     // This works as follows:
     // - Create a `rustc` shim (the "foo" project) which will pretend that the
@@ -63,12 +63,12 @@ fn broken_fixes_backed_out() {
     // - The second "check" to verify the changes, `foo` swaps out the content
     //   with something that fails to compile. It creates a second file so it
     //   won't do anything in the third check.
-    // - cargo fix discovers that the fix failed, and it backs out the changes.
+    // - payload fix discovers that the fix failed, and it backs out the changes.
     // - The third "check" is done to display the original diagnostics of the
     //   original code.
     let p = project()
         .file(
-            "foo/Cargo.toml",
+            "foo/Payload.toml",
             r#"
                 [package]
                 name = 'foo'
@@ -111,7 +111,7 @@ fn broken_fixes_backed_out() {
             "#,
         )
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [package]
                 name = 'bar'
@@ -132,12 +132,12 @@ fn broken_fixes_backed_out() {
         .build();
 
     // Build our rustc shim
-    p.cargo("build").cwd("foo").run();
+    p.payload("build").cwd("foo").run();
 
     // Attempt to fix code, but our shim will always fail the second compile
-    p.cargo("fix --allow-no-vcs --lib")
+    p.payload("fix --allow-no-vcs --lib")
         .cwd("bar")
-        .env("__CARGO_FIX_YOLO", "1")
+        .env("__PAYLOAD_FIX_YOLO", "1")
         .env("RUSTC", p.root().join("foo/target/debug/foo"))
         .with_stderr_contains(
             "warning: failed to automatically apply fixes suggested by rustc \
@@ -148,9 +148,9 @@ fn broken_fixes_backed_out() {
              \n  \
              * src/lib.rs\n\
              \n\
-             This likely indicates a bug in either rustc or cargo itself,\n\
+             This likely indicates a bug in either rustc or payload itself,\n\
              and we would appreciate a bug report! You're likely to see \n\
-             a number of compiler warnings after this message which cargo\n\
+             a number of compiler warnings after this message which payload\n\
              attempted to fix but failed. If you could open an issue at\n\
              [..]\n\
              quoting the full output of this command we'd be very appreciative!\n\
@@ -170,11 +170,11 @@ fn broken_fixes_backed_out() {
     assert!(p.read_file("bar/src/lib.rs").contains("let mut x = 3;"));
 }
 
-#[cargo_test]
+#[payload_test]
 fn fix_path_deps() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -197,7 +197,7 @@ fn fix_path_deps() {
                 }
             "#,
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file(
             "bar/src/lib.rs",
             r#"
@@ -209,8 +209,8 @@ fn fix_path_deps() {
         )
         .build();
 
-    p.cargo("fix --allow-no-vcs -p foo -p bar")
-        .env("__CARGO_FIX_YOLO", "1")
+    p.payload("fix --allow-no-vcs -p foo -p bar")
+        .env("__PAYLOAD_FIX_YOLO", "1")
         .with_stdout("")
         .with_stderr_unordered(
             "\
@@ -224,12 +224,12 @@ fn fix_path_deps() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn do_not_fix_non_relevant_deps() {
     let p = project()
         .no_manifest()
         .file(
-            "foo/Cargo.toml",
+            "foo/Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -242,7 +242,7 @@ fn do_not_fix_non_relevant_deps() {
             "#,
         )
         .file("foo/src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file(
             "bar/src/lib.rs",
             r#"
@@ -254,15 +254,15 @@ fn do_not_fix_non_relevant_deps() {
         )
         .build();
 
-    p.cargo("fix --allow-no-vcs")
-        .env("__CARGO_FIX_YOLO", "1")
+    p.payload("fix --allow-no-vcs")
+        .env("__PAYLOAD_FIX_YOLO", "1")
         .cwd("foo")
         .run();
 
     assert!(p.read_file("bar/src/lib.rs").contains("mut"));
 }
 
-#[cargo_test]
+#[payload_test]
 fn prepare_for_2018() {
     let p = project()
         .file(
@@ -291,7 +291,7 @@ fn prepare_for_2018() {
 [FIXED] src/lib.rs (2 fixes)
 [FINISHED] [..]
 ";
-    p.cargo("fix --edition --allow-no-vcs")
+    p.payload("fix --edition --allow-no-vcs")
         .with_stderr(stderr)
         .with_stdout("")
         .run();
@@ -303,7 +303,7 @@ fn prepare_for_2018() {
         .contains("let x = crate::foo::FOO;"));
 }
 
-#[cargo_test]
+#[payload_test]
 fn local_paths() {
     let p = project()
         .file(
@@ -322,7 +322,7 @@ fn local_paths() {
         )
         .build();
 
-    p.cargo("fix --edition --allow-no-vcs")
+    p.payload("fix --edition --allow-no-vcs")
         .with_stderr(
             "\
 [CHECKING] foo v0.0.1 ([..])
@@ -338,11 +338,11 @@ fn local_paths() {
     assert!(p.read_file("src/lib.rs").contains("use crate::test::foo;"));
 }
 
-#[cargo_test]
+#[payload_test]
 fn upgrade_extern_crate() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -369,7 +369,7 @@ fn upgrade_extern_crate() {
                 }
             "#,
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "pub fn bar() {}")
         .build();
 
@@ -379,8 +379,8 @@ fn upgrade_extern_crate() {
 [FIXED] src/lib.rs (1 fix)
 [FINISHED] [..]
 ";
-    p.cargo("fix --allow-no-vcs")
-        .env("__CARGO_FIX_YOLO", "1")
+    p.payload("fix --allow-no-vcs")
+        .env("__PAYLOAD_FIX_YOLO", "1")
         .with_stderr(stderr)
         .with_stdout("")
         .run();
@@ -388,7 +388,7 @@ fn upgrade_extern_crate() {
     assert!(!p.read_file("src/lib.rs").contains("extern crate"));
 }
 
-#[cargo_test]
+#[payload_test]
 fn specify_rustflags() {
     let p = project()
         .file(
@@ -407,7 +407,7 @@ fn specify_rustflags() {
         )
         .build();
 
-    p.cargo("fix --edition --allow-no-vcs")
+    p.payload("fix --edition --allow-no-vcs")
         .env("RUSTFLAGS", "-C linker=cc")
         .with_stderr(
             "\
@@ -421,7 +421,7 @@ fn specify_rustflags() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn no_changes_necessary() {
     let p = project().file("src/lib.rs", "").build();
 
@@ -429,13 +429,13 @@ fn no_changes_necessary() {
 [CHECKING] foo v0.0.1 ([..])
 [FINISHED] [..]
 ";
-    p.cargo("fix --allow-no-vcs")
+    p.payload("fix --allow-no-vcs")
         .with_stderr(stderr)
         .with_stdout("")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn fixes_extra_mut() {
     let p = project()
         .file(
@@ -454,14 +454,14 @@ fn fixes_extra_mut() {
 [FIXED] src/lib.rs (1 fix)
 [FINISHED] [..]
 ";
-    p.cargo("fix --allow-no-vcs")
-        .env("__CARGO_FIX_YOLO", "1")
+    p.payload("fix --allow-no-vcs")
+        .env("__PAYLOAD_FIX_YOLO", "1")
         .with_stderr(stderr)
         .with_stdout("")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn fixes_two_missing_ampersands() {
     let p = project()
         .file(
@@ -481,14 +481,14 @@ fn fixes_two_missing_ampersands() {
 [FIXED] src/lib.rs (2 fixes)
 [FINISHED] [..]
 ";
-    p.cargo("fix --allow-no-vcs")
-        .env("__CARGO_FIX_YOLO", "1")
+    p.payload("fix --allow-no-vcs")
+        .env("__PAYLOAD_FIX_YOLO", "1")
         .with_stderr(stderr)
         .with_stdout("")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn tricky() {
     let p = project()
         .file(
@@ -507,14 +507,14 @@ fn tricky() {
 [FIXED] src/lib.rs (2 fixes)
 [FINISHED] [..]
 ";
-    p.cargo("fix --allow-no-vcs")
-        .env("__CARGO_FIX_YOLO", "1")
+    p.payload("fix --allow-no-vcs")
+        .env("__PAYLOAD_FIX_YOLO", "1")
         .with_stderr(stderr)
         .with_stdout("")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn preserve_line_endings() {
     let p = project()
         .file(
@@ -525,13 +525,13 @@ fn preserve_line_endings() {
         )
         .build();
 
-    p.cargo("fix --allow-no-vcs")
-        .env("__CARGO_FIX_YOLO", "1")
+    p.payload("fix --allow-no-vcs")
+        .env("__PAYLOAD_FIX_YOLO", "1")
         .run();
     assert!(p.read_file("src/lib.rs").contains("\r\n"));
 }
 
-#[cargo_test]
+#[payload_test]
 fn fix_deny_warnings() {
     let p = project()
         .file(
@@ -542,12 +542,12 @@ fn fix_deny_warnings() {
         )
         .build();
 
-    p.cargo("fix --allow-no-vcs")
-        .env("__CARGO_FIX_YOLO", "1")
+    p.payload("fix --allow-no-vcs")
+        .env("__PAYLOAD_FIX_YOLO", "1")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn fix_deny_warnings_but_not_others() {
     let p = project()
         .file(
@@ -565,14 +565,14 @@ fn fix_deny_warnings_but_not_others() {
         )
         .build();
 
-    p.cargo("fix --allow-no-vcs")
-        .env("__CARGO_FIX_YOLO", "1")
+    p.payload("fix --allow-no-vcs")
+        .env("__PAYLOAD_FIX_YOLO", "1")
         .run();
     assert!(!p.read_file("src/lib.rs").contains("let mut x = 3;"));
     assert!(p.read_file("src/lib.rs").contains("fn bar() {}"));
 }
 
-#[cargo_test]
+#[payload_test]
 fn fix_two_files() {
     let p = project()
         .file(
@@ -598,8 +598,8 @@ fn fix_two_files() {
         )
         .build();
 
-    p.cargo("fix --allow-no-vcs")
-        .env("__CARGO_FIX_YOLO", "1")
+    p.payload("fix --allow-no-vcs")
+        .env("__PAYLOAD_FIX_YOLO", "1")
         .with_stderr_contains("[FIXED] src/bar.rs (1 fix)")
         .with_stderr_contains("[FIXED] src/lib.rs (1 fix)")
         .run();
@@ -607,7 +607,7 @@ fn fix_two_files() {
     assert!(!p.read_file("src/bar.rs").contains("let mut x = 3;"));
 }
 
-#[cargo_test]
+#[payload_test]
 fn fixes_missing_ampersand() {
     let p = project()
         .file("src/main.rs", "fn main() { let mut x = 3; drop(x); }")
@@ -631,8 +631,8 @@ fn fixes_missing_ampersand() {
         .file("build.rs", "fn main() { let mut x = 3; drop(x); }")
         .build();
 
-    p.cargo("fix --all-targets --allow-no-vcs")
-        .env("__CARGO_FIX_YOLO", "1")
+    p.payload("fix --all-targets --allow-no-vcs")
+        .env("__PAYLOAD_FIX_YOLO", "1")
         .with_stdout("")
         .with_stderr_contains("[COMPILING] foo v0.0.1 ([..])")
         .with_stderr_contains("[FIXED] build.rs (1 fix)")
@@ -647,15 +647,15 @@ fn fixes_missing_ampersand() {
         .with_stderr_contains("[FIXED] tests/a.rs (1 fix)")
         .with_stderr_contains("[FINISHED] [..]")
         .run();
-    p.cargo("build").run();
-    p.cargo("test").run();
+    p.payload("build").run();
+    p.payload("test").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn fix_features() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -676,13 +676,13 @@ fn fix_features() {
         )
         .build();
 
-    p.cargo("fix --allow-no-vcs").run();
-    p.cargo("build").run();
-    p.cargo("fix --features bar --allow-no-vcs").run();
-    p.cargo("build --features bar").run();
+    p.payload("fix --allow-no-vcs").run();
+    p.payload("build").run();
+    p.payload("fix --features bar --allow-no-vcs").run();
+    p.payload("build --features bar").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn shows_warnings() {
     let p = project()
         .file(
@@ -691,38 +691,38 @@ fn shows_warnings() {
         )
         .build();
 
-    p.cargo("fix --allow-no-vcs")
+    p.payload("fix --allow-no-vcs")
         .with_stderr_contains("[..]warning: use of deprecated[..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn warns_if_no_vcs_detected() {
     let p = project().file("src/lib.rs", "pub fn foo() {}").build();
 
-    p.cargo("fix")
+    p.payload("fix")
         .with_status(101)
         .with_stderr(
-            "error: no VCS found for this package and `cargo fix` can potentially perform \
+            "error: no VCS found for this package and `payload fix` can potentially perform \
              destructive changes; if you'd like to suppress this error pass `--allow-no-vcs`\
              ",
         )
         .run();
-    p.cargo("fix --allow-no-vcs").run();
+    p.payload("fix --allow-no-vcs").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn warns_about_dirty_working_directory() {
     let p = git::new("foo", |p| p.file("src/lib.rs", "pub fn foo() {}"));
 
     p.change_file("src/lib.rs", "");
 
-    p.cargo("fix")
+    p.payload("fix")
         .with_status(101)
         .with_stderr(
             "\
 error: the working directory of this package has uncommitted changes, \
-and `cargo fix` can potentially perform destructive changes; if you'd \
+and `payload fix` can potentially perform destructive changes; if you'd \
 like to suppress this error pass `--allow-dirty`, `--allow-staged`, or \
 commit the changes to these files:
 
@@ -732,22 +732,22 @@ commit the changes to these files:
 ",
         )
         .run();
-    p.cargo("fix --allow-dirty").run();
+    p.payload("fix --allow-dirty").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn warns_about_staged_working_directory() {
     let (p, repo) = git::new_repo("foo", |p| p.file("src/lib.rs", "pub fn foo() {}"));
 
     p.change_file("src/lib.rs", "pub fn bar() {}");
     git::add(&repo);
 
-    p.cargo("fix")
+    p.payload("fix")
         .with_status(101)
         .with_stderr(
             "\
 error: the working directory of this package has uncommitted changes, \
-and `cargo fix` can potentially perform destructive changes; if you'd \
+and `payload fix` can potentially perform destructive changes; if you'd \
 like to suppress this error pass `--allow-dirty`, `--allow-staged`, or \
 commit the changes to these files:
 
@@ -757,16 +757,16 @@ commit the changes to these files:
 ",
         )
         .run();
-    p.cargo("fix --allow-staged").run();
+    p.payload("fix --allow-staged").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn does_not_warn_about_clean_working_directory() {
     let p = git::new("foo", |p| p.file("src/lib.rs", "pub fn foo() {}"));
-    p.cargo("fix").run();
+    p.payload("fix").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn does_not_warn_about_dirty_ignored_files() {
     let p = git::new("foo", |p| {
         p.file("src/lib.rs", "pub fn foo() {}")
@@ -775,23 +775,23 @@ fn does_not_warn_about_dirty_ignored_files() {
 
     p.change_file("bar", "");
 
-    p.cargo("fix").run();
+    p.payload("fix").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn fix_all_targets_by_default() {
     let p = project()
         .file("src/lib.rs", "pub fn foo() { let mut x = 3; drop(x); }")
         .file("tests/foo.rs", "pub fn foo() { let mut x = 3; drop(x); }")
         .build();
-    p.cargo("fix --allow-no-vcs")
-        .env("__CARGO_FIX_YOLO", "1")
+    p.payload("fix --allow-no-vcs")
+        .env("__PAYLOAD_FIX_YOLO", "1")
         .run();
     assert!(!p.read_file("src/lib.rs").contains("let mut x"));
     assert!(!p.read_file("tests/foo.rs").contains("let mut x"));
 }
 
-#[cargo_test]
+#[payload_test]
 fn prepare_for_unstable() {
     // During the period where a new edition is coming up, but not yet stable,
     // this test will verify that it cannot be migrated to on stable. If there
@@ -806,7 +806,7 @@ fn prepare_for_unstable() {
     let latest_stable = Edition::LATEST_STABLE;
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                 [package]
@@ -822,7 +822,7 @@ fn prepare_for_unstable() {
 
     // -j1 to make the error more deterministic (otherwise there can be
     // multiple errors since they run in parallel).
-    p.cargo("fix --edition --allow-no-vcs -j1")
+    p.payload("fix --edition --allow-no-vcs -j1")
         .with_status(101)
         .with_stderr(&format!("\
 [CHECKING] foo [..]
@@ -839,8 +839,8 @@ To learn more, run the command again with --verbose.
         return;
     }
 
-    p.cargo("fix --edition --allow-no-vcs")
-        .masquerade_as_nightly_cargo()
+    p.payload("fix --edition --allow-no-vcs")
+        .masquerade_as_nightly_payload()
         .with_stderr(&format!(
             "\
 [CHECKING] foo [..]
@@ -853,14 +853,14 @@ To learn more, run the command again with --verbose.
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn prepare_for_latest_stable() {
     // This is the stable counterpart of prepare_for_unstable.
     let latest_stable = Edition::LATEST_STABLE;
     let previous = latest_stable.previous().unwrap();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                 [package]
@@ -874,7 +874,7 @@ fn prepare_for_latest_stable() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("fix --edition --allow-no-vcs")
+    p.payload("fix --edition --allow-no-vcs")
         .with_stderr(&format!(
             "\
 [CHECKING] foo [..]
@@ -886,7 +886,7 @@ fn prepare_for_latest_stable() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn prepare_for_already_on_latest_unstable() {
     // During the period where a new edition is coming up, but not yet stable,
     // this test will check what happens if you are already on the latest. If
@@ -904,10 +904,10 @@ fn prepare_for_already_on_latest_unstable() {
     };
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
-                cargo-features = ["edition{}"]
+                payload-features = ["edition{}"]
 
                 [package]
                 name = 'foo'
@@ -920,8 +920,8 @@ fn prepare_for_already_on_latest_unstable() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("fix --edition --allow-no-vcs")
-        .masquerade_as_nightly_cargo()
+    p.payload("fix --edition --allow-no-vcs")
+        .masquerade_as_nightly_payload()
         .with_stderr_contains(&format!(
             "\
 [CHECKING] foo [..]
@@ -933,7 +933,7 @@ fn prepare_for_already_on_latest_unstable() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn prepare_for_already_on_latest_stable() {
     // Stable counterpart of prepare_for_already_on_latest_unstable.
     if Edition::LATEST_UNSTABLE.is_some() {
@@ -943,7 +943,7 @@ fn prepare_for_already_on_latest_stable() {
     let latest_stable = Edition::LATEST_STABLE;
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                 [package]
@@ -957,7 +957,7 @@ fn prepare_for_already_on_latest_stable() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("fix --edition --allow-no-vcs")
+    p.payload("fix --edition --allow-no-vcs")
         .with_stderr_contains(&format!(
             "\
 [CHECKING] foo [..]
@@ -969,7 +969,7 @@ fn prepare_for_already_on_latest_stable() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn fix_overlapping() {
     let p = project()
         .file(
@@ -987,7 +987,7 @@ fn fix_overlapping() {
         )
         .build();
 
-    p.cargo("fix --allow-no-vcs --edition --lib")
+    p.payload("fix --allow-no-vcs --edition --lib")
         .with_stderr(
             "\
 [CHECKING] foo [..]
@@ -1003,11 +1003,11 @@ fn fix_overlapping() {
     assert!(contents.contains("crate::foo::<crate::A>()"));
 }
 
-#[cargo_test]
+#[payload_test]
 fn fix_idioms() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = 'foo'
@@ -1031,21 +1031,21 @@ fn fix_idioms() {
 [FIXED] src/lib.rs (1 fix)
 [FINISHED] [..]
 ";
-    p.cargo("fix --edition-idioms --allow-no-vcs")
+    p.payload("fix --edition-idioms --allow-no-vcs")
         .with_stderr(stderr)
         .run();
 
     assert!(p.read_file("src/lib.rs").contains("Box<dyn Any>"));
 }
 
-#[cargo_test]
+#[payload_test]
 fn idioms_2015_ok() {
     let p = project().file("src/lib.rs", "").build();
 
-    p.cargo("fix --edition-idioms --allow-no-vcs").run();
+    p.payload("fix --edition-idioms --allow-no-vcs").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn shows_warnings_on_second_run_without_changes() {
     let p = project()
         .file(
@@ -1061,16 +1061,16 @@ fn shows_warnings_on_second_run_without_changes() {
         )
         .build();
 
-    p.cargo("fix --allow-no-vcs")
+    p.payload("fix --allow-no-vcs")
         .with_stderr_contains("[..]warning: use of deprecated[..]")
         .run();
 
-    p.cargo("fix --allow-no-vcs")
+    p.payload("fix --allow-no-vcs")
         .with_stderr_contains("[..]warning: use of deprecated[..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn shows_warnings_on_second_run_without_changes_on_multiple_targets() {
     let p = project()
         .file(
@@ -1132,7 +1132,7 @@ fn shows_warnings_on_second_run_without_changes_on_multiple_targets() {
         )
         .build();
 
-    p.cargo("fix --allow-no-vcs --all-targets")
+    p.payload("fix --allow-no-vcs --all-targets")
         .with_stderr_contains(" --> examples/fooxample.rs:6:29")
         .with_stderr_contains(" --> src/lib.rs:6:29")
         .with_stderr_contains(" --> src/main.rs:6:29")
@@ -1140,7 +1140,7 @@ fn shows_warnings_on_second_run_without_changes_on_multiple_targets() {
         .with_stderr_contains(" --> tests/foo.rs:7:29")
         .run();
 
-    p.cargo("fix --allow-no-vcs --all-targets")
+    p.payload("fix --allow-no-vcs --all-targets")
         .with_stderr_contains(" --> examples/fooxample.rs:6:29")
         .with_stderr_contains(" --> src/lib.rs:6:29")
         .with_stderr_contains(" --> src/main.rs:6:29")
@@ -1149,11 +1149,11 @@ fn shows_warnings_on_second_run_without_changes_on_multiple_targets() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn doesnt_rebuild_dependencies() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1166,12 +1166,12 @@ fn doesnt_rebuild_dependencies() {
             "#,
         )
         .file("src/lib.rs", "extern crate bar;")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "")
         .build();
 
-    p.cargo("fix --allow-no-vcs -p foo")
-        .env("__CARGO_FIX_YOLO", "1")
+    p.payload("fix --allow-no-vcs -p foo")
+        .env("__PAYLOAD_FIX_YOLO", "1")
         .with_stdout("")
         .with_stderr(
             "\
@@ -1182,8 +1182,8 @@ fn doesnt_rebuild_dependencies() {
         )
         .run();
 
-    p.cargo("fix --allow-no-vcs -p foo")
-        .env("__CARGO_FIX_YOLO", "1")
+    p.payload("fix --allow-no-vcs -p foo")
+        .env("__PAYLOAD_FIX_YOLO", "1")
         .with_stdout("")
         .with_stderr(
             "\
@@ -1194,12 +1194,12 @@ fn doesnt_rebuild_dependencies() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 #[cfg(unix)]
 fn does_not_crash_with_rustc_wrapper() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1209,17 +1209,17 @@ fn does_not_crash_with_rustc_wrapper() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("fix --allow-no-vcs")
+    p.payload("fix --allow-no-vcs")
         .env("RUSTC_WRAPPER", "/usr/bin/env")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 #[cfg(unix)]
 fn does_not_crash_with_rustc_workspace_wrapper() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1229,17 +1229,17 @@ fn does_not_crash_with_rustc_workspace_wrapper() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("fix --allow-no-vcs --verbose")
+    p.payload("fix --allow-no-vcs --verbose")
         .env("RUSTC_WORKSPACE_WRAPPER", "/usr/bin/env")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn uses_workspace_wrapper_and_primary_wrapper_override() {
     // We don't have /usr/bin/env on Windows.
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1249,17 +1249,17 @@ fn uses_workspace_wrapper_and_primary_wrapper_override() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("fix --allow-no-vcs --verbose")
+    p.payload("fix --allow-no-vcs --verbose")
         .env("RUSTC_WORKSPACE_WRAPPER", paths::echo_wrapper())
         .with_stderr_contains("WRAPPER CALLED: rustc src/lib.rs --crate-name foo [..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn only_warn_for_relevant_crates() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1271,7 +1271,7 @@ fn only_warn_for_relevant_crates() {
         )
         .file("src/lib.rs", "")
         .file(
-            "a/Cargo.toml",
+            "a/Payload.toml",
             r#"
                 [package]
                 name = "a"
@@ -1290,7 +1290,7 @@ fn only_warn_for_relevant_crates() {
         )
         .build();
 
-    p.cargo("fix --allow-no-vcs --edition")
+    p.payload("fix --allow-no-vcs --edition")
         .with_stderr(
             "\
 [CHECKING] a v0.1.0 ([..])
@@ -1302,11 +1302,11 @@ fn only_warn_for_relevant_crates() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn fix_to_broken_code() {
     let p = project()
         .file(
-            "foo/Cargo.toml",
+            "foo/Payload.toml",
             r#"
                 [package]
                 name = 'foo'
@@ -1346,7 +1346,7 @@ fn fix_to_broken_code() {
             "#,
         )
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [package]
                 name = 'bar'
@@ -1359,10 +1359,10 @@ fn fix_to_broken_code() {
         .build();
 
     // Build our rustc shim
-    p.cargo("build").cwd("foo").run();
+    p.payload("build").cwd("foo").run();
 
     // Attempt to fix code, but our shim will always fail the second compile
-    p.cargo("fix --allow-no-vcs --broken-code")
+    p.payload("fix --allow-no-vcs --broken-code")
         .cwd("bar")
         .env("RUSTC", p.root().join("foo/target/debug/foo"))
         .with_status(101)
@@ -1375,7 +1375,7 @@ fn fix_to_broken_code() {
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn fix_with_common() {
     let p = project()
         .file("src/lib.rs", "")
@@ -1390,12 +1390,12 @@ fn fix_with_common() {
         .file("tests/common/mod.rs", "pub fn try() {}")
         .build();
 
-    p.cargo("fix --edition --allow-no-vcs").run();
+    p.payload("fix --edition --allow-no-vcs").run();
 
     assert_eq!(p.read_file("tests/common/mod.rs"), "pub fn r#try() {}");
 }
 
-#[cargo_test]
+#[payload_test]
 fn fix_in_existing_repo_weird_ignore() {
     // Check that ignore doesn't ignore the repo itself.
     let p = git::new("foo", |project| {
@@ -1405,38 +1405,38 @@ fn fix_in_existing_repo_weird_ignore() {
             .file("inner/file", "")
     });
 
-    p.cargo("fix").run();
+    p.payload("fix").run();
     // This is questionable about whether it is the right behavior. It should
     // probably be checking if any source file for the current project is
     // ignored.
-    p.cargo("fix")
+    p.payload("fix")
         .cwd("inner")
         .with_stderr_contains("[ERROR] no VCS found[..]")
         .with_status(101)
         .run();
-    p.cargo("fix").cwd("src").run();
+    p.payload("fix").cwd("src").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn fix_color_message() {
     // Check that color appears in diagnostics.
     let p = project()
         .file("src/lib.rs", "std::compile_error!{\"color test\"}")
         .build();
 
-    p.cargo("fix --allow-no-vcs --color=always")
+    p.payload("fix --allow-no-vcs --color=always")
         .with_stderr_contains("[..]\x1b[[..]")
         .with_status(101)
         .run();
 
-    p.cargo("fix --allow-no-vcs --color=never")
+    p.payload("fix --allow-no-vcs --color=never")
         .with_stderr_contains("error: color test")
         .with_stderr_does_not_contain("[..]\x1b[[..]")
         .with_status(101)
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn edition_v2_resolver_report() {
     // Show a report if the V2 resolver shows differences.
     if !is_nightly() {
@@ -1458,7 +1458,7 @@ fn edition_v2_resolver_report() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1473,16 +1473,16 @@ fn edition_v2_resolver_report() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("fix --edition --allow-no-vcs")
-        .masquerade_as_nightly_cargo()
+    p.payload("fix --edition --allow-no-vcs")
+        .masquerade_as_nightly_payload()
         .with_stderr_unordered("\
 [UPDATING] [..]
 [DOWNLOADING] crates ...
 [DOWNLOADED] common v1.0.0 [..]
 [DOWNLOADED] bar v1.0.0 [..]
-note: Switching to Edition 2021 will enable the use of the version 2 feature resolver in Cargo.
+note: Switching to Edition 2021 will enable the use of the version 2 feature resolver in Payload.
 This may cause dependencies to resolve with a different set of features.
-More information about the resolver changes may be found at https://doc.rust-lang.org/cargo/reference/features.html#feature-resolver-version-2
+More information about the resolver changes may be found at https://doc.dustlang.com/payload/reference/features.html#feature-resolver-version-2
 The following differences were detected with the current configuration:
 
   common v1.0.0 removed features `f1`

@@ -1,13 +1,13 @@
 # Git Authentication
 
-Cargo supports some forms of authentication when using git dependencies and
+Payload supports some forms of authentication when using git dependencies and
 registries. This appendix contains some information for setting up git
-authentication in a way that works with Cargo.
+authentication in a way that works with Payload.
 
 If you need other authentication methods, the [`net.git-fetch-with-cli`]
-config value can be set to cause Cargo to execute the `git` executable to
+config value can be set to cause Payload to execute the `git` executable to
 handle fetching remote repositories instead of using the built-in support.
-This can be enabled with the `CARGO_NET_GIT_FETCH_WITH_CLI=true` environment
+This can be enabled with the `PAYLOAD_NET_GIT_FETCH_WITH_CLI=true` environment
 variable.
 
 ## HTTPS authentication
@@ -23,8 +23,8 @@ global git configuration file.
 helper = store
 ```
 
-Cargo does not ask for passwords, so for most helpers you will need to give
-the helper the initial username/password before running Cargo. One way to do
+Payload does not ask for passwords, so for most helpers you will need to give
+the helper the initial username/password before running Payload. One way to do
 this is to run `git clone` of the private git repo and enter the
 username/password.
 
@@ -43,12 +43,12 @@ Make sure the appropriate environment variables are set up (`SSH_AUTH_SOCK` on
 most Unix-like systems), and that the correct keys are added (with `ssh-add`).
 Windows uses Pageant for SSH authentication.
 
-> **Note:** Cargo does not support git's shorthand SSH URLs like
+> **Note:** Payload does not support git's shorthand SSH URLs like
 > `git@example.com/user/repo.git`. Use a full SSH URL like
 > `ssh://git@example.com/user/repo.git`.
 
 > **Note:** SSH configuration files (like OpenSSH's `~/.ssh/config`) are not
-> used by Cargo's built-in SSH library. More advanced requirements should use
+> used by Payload's built-in SSH library. More advanced requirements should use
 > [`net.git-fetch-with-cli`].
 
 [`credential.helper`]: https://git-scm.com/book/en/v2/Git-Tools-Credential-Storage

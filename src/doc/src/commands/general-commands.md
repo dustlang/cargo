@@ -1,4 +1,4 @@
 # General Commands
-* [cargo](cargo.md)
-* [cargo help](cargo-help.md)
-* [cargo version](cargo-version.md)
+* [payload](payload.md)
+* [payload help](payload-help.md)
+* [payload version](payload-version.md)

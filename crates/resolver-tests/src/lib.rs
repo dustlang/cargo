@@ -10,12 +10,12 @@ use std::fmt::Write;
 use std::rc::Rc;
 use std::time::Instant;
 
-use cargo::core::dependency::DepKind;
-use cargo::core::resolver::{self, ResolveOpts};
-use cargo::core::source::{GitReference, SourceId};
-use cargo::core::Resolve;
-use cargo::core::{Dependency, PackageId, Registry, Summary};
-use cargo::util::{CargoResult, Config, Graph, IntoUrl};
+use payload::core::dependency::DepKind;
+use payload::core::resolver::{self, ResolveOpts};
+use payload::core::source::{GitReference, SourceId};
+use payload::core::Resolve;
+use payload::core::{Dependency, PackageId, Registry, Summary};
+use payload::util::{PayloadResult, Config, Graph, IntoUrl};
 
 use proptest::collection::{btree_map, vec};
 use proptest::prelude::*;
@@ -23,7 +23,7 @@ use proptest::sample::Index;
 use proptest::string::string_regex;
 use varisat::{self, ExtendFormula};
 
-pub fn resolve(deps: Vec<Dependency>, registry: &[Summary]) -> CargoResult<Vec<PackageId>> {
+pub fn resolve(deps: Vec<Dependency>, registry: &[Summary]) -> PayloadResult<Vec<PackageId>> {
     resolve_with_config(deps, registry, &Config::default().unwrap())
 }
 
@@ -31,7 +31,7 @@ pub fn resolve_and_validated(
     deps: Vec<Dependency>,
     registry: &[Summary],
     sat_resolve: Option<SatResolve>,
-) -> CargoResult<Vec<PackageId>> {
+) -> PayloadResult<Vec<PackageId>> {
     let resolve = resolve_with_config_raw(deps.clone(), registry, &Config::default().unwrap());
 
     match resolve {
@@ -110,7 +110,7 @@ pub fn resolve_with_config(
     deps: Vec<Dependency>,
     registry: &[Summary],
     config: &Config,
-) -> CargoResult<Vec<PackageId>> {
+) -> PayloadResult<Vec<PackageId>> {
     let resolve = resolve_with_config_raw(deps, registry, config)?;
     Ok(resolve.sort())
 }
@@ -119,7 +119,7 @@ pub fn resolve_with_config_raw(
     deps: Vec<Dependency>,
     registry: &[Summary],
     config: &Config,
-) -> CargoResult<Resolve> {
+) -> PayloadResult<Resolve> {
     struct MyRegistry<'a> {
         list: &'a [Summary],
         used: HashSet<PackageId>,
@@ -130,7 +130,7 @@ pub fn resolve_with_config_raw(
             dep: &Dependency,
             f: &mut dyn FnMut(Summary),
             fuzzy: bool,
-        ) -> CargoResult<()> {
+        ) -> PayloadResult<()> {
             for summary in self.list.iter() {
                 if fuzzy || dep.matches(summary) {
                     self.used.insert(summary.package_id());

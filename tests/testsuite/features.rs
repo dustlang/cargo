@@ -1,14 +1,14 @@
 //! Tests for `[features]` table.
 
-use cargo_test_support::paths::CargoPathExt;
-use cargo_test_support::registry::{Dependency, Package};
-use cargo_test_support::{basic_manifest, project};
+use payload_test_support::paths::PayloadPathExt;
+use payload_test_support::registry::{Dependency, Package};
+use payload_test_support::{basic_manifest, project};
 
-#[cargo_test]
+#[payload_test]
 fn invalid1() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -22,7 +22,7 @@ fn invalid1() {
         .file("src/main.rs", "")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "\
@@ -35,11 +35,11 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn invalid2() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -55,11 +55,11 @@ fn invalid2() {
             "#,
         )
         .file("src/main.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "1.0.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "1.0.0"))
         .file("bar/src/lib.rs", "")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "\
@@ -72,11 +72,11 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn invalid3() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -93,7 +93,7 @@ fn invalid3() {
         .file("src/main.rs", "")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "\
@@ -107,11 +107,11 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn invalid4() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -124,11 +124,11 @@ fn invalid4() {
             "#,
         )
         .file("src/main.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.0.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.0.1"))
         .file("bar/src/lib.rs", "")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "\
@@ -143,19 +143,19 @@ failed to select a version for `bar` which could resolve this conflict",
         )
         .run();
 
-    p.change_file("Cargo.toml", &basic_manifest("foo", "0.0.1"));
+    p.change_file("Payload.toml", &basic_manifest("foo", "0.0.1"));
 
-    p.cargo("build --features test")
+    p.payload("build --features test")
         .with_status(101)
         .with_stderr("error: Package `foo v0.0.1 ([..])` does not have the feature `test`")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn invalid5() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -170,7 +170,7 @@ fn invalid5() {
         .file("src/main.rs", "")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "\
@@ -183,11 +183,11 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn invalid6() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -201,7 +201,7 @@ fn invalid6() {
         .file("src/main.rs", "")
         .build();
 
-    p.cargo("build --features foo")
+    p.payload("build --features foo")
         .with_status(101)
         .with_stderr(
             "\
@@ -214,11 +214,11 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn invalid7() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -233,7 +233,7 @@ fn invalid7() {
         .file("src/main.rs", "")
         .build();
 
-    p.cargo("build --features foo")
+    p.payload("build --features foo")
         .with_status(101)
         .with_stderr(
             "\
@@ -246,11 +246,11 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn invalid8() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -263,21 +263,21 @@ fn invalid8() {
             "#,
         )
         .file("src/main.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.0.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.0.1"))
         .file("bar/src/lib.rs", "")
         .build();
 
-    p.cargo("build --features foo")
+    p.payload("build --features foo")
         .with_status(101)
         .with_stderr("[ERROR] feature names may not contain slashes: `foo/bar`")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn invalid9() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -289,11 +289,11 @@ fn invalid9() {
             "#,
         )
         .file("src/main.rs", "fn main() {}")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.0.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.0.1"))
         .file("bar/src/lib.rs", "")
         .build();
 
-    p.cargo("build --features bar")
+    p.payload("build --features bar")
         .with_stderr(
             "\
 error: Package `foo v0.0.1 ([..])` does not have feature `bar`. It has a required dependency with that name, but only optional dependencies can be used as features.
@@ -301,11 +301,11 @@ error: Package `foo v0.0.1 ([..])` does not have feature `bar`. It has a require
         ).with_status(101).run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn invalid10() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -319,7 +319,7 @@ fn invalid10() {
         )
         .file("src/main.rs", "fn main() {}")
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -331,11 +331,11 @@ fn invalid10() {
             "#,
         )
         .file("bar/src/lib.rs", "")
-        .file("bar/baz/Cargo.toml", &basic_manifest("baz", "0.0.1"))
+        .file("bar/baz/Payload.toml", &basic_manifest("baz", "0.0.1"))
         .file("bar/baz/src/lib.rs", "")
         .build();
 
-    p.cargo("build").with_stderr("\
+    p.payload("build").with_stderr("\
 error: failed to select a version for `bar`.
     ... required by package `foo v0.0.1 ([..])`
 versions that meet the requirements `*` are: 0.0.1
@@ -349,11 +349,11 @@ failed to select a version for `bar` which could resolve this conflict
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn no_transitive_dep_feature_requirement() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -375,7 +375,7 @@ fn no_transitive_dep_feature_requirement() {
             "#,
         )
         .file(
-            "derived/Cargo.toml",
+            "derived/Payload.toml",
             r#"
                 [package]
                 name = "derived"
@@ -388,7 +388,7 @@ fn no_transitive_dep_feature_requirement() {
         )
         .file("derived/src/lib.rs", "extern crate bar; pub use bar::test;")
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -407,17 +407,17 @@ fn no_transitive_dep_feature_requirement() {
             "#,
         )
         .build();
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr("[ERROR] feature names may not contain slashes: `bar/qux`")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn no_feature_doesnt_build() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -440,11 +440,11 @@ fn no_feature_doesnt_build() {
                 fn main() {}
             "#,
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.0.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.0.1"))
         .file("bar/src/lib.rs", "pub fn bar() {}")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
@@ -454,7 +454,7 @@ fn no_feature_doesnt_build() {
         .run();
     p.process(&p.bin("foo")).with_stdout("").run();
 
-    p.cargo("build --features bar")
+    p.payload("build --features bar")
         .with_stderr(
             "\
 [COMPILING] bar v0.0.1 ([CWD]/bar)
@@ -466,11 +466,11 @@ fn no_feature_doesnt_build() {
     p.process(&p.bin("foo")).with_stdout("bar\n").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn default_feature_pulled_in() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -496,11 +496,11 @@ fn default_feature_pulled_in() {
                 fn main() {}
             "#,
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.0.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.0.1"))
         .file("bar/src/lib.rs", "pub fn bar() {}")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [COMPILING] bar v0.0.1 ([CWD]/bar)
@@ -511,7 +511,7 @@ fn default_feature_pulled_in() {
         .run();
     p.process(&p.bin("foo")).with_stdout("bar\n").run();
 
-    p.cargo("build --no-default-features")
+    p.payload("build --no-default-features")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
@@ -522,11 +522,11 @@ fn default_feature_pulled_in() {
     p.process(&p.bin("foo")).with_stdout("").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn cyclic_feature() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -540,17 +540,17 @@ fn cyclic_feature() {
         .file("src/main.rs", "")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr("[ERROR] cyclic feature dependency: feature `default` depends on itself")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn cyclic_feature2() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -565,14 +565,14 @@ fn cyclic_feature2() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("build").with_stdout("").run();
+    p.payload("build").with_stdout("").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn groups_on_groups_on_groups() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -608,13 +608,13 @@ fn groups_on_groups_on_groups() {
                 fn main() {}
             "#,
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.0.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.0.1"))
         .file("bar/src/lib.rs", "pub fn bar() {}")
-        .file("baz/Cargo.toml", &basic_manifest("baz", "0.0.1"))
+        .file("baz/Payload.toml", &basic_manifest("baz", "0.0.1"))
         .file("baz/src/lib.rs", "pub fn baz() {}")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [COMPILING] ba[..] v0.0.1 ([CWD]/ba[..])
@@ -626,11 +626,11 @@ fn groups_on_groups_on_groups() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn many_cli_features() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -656,13 +656,13 @@ fn many_cli_features() {
                 fn main() {}
             "#,
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.0.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.0.1"))
         .file("bar/src/lib.rs", "pub fn bar() {}")
-        .file("baz/Cargo.toml", &basic_manifest("baz", "0.0.1"))
+        .file("baz/Payload.toml", &basic_manifest("baz", "0.0.1"))
         .file("baz/src/lib.rs", "pub fn baz() {}")
         .build();
 
-    p.cargo("build --features")
+    p.payload("build --features")
         .arg("bar baz")
         .with_stderr(
             "\
@@ -675,11 +675,11 @@ fn many_cli_features() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn union_features() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -707,7 +707,7 @@ fn union_features() {
             "#,
         )
         .file(
-            "d1/Cargo.toml",
+            "d1/Payload.toml",
             r#"
                 [package]
                 name = "d1"
@@ -725,7 +725,7 @@ fn union_features() {
         )
         .file("d1/src/lib.rs", "")
         .file(
-            "d2/Cargo.toml",
+            "d2/Payload.toml",
             r#"
                 [package]
                 name = "d2"
@@ -746,7 +746,7 @@ fn union_features() {
         )
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [COMPILING] d2 v0.0.1 ([CWD]/d2)
@@ -758,11 +758,11 @@ fn union_features() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn many_features_no_rebuilds() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name    = "b"
@@ -776,7 +776,7 @@ fn many_features_no_rebuilds() {
         )
         .file("src/main.rs", "fn main() {}")
         .file(
-            "a/Cargo.toml",
+            "a/Payload.toml",
             r#"
                 [package]
                 name    = "a"
@@ -792,7 +792,7 @@ fn many_features_no_rebuilds() {
         .file("a/src/lib.rs", "")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [COMPILING] a v0.1.0 ([CWD]/a)
@@ -803,7 +803,7 @@ fn many_features_no_rebuilds() {
         .run();
     p.root().move_into_the_past();
 
-    p.cargo("build -v")
+    p.payload("build -v")
         .with_stderr(
             "\
 [FRESH] a v0.1.0 ([..]/a)
@@ -815,19 +815,19 @@ fn many_features_no_rebuilds() {
 }
 
 // Tests that all cmd lines work with `--features ""`
-#[cargo_test]
+#[payload_test]
 fn empty_features() {
     let p = project().file("src/main.rs", "fn main() {}").build();
 
-    p.cargo("build --features").arg("").run();
+    p.payload("build --features").arg("").run();
 }
 
 // Tests that all cmd lines work with `--features ""`
-#[cargo_test]
+#[payload_test]
 fn transitive_features() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -843,7 +843,7 @@ fn transitive_features() {
         )
         .file("src/main.rs", "extern crate bar; fn main() { bar::baz(); }")
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -860,14 +860,14 @@ fn transitive_features() {
         )
         .build();
 
-    p.cargo("build --features foo").run();
+    p.payload("build --features foo").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn everything_in_the_lockfile() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -890,7 +890,7 @@ fn everything_in_the_lockfile() {
         )
         .file("src/main.rs", "fn main() {}")
         .file(
-            "d1/Cargo.toml",
+            "d1/Payload.toml",
             r#"
                 [package]
                 name = "d1"
@@ -902,10 +902,10 @@ fn everything_in_the_lockfile() {
             "#,
         )
         .file("d1/src/lib.rs", "")
-        .file("d2/Cargo.toml", &basic_manifest("d2", "0.0.2"))
+        .file("d2/Payload.toml", &basic_manifest("d2", "0.0.2"))
         .file("d2/src/lib.rs", "")
         .file(
-            "d3/Cargo.toml",
+            "d3/Payload.toml",
             r#"
                 [package]
                 name = "d3"
@@ -919,7 +919,7 @@ fn everything_in_the_lockfile() {
         .file("d3/src/lib.rs", "")
         .build();
 
-    p.cargo("fetch").run();
+    p.payload("fetch").run();
     let lockfile = p.read_lockfile();
     assert!(
         lockfile.contains(r#"name = "d1""#),
@@ -938,11 +938,11 @@ fn everything_in_the_lockfile() {
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn no_rebuild_when_frobbing_default_feature() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -956,7 +956,7 @@ fn no_rebuild_when_frobbing_default_feature() {
         )
         .file("src/lib.rs", "")
         .file(
-            "b/Cargo.toml",
+            "b/Payload.toml",
             r#"
                 [package]
                 name = "b"
@@ -969,7 +969,7 @@ fn no_rebuild_when_frobbing_default_feature() {
         )
         .file("b/src/lib.rs", "")
         .file(
-            "a/Cargo.toml",
+            "a/Payload.toml",
             r#"
                 [package]
                 name = "a"
@@ -984,16 +984,16 @@ fn no_rebuild_when_frobbing_default_feature() {
         .file("a/src/lib.rs", "")
         .build();
 
-    p.cargo("build").run();
-    p.cargo("build").with_stdout("").run();
-    p.cargo("build").with_stdout("").run();
+    p.payload("build").run();
+    p.payload("build").with_stdout("").run();
+    p.payload("build").with_stdout("").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn unions_work_with_no_default_features() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1007,7 +1007,7 @@ fn unions_work_with_no_default_features() {
         )
         .file("src/lib.rs", "extern crate a; pub fn foo() { a::a(); }")
         .file(
-            "b/Cargo.toml",
+            "b/Payload.toml",
             r#"
                 [package]
                 name = "b"
@@ -1020,7 +1020,7 @@ fn unions_work_with_no_default_features() {
         )
         .file("b/src/lib.rs", "")
         .file(
-            "a/Cargo.toml",
+            "a/Payload.toml",
             r#"
                 [package]
                 name = "a"
@@ -1035,16 +1035,16 @@ fn unions_work_with_no_default_features() {
         .file("a/src/lib.rs", r#"#[cfg(feature = "f1")] pub fn a() {}"#)
         .build();
 
-    p.cargo("build").run();
-    p.cargo("build").with_stdout("").run();
-    p.cargo("build").with_stdout("").run();
+    p.payload("build").run();
+    p.payload("build").with_stdout("").run();
+    p.payload("build").with_stdout("").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn optional_and_dev_dep() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name    = "test"
@@ -1058,11 +1058,11 @@ fn optional_and_dev_dep() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("foo/Cargo.toml", &basic_manifest("foo", "0.1.0"))
+        .file("foo/Payload.toml", &basic_manifest("foo", "0.1.0"))
         .file("foo/src/lib.rs", "")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [COMPILING] test v0.1.0 ([..])
@@ -1072,11 +1072,11 @@ fn optional_and_dev_dep() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn activating_feature_activates_dep() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name    = "test"
@@ -1095,7 +1095,7 @@ fn activating_feature_activates_dep() {
             "extern crate foo; pub fn bar() { foo::bar(); }",
         )
         .file(
-            "foo/Cargo.toml",
+            "foo/Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1109,14 +1109,14 @@ fn activating_feature_activates_dep() {
         .file("foo/src/lib.rs", r#"#[cfg(feature = "a")] pub fn bar() {}"#)
         .build();
 
-    p.cargo("build --features a -v").run();
+    p.payload("build --features a -v").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn dep_feature_in_cmd_line() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1135,7 +1135,7 @@ fn dep_feature_in_cmd_line() {
             "#,
         )
         .file(
-            "derived/Cargo.toml",
+            "derived/Payload.toml",
             r#"
                 [package]
                 name = "derived"
@@ -1152,7 +1152,7 @@ fn dep_feature_in_cmd_line() {
         )
         .file("derived/src/lib.rs", "extern crate bar; pub use bar::test;")
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -1174,33 +1174,33 @@ fn dep_feature_in_cmd_line() {
 
     // The foo project requires that feature "some-feat" in "bar" is enabled.
     // Building without any features enabled should fail:
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr_contains("[..]unresolved import `bar::test`")
         .run();
 
     // We should be able to enable the feature "derived-feat", which enables "some-feat",
     // on the command line. The feature is enabled, thus building should be successful:
-    p.cargo("build --features derived/derived-feat").run();
+    p.payload("build --features derived/derived-feat").run();
 
     // Trying to enable features of transitive dependencies is an error
-    p.cargo("build --features bar/some-feat")
+    p.payload("build --features bar/some-feat")
         .with_status(101)
         .with_stderr("error: package `foo v0.0.1 ([..])` does not have a dependency named `bar`")
         .run();
 
     // Hierarchical feature specification should still be disallowed
-    p.cargo("build --features derived/bar/some-feat")
+    p.payload("build --features derived/bar/some-feat")
         .with_status(101)
         .with_stderr("[ERROR] feature names may not contain slashes: `bar/some-feat`")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn all_features_flag_enables_all_features() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1234,18 +1234,18 @@ fn all_features_flag_enables_all_features() {
                 }
             "#,
         )
-        .file("baz/Cargo.toml", &basic_manifest("baz", "0.0.1"))
+        .file("baz/Payload.toml", &basic_manifest("baz", "0.0.1"))
         .file("baz/src/lib.rs", "pub fn baz() {}")
         .build();
 
-    p.cargo("build --all-features").run();
+    p.payload("build --all-features").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn many_cli_features_comma_delimited() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1271,13 +1271,13 @@ fn many_cli_features_comma_delimited() {
                 fn main() {}
             "#,
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.0.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.0.1"))
         .file("bar/src/lib.rs", "pub fn bar() {}")
-        .file("baz/Cargo.toml", &basic_manifest("baz", "0.0.1"))
+        .file("baz/Payload.toml", &basic_manifest("baz", "0.0.1"))
         .file("baz/src/lib.rs", "pub fn baz() {}")
         .build();
 
-    p.cargo("build --features bar,baz")
+    p.payload("build --features bar,baz")
         .with_stderr(
             "\
 [COMPILING] ba[..] v0.0.1 ([CWD]/ba[..])
@@ -1289,11 +1289,11 @@ fn many_cli_features_comma_delimited() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn many_cli_features_comma_and_space_delimited() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1331,17 +1331,17 @@ fn many_cli_features_comma_and_space_delimited() {
                 fn main() {}
             "#,
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.0.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.0.1"))
         .file("bar/src/lib.rs", "pub fn bar() {}")
-        .file("baz/Cargo.toml", &basic_manifest("baz", "0.0.1"))
+        .file("baz/Payload.toml", &basic_manifest("baz", "0.0.1"))
         .file("baz/src/lib.rs", "pub fn baz() {}")
-        .file("bam/Cargo.toml", &basic_manifest("bam", "0.0.1"))
+        .file("bam/Payload.toml", &basic_manifest("bam", "0.0.1"))
         .file("bam/src/lib.rs", "pub fn bam() {}")
-        .file("bap/Cargo.toml", &basic_manifest("bap", "0.0.1"))
+        .file("bap/Payload.toml", &basic_manifest("bap", "0.0.1"))
         .file("bap/src/lib.rs", "pub fn bap() {}")
         .build();
 
-    p.cargo("build --features")
+    p.payload("build --features")
         .arg("bar,baz bam bap")
         .with_stderr(
             "\
@@ -1356,13 +1356,13 @@ fn many_cli_features_comma_and_space_delimited() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn only_dep_is_optional() {
     Package::new("bar", "0.1.0").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1382,16 +1382,16 @@ fn only_dep_is_optional() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn all_features_all_crates() {
     Package::new("bar", "0.1.0").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1404,7 +1404,7 @@ fn all_features_all_crates() {
         )
         .file("src/main.rs", "fn main() {}")
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [project]
                 name = "bar"
@@ -1418,14 +1418,14 @@ fn all_features_all_crates() {
         .file("bar/src/main.rs", "#[cfg(feature = \"foo\")] fn main() {}")
         .build();
 
-    p.cargo("build --all-features --workspace").run();
+    p.payload("build --all-features --workspace").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn feature_off_dylib() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["bar"]
@@ -1454,7 +1454,7 @@ fn feature_off_dylib() {
             "#,
         )
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -1477,16 +1477,16 @@ fn feature_off_dylib() {
         .build();
 
     // Build the dylib with `f1` feature.
-    p.cargo("build --features f1").run();
+    p.payload("build --features f1").run();
     // Check that building without `f1` uses a dylib without `f1`.
-    p.cargo("run -p bar").run();
+    p.payload("run -p bar").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn warn_if_default_features() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                [project]
                name = "foo"
@@ -1502,11 +1502,11 @@ fn warn_if_default_features() {
             "#,
         )
         .file("src/main.rs", "fn main() {}")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.0.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.0.1"))
         .file("bar/src/lib.rs", "pub fn bar() {}")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             r#"
 [WARNING] `default-features = [".."]` was found in [features]. Did you mean to use `default = [".."]`?
@@ -1516,11 +1516,11 @@ fn warn_if_default_features() {
         ).run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn no_feature_for_non_optional_dep() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1540,7 +1540,7 @@ fn no_feature_for_non_optional_dep() {
             "#,
         )
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [project]
                 name = "bar"
@@ -1554,14 +1554,14 @@ fn no_feature_for_non_optional_dep() {
         .file("bar/src/lib.rs", "pub fn bar() {}")
         .build();
 
-    p.cargo("build --features bar/a").run();
+    p.payload("build --features bar/a").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn features_option_given_twice() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1582,14 +1582,14 @@ fn features_option_given_twice() {
         )
         .build();
 
-    p.cargo("build --features a --features b").run();
+    p.payload("build --features a --features b").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn multi_multi_features() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1611,14 +1611,14 @@ fn multi_multi_features() {
         )
         .build();
 
-    p.cargo("build --features a --features").arg("b c").run();
+    p.payload("build --features a --features").arg("b c").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn cli_parse_ok() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1640,24 +1640,24 @@ fn cli_parse_ok() {
         )
         .build();
 
-    p.cargo("run --features a b").run();
+    p.payload("run --features a b").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn all_features_virtual_ws() {
     // What happens with `--all-features` in the root of a virtual workspace.
     // Some of this behavior is a little strange (member dependencies also
     // have all features enabled, one might expect `f4` to be disabled).
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["a", "b"]
             "#,
         )
         .file(
-            "a/Cargo.toml",
+            "a/Payload.toml",
             r#"
                 [package]
                 name = "a"
@@ -1689,7 +1689,7 @@ fn all_features_virtual_ws() {
             "#,
         )
         .file(
-            "b/Cargo.toml",
+            "b/Payload.toml",
             r#"
                 [package]
                 name = "b"
@@ -1716,23 +1716,23 @@ fn all_features_virtual_ws() {
         )
         .build();
 
-    p.cargo("run").with_stdout("f1\n").run();
-    p.cargo("run --all-features")
+    p.payload("run").with_stdout("f1\n").run();
+    p.payload("run --all-features")
         .with_stdout("f1\nf2\nf3\nf4\n")
         .run();
     // In `a`, it behaves differently. :(
-    p.cargo("run --all-features")
+    p.payload("run --all-features")
         .cwd("a")
         .with_stdout("f1\nf2\nf3\n")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn slash_optional_enables() {
     // --features dep/feat will enable `dep` and set its feature.
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -1750,7 +1750,7 @@ fn slash_optional_enables() {
             "#,
         )
         .file(
-            "dep/Cargo.toml",
+            "dep/Payload.toml",
             r#"
             [package]
             name = "dep"
@@ -1769,15 +1769,15 @@ fn slash_optional_enables() {
         )
         .build();
 
-    p.cargo("check")
+    p.payload("check")
         .with_status(101)
         .with_stderr_contains("[..]dep not set[..]")
         .run();
 
-    p.cargo("check --features dep/feat").run();
+    p.payload("check --features dep/feat").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn registry_summary_order_doesnt_matter() {
     // Checks for an issue where the resolver depended on the order of entries
     // in the registry summary. If there was a non-optional dev-dependency
@@ -1815,7 +1815,7 @@ fn registry_summary_order_doesnt_matter() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1836,7 +1836,7 @@ fn registry_summary_order_doesnt_matter() {
         )
         .build();
 
-    p.cargo("run")
+    p.payload("run")
         .with_stderr(
             "\
 [UPDATING] [..]
@@ -1854,7 +1854,7 @@ fn registry_summary_order_doesnt_matter() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn nonexistent_required_features() {
     Package::new("required_dependency", "0.1.0")
         .feature("simple", &[])
@@ -1864,7 +1864,7 @@ fn nonexistent_required_features() {
         .publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [project]
             name = "foo"
@@ -1890,7 +1890,7 @@ fn nonexistent_required_features() {
         .file("examples/ololo.rs", "fn main() {}")
         .build();
 
-    p.cargo("build --examples")
+    p.payload("build --examples")
         .with_stderr_contains(
             "\
 [WARNING] invalid feature `not_present` in required-features of target `ololo`: \
@@ -1905,12 +1905,12 @@ fn nonexistent_required_features() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn invalid_feature_names() {
     // Warnings for more restricted feature syntax.
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1942,76 +1942,76 @@ fn invalid_feature_names() {
 
     // Unfortunately the warnings are duplicated due to the Summary being
     // loaded twice (once in the Workspace, and once in PackageRegistry) and
-    // Cargo does not have a de-duplication system. This should probably be
+    // Payload does not have a de-duplication system. This should probably be
     // OK, since I'm not expecting this to affect anyone.
-    p.cargo("check")
+    p.payload("check")
         .with_stderr("\
 [WARNING] invalid character `+` in feature `+foo` in package foo v0.1.0 ([ROOT]/foo), the first character must be a Unicode XID start character or digit (most letters or `_` or `0` to `9`)
 This was previously accepted but is being phased out; it will become a hard error in a future release.
-For more information, see issue #8813 <https://github.com/rust-lang/cargo/issues/8813>, and please leave a comment if this will be a problem for your project.
+For more information, see issue #8813 <https://github.com/dustlang/payload/issues/8813>, and please leave a comment if this will be a problem for your project.
 [WARNING] invalid character `-` in feature `-foo` in package foo v0.1.0 ([ROOT]/foo), the first character must be a Unicode XID start character or digit (most letters or `_` or `0` to `9`)
 This was previously accepted but is being phased out; it will become a hard error in a future release.
-For more information, see issue #8813 <https://github.com/rust-lang/cargo/issues/8813>, and please leave a comment if this will be a problem for your project.
+For more information, see issue #8813 <https://github.com/dustlang/payload/issues/8813>, and please leave a comment if this will be a problem for your project.
 [WARNING] invalid character `.` in feature `.foo` in package foo v0.1.0 ([ROOT]/foo), the first character must be a Unicode XID start character or digit (most letters or `_` or `0` to `9`)
 This was previously accepted but is being phased out; it will become a hard error in a future release.
-For more information, see issue #8813 <https://github.com/rust-lang/cargo/issues/8813>, and please leave a comment if this will be a problem for your project.
+For more information, see issue #8813 <https://github.com/dustlang/payload/issues/8813>, and please leave a comment if this will be a problem for your project.
 [WARNING] invalid character `?` in feature `?foo` in package foo v0.1.0 ([ROOT]/foo), the first character must be a Unicode XID start character or digit (most letters or `_` or `0` to `9`)
 This was previously accepted but is being phased out; it will become a hard error in a future release.
-For more information, see issue #8813 <https://github.com/rust-lang/cargo/issues/8813>, and please leave a comment if this will be a problem for your project.
+For more information, see issue #8813 <https://github.com/dustlang/payload/issues/8813>, and please leave a comment if this will be a problem for your project.
 [WARNING] invalid character `¼` in feature `a¼` in package foo v0.1.0 ([ROOT]/foo), characters must be Unicode XID characters, `+`, or `.` (numbers, `+`, `-`, `_`, `.`, or most letters)
 This was previously accepted but is being phased out; it will become a hard error in a future release.
-For more information, see issue #8813 <https://github.com/rust-lang/cargo/issues/8813>, and please leave a comment if this will be a problem for your project.
+For more information, see issue #8813 <https://github.com/dustlang/payload/issues/8813>, and please leave a comment if this will be a problem for your project.
 [WARNING] invalid character `/` in feature `foo/bar` in package foo v0.1.0 ([ROOT]/foo), characters must be Unicode XID characters, `+`, or `.` (numbers, `+`, `-`, `_`, `.`, or most letters)
 This was previously accepted but is being phased out; it will become a hard error in a future release.
-For more information, see issue #8813 <https://github.com/rust-lang/cargo/issues/8813>, and please leave a comment if this will be a problem for your project.
+For more information, see issue #8813 <https://github.com/dustlang/payload/issues/8813>, and please leave a comment if this will be a problem for your project.
 [WARNING] invalid character `:` in feature `foo:bar` in package foo v0.1.0 ([ROOT]/foo), characters must be Unicode XID characters, `+`, or `.` (numbers, `+`, `-`, `_`, `.`, or most letters)
 This was previously accepted but is being phased out; it will become a hard error in a future release.
-For more information, see issue #8813 <https://github.com/rust-lang/cargo/issues/8813>, and please leave a comment if this will be a problem for your project.
+For more information, see issue #8813 <https://github.com/dustlang/payload/issues/8813>, and please leave a comment if this will be a problem for your project.
 [WARNING] invalid character `?` in feature `foo?` in package foo v0.1.0 ([ROOT]/foo), characters must be Unicode XID characters, `+`, or `.` (numbers, `+`, `-`, `_`, `.`, or most letters)
 This was previously accepted but is being phased out; it will become a hard error in a future release.
-For more information, see issue #8813 <https://github.com/rust-lang/cargo/issues/8813>, and please leave a comment if this will be a problem for your project.
+For more information, see issue #8813 <https://github.com/dustlang/payload/issues/8813>, and please leave a comment if this will be a problem for your project.
 [WARNING] invalid character `Ⓐ` in feature `ⒶⒷⒸ` in package foo v0.1.0 ([ROOT]/foo), the first character must be a Unicode XID start character or digit (most letters or `_` or `0` to `9`)
 This was previously accepted but is being phased out; it will become a hard error in a future release.
-For more information, see issue #8813 <https://github.com/rust-lang/cargo/issues/8813>, and please leave a comment if this will be a problem for your project.
+For more information, see issue #8813 <https://github.com/dustlang/payload/issues/8813>, and please leave a comment if this will be a problem for your project.
 [WARNING] invalid character `Ⓑ` in feature `ⒶⒷⒸ` in package foo v0.1.0 ([ROOT]/foo), characters must be Unicode XID characters, `+`, or `.` (numbers, `+`, `-`, `_`, `.`, or most letters)
 This was previously accepted but is being phased out; it will become a hard error in a future release.
-For more information, see issue #8813 <https://github.com/rust-lang/cargo/issues/8813>, and please leave a comment if this will be a problem for your project.
+For more information, see issue #8813 <https://github.com/dustlang/payload/issues/8813>, and please leave a comment if this will be a problem for your project.
 [WARNING] invalid character `Ⓒ` in feature `ⒶⒷⒸ` in package foo v0.1.0 ([ROOT]/foo), characters must be Unicode XID characters, `+`, or `.` (numbers, `+`, `-`, `_`, `.`, or most letters)
 This was previously accepted but is being phased out; it will become a hard error in a future release.
-For more information, see issue #8813 <https://github.com/rust-lang/cargo/issues/8813>, and please leave a comment if this will be a problem for your project.
+For more information, see issue #8813 <https://github.com/dustlang/payload/issues/8813>, and please leave a comment if this will be a problem for your project.
 [WARNING] invalid character `+` in feature `+foo` in package foo v0.1.0 ([ROOT]/foo), the first character must be a Unicode XID start character or digit (most letters or `_` or `0` to `9`)
 This was previously accepted but is being phased out; it will become a hard error in a future release.
-For more information, see issue #8813 <https://github.com/rust-lang/cargo/issues/8813>, and please leave a comment if this will be a problem for your project.
+For more information, see issue #8813 <https://github.com/dustlang/payload/issues/8813>, and please leave a comment if this will be a problem for your project.
 [WARNING] invalid character `-` in feature `-foo` in package foo v0.1.0 ([ROOT]/foo), the first character must be a Unicode XID start character or digit (most letters or `_` or `0` to `9`)
 This was previously accepted but is being phased out; it will become a hard error in a future release.
-For more information, see issue #8813 <https://github.com/rust-lang/cargo/issues/8813>, and please leave a comment if this will be a problem for your project.
+For more information, see issue #8813 <https://github.com/dustlang/payload/issues/8813>, and please leave a comment if this will be a problem for your project.
 [WARNING] invalid character `.` in feature `.foo` in package foo v0.1.0 ([ROOT]/foo), the first character must be a Unicode XID start character or digit (most letters or `_` or `0` to `9`)
 This was previously accepted but is being phased out; it will become a hard error in a future release.
-For more information, see issue #8813 <https://github.com/rust-lang/cargo/issues/8813>, and please leave a comment if this will be a problem for your project.
+For more information, see issue #8813 <https://github.com/dustlang/payload/issues/8813>, and please leave a comment if this will be a problem for your project.
 [WARNING] invalid character `?` in feature `?foo` in package foo v0.1.0 ([ROOT]/foo), the first character must be a Unicode XID start character or digit (most letters or `_` or `0` to `9`)
 This was previously accepted but is being phased out; it will become a hard error in a future release.
-For more information, see issue #8813 <https://github.com/rust-lang/cargo/issues/8813>, and please leave a comment if this will be a problem for your project.
+For more information, see issue #8813 <https://github.com/dustlang/payload/issues/8813>, and please leave a comment if this will be a problem for your project.
 [WARNING] invalid character `¼` in feature `a¼` in package foo v0.1.0 ([ROOT]/foo), characters must be Unicode XID characters, `+`, or `.` (numbers, `+`, `-`, `_`, `.`, or most letters)
 This was previously accepted but is being phased out; it will become a hard error in a future release.
-For more information, see issue #8813 <https://github.com/rust-lang/cargo/issues/8813>, and please leave a comment if this will be a problem for your project.
+For more information, see issue #8813 <https://github.com/dustlang/payload/issues/8813>, and please leave a comment if this will be a problem for your project.
 [WARNING] invalid character `/` in feature `foo/bar` in package foo v0.1.0 ([ROOT]/foo), characters must be Unicode XID characters, `+`, or `.` (numbers, `+`, `-`, `_`, `.`, or most letters)
 This was previously accepted but is being phased out; it will become a hard error in a future release.
-For more information, see issue #8813 <https://github.com/rust-lang/cargo/issues/8813>, and please leave a comment if this will be a problem for your project.
+For more information, see issue #8813 <https://github.com/dustlang/payload/issues/8813>, and please leave a comment if this will be a problem for your project.
 [WARNING] invalid character `:` in feature `foo:bar` in package foo v0.1.0 ([ROOT]/foo), characters must be Unicode XID characters, `+`, or `.` (numbers, `+`, `-`, `_`, `.`, or most letters)
 This was previously accepted but is being phased out; it will become a hard error in a future release.
-For more information, see issue #8813 <https://github.com/rust-lang/cargo/issues/8813>, and please leave a comment if this will be a problem for your project.
+For more information, see issue #8813 <https://github.com/dustlang/payload/issues/8813>, and please leave a comment if this will be a problem for your project.
 [WARNING] invalid character `?` in feature `foo?` in package foo v0.1.0 ([ROOT]/foo), characters must be Unicode XID characters, `+`, or `.` (numbers, `+`, `-`, `_`, `.`, or most letters)
 This was previously accepted but is being phased out; it will become a hard error in a future release.
-For more information, see issue #8813 <https://github.com/rust-lang/cargo/issues/8813>, and please leave a comment if this will be a problem for your project.
+For more information, see issue #8813 <https://github.com/dustlang/payload/issues/8813>, and please leave a comment if this will be a problem for your project.
 [WARNING] invalid character `Ⓐ` in feature `ⒶⒷⒸ` in package foo v0.1.0 ([ROOT]/foo), the first character must be a Unicode XID start character or digit (most letters or `_` or `0` to `9`)
 This was previously accepted but is being phased out; it will become a hard error in a future release.
-For more information, see issue #8813 <https://github.com/rust-lang/cargo/issues/8813>, and please leave a comment if this will be a problem for your project.
+For more information, see issue #8813 <https://github.com/dustlang/payload/issues/8813>, and please leave a comment if this will be a problem for your project.
 [WARNING] invalid character `Ⓑ` in feature `ⒶⒷⒸ` in package foo v0.1.0 ([ROOT]/foo), characters must be Unicode XID characters, `+`, or `.` (numbers, `+`, `-`, `_`, `.`, or most letters)
 This was previously accepted but is being phased out; it will become a hard error in a future release.
-For more information, see issue #8813 <https://github.com/rust-lang/cargo/issues/8813>, and please leave a comment if this will be a problem for your project.
+For more information, see issue #8813 <https://github.com/dustlang/payload/issues/8813>, and please leave a comment if this will be a problem for your project.
 [WARNING] invalid character `Ⓒ` in feature `ⒶⒷⒸ` in package foo v0.1.0 ([ROOT]/foo), characters must be Unicode XID characters, `+`, or `.` (numbers, `+`, `-`, `_`, `.`, or most letters)
 This was previously accepted but is being phased out; it will become a hard error in a future release.
-For more information, see issue #8813 <https://github.com/rust-lang/cargo/issues/8813>, and please leave a comment if this will be a problem for your project.
+For more information, see issue #8813 <https://github.com/dustlang/payload/issues/8813>, and please leave a comment if this will be a problem for your project.
 [CHECKING] foo v0.1.0 [..]
 [FINISHED] [..]
 ")

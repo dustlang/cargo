@@ -1,6 +1,6 @@
 //! Tests for credential-process.
 
-use cargo_test_support::{basic_manifest, cargo_process, paths, project, registry, Project};
+use payload_test_support::{basic_manifest, payload_process, paths, project, registry, Project};
 use std::fs;
 use std::thread;
 
@@ -8,7 +8,7 @@ fn toml_bin(proj: &Project, name: &str) -> String {
     proj.bin(name).display().to_string().replace('\\', "\\\\")
 }
 
-#[cargo_test]
+#[payload_test]
 fn gated() {
     registry::RegistryBuilder::new()
         .alternative(true)
@@ -17,48 +17,48 @@ fn gated() {
 
     let p = project()
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
                 [registry]
                 credential-process = "false"
             "#,
         )
-        .file("Cargo.toml", &basic_manifest("foo", "1.0.0"))
+        .file("Payload.toml", &basic_manifest("foo", "1.0.0"))
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("publish --no-verify")
-        .masquerade_as_nightly_cargo()
+    p.payload("publish --no-verify")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_stderr(
             "\
 [UPDATING] [..]
-[ERROR] no upload token found, please run `cargo login` or pass `--token`
+[ERROR] no upload token found, please run `payload login` or pass `--token`
 ",
         )
         .run();
 
     p.change_file(
-        ".cargo/config",
+        ".payload/config",
         r#"
             [registry.alternative]
             credential-process = "false"
         "#,
     );
 
-    p.cargo("publish --no-verify --registry alternative")
-        .masquerade_as_nightly_cargo()
+    p.payload("publish --no-verify --registry alternative")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_stderr(
             "\
 [UPDATING] [..]
-[ERROR] no upload token found, please run `cargo login` or pass `--token`
+[ERROR] no upload token found, please run `payload login` or pass `--token`
 ",
         )
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn warn_both_token_and_process() {
     // Specifying both credential-process and a token in config should issue a warning.
     registry::RegistryBuilder::new()
@@ -67,7 +67,7 @@ fn warn_both_token_and_process() {
         .build();
     let p = project()
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
                 [registries.alternative]
                 token = "sekrit"
@@ -75,7 +75,7 @@ fn warn_both_token_and_process() {
             "#,
         )
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -89,8 +89,8 @@ fn warn_both_token_and_process() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("publish --no-verify --registry alternative -Z credential-process")
-        .masquerade_as_nightly_cargo()
+    p.payload("publish --no-verify --registry alternative -Z credential-process")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_stderr(
             "\
@@ -104,7 +104,7 @@ Only one of these values may be set, remove one or the other to proceed.
     // Try with global credential-process, and registry-specific `token`.
     // This should silently use the config token, and not run the "false" exe.
     p.change_file(
-        ".cargo/config",
+        ".payload/config",
         r#"
             [registry]
             credential-process = "false"
@@ -113,8 +113,8 @@ Only one of these values may be set, remove one or the other to proceed.
             token = "sekrit"
         "#,
     );
-    p.cargo("publish --no-verify --registry alternative -Z credential-process")
-        .masquerade_as_nightly_cargo()
+    p.payload("publish --no-verify --registry alternative -Z credential-process")
+        .masquerade_as_nightly_payload()
         .with_stderr(
             "\
 [UPDATING] [..]
@@ -151,14 +151,14 @@ fn get_token_test() -> (Project, thread::JoinHandle<()>) {
     // The credential process to use.
     let cred_proj = project()
         .at("cred_proj")
-        .file("Cargo.toml", &basic_manifest("test-cred", "1.0.0"))
+        .file("Payload.toml", &basic_manifest("test-cred", "1.0.0"))
         .file("src/main.rs", r#"fn main() { println!("sekrit"); } "#)
         .build();
-    cred_proj.cargo("build").run();
+    cred_proj.payload("build").run();
 
     let p = project()
         .file(
-            ".cargo/config",
+            ".payload/config",
             &format!(
                 r#"
                     [registries.alternative]
@@ -170,7 +170,7 @@ fn get_token_test() -> (Project, thread::JoinHandle<()>) {
             ),
         )
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -186,13 +186,13 @@ fn get_token_test() -> (Project, thread::JoinHandle<()>) {
     (p, server)
 }
 
-#[cargo_test]
+#[payload_test]
 fn publish() {
-    // Checks that credential-process is used for `cargo publish`.
+    // Checks that credential-process is used for `payload publish`.
     let (p, t) = get_token_test();
 
-    p.cargo("publish --no-verify --registry alternative -Z credential-process")
-        .masquerade_as_nightly_cargo()
+    p.payload("publish --no-verify --registry alternative -Z credential-process")
+        .masquerade_as_nightly_payload()
         .with_stderr(
             "\
 [UPDATING] [..]
@@ -205,12 +205,12 @@ fn publish() {
     t.join().ok().unwrap();
 }
 
-#[cargo_test]
+#[payload_test]
 fn basic_unsupported() {
     // Non-action commands don't support login/logout.
     registry::RegistryBuilder::new().add_tokens(false).build();
-    cargo::util::paths::append(
-        &paths::home().join(".cargo/config"),
+    payload::util::paths::append(
+        &paths::home().join(".payload/config"),
         br#"
             [registry]
             credential-process = "false"
@@ -218,8 +218,8 @@ fn basic_unsupported() {
     )
     .unwrap();
 
-    cargo_process("login -Z credential-process abcdefg")
-        .masquerade_as_nightly_cargo()
+    payload_process("login -Z credential-process abcdefg")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_stderr(
             "\
@@ -231,8 +231,8 @@ the credential-process configuration value must pass the \
         )
         .run();
 
-    cargo_process("logout -Z credential-process")
-        .masquerade_as_nightly_cargo()
+    payload_process("logout -Z credential-process")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_stderr(
             "\
@@ -244,21 +244,21 @@ the credential-process configuration value must pass the \
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn login() {
     registry::init();
     // The credential process to use.
     let cred_proj = project()
         .at("cred_proj")
-        .file("Cargo.toml", &basic_manifest("test-cred", "1.0.0"))
+        .file("Payload.toml", &basic_manifest("test-cred", "1.0.0"))
         .file(
             "src/main.rs",
             &r#"
                 use std::io::Read;
 
                 fn main() {
-                    assert_eq!(std::env::var("CARGO_REGISTRY_NAME").unwrap(), "crates-io");
-                    assert_eq!(std::env::var("CARGO_REGISTRY_API_URL").unwrap(), "__API__");
+                    assert_eq!(std::env::var("PAYLOAD_REGISTRY_NAME").unwrap(), "crates-io");
+                    assert_eq!(std::env::var("PAYLOAD_REGISTRY_API_URL").unwrap(), "__API__");
                     assert_eq!(std::env::args().skip(1).next().unwrap(), "store");
                     let mut buffer = String::new();
                     std::io::stdin().read_to_string(&mut buffer).unwrap();
@@ -269,10 +269,10 @@ fn login() {
             .replace("__API__", &registry::api_url().to_string()),
         )
         .build();
-    cred_proj.cargo("build").run();
+    cred_proj.payload("build").run();
 
-    cargo::util::paths::append(
-        &paths::home().join(".cargo/config"),
+    payload::util::paths::append(
+        &paths::home().join(".payload/config"),
         format!(
             r#"
                 [registry]
@@ -284,8 +284,8 @@ fn login() {
     )
     .unwrap();
 
-    cargo_process("login -Z credential-process abcdefg")
-        .masquerade_as_nightly_cargo()
+    payload_process("login -Z credential-process abcdefg")
+        .masquerade_as_nightly_payload()
         .with_stderr(
             "\
 [UPDATING] [..]
@@ -299,32 +299,32 @@ fn login() {
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn logout() {
     registry::RegistryBuilder::new().add_tokens(false).build();
     // The credential process to use.
     let cred_proj = project()
         .at("cred_proj")
-        .file("Cargo.toml", &basic_manifest("test-cred", "1.0.0"))
+        .file("Payload.toml", &basic_manifest("test-cred", "1.0.0"))
         .file(
             "src/main.rs",
             r#"
                 use std::io::Read;
 
                 fn main() {
-                    assert_eq!(std::env::var("CARGO_REGISTRY_NAME").unwrap(), "crates-io");
+                    assert_eq!(std::env::var("PAYLOAD_REGISTRY_NAME").unwrap(), "crates-io");
                     assert_eq!(std::env::args().skip(1).next().unwrap(), "erase");
                     std::fs::write("token-store", "").unwrap();
                     eprintln!("token for `{}` has been erased!",
-                        std::env::var("CARGO_REGISTRY_NAME").unwrap());
+                        std::env::var("PAYLOAD_REGISTRY_NAME").unwrap());
                 }
             "#,
         )
         .build();
-    cred_proj.cargo("build").run();
+    cred_proj.payload("build").run();
 
-    cargo::util::paths::append(
-        &paths::home().join(".cargo/config"),
+    payload::util::paths::append(
+        &paths::home().join(".payload/config"),
         format!(
             r#"
                 [registry]
@@ -336,8 +336,8 @@ fn logout() {
     )
     .unwrap();
 
-    cargo_process("logout -Z credential-process")
-        .masquerade_as_nightly_cargo()
+    payload_process("logout -Z credential-process")
+        .masquerade_as_nightly_payload()
         .with_stderr(
             "\
 [UPDATING] [..]
@@ -352,12 +352,12 @@ token for `crates-io` has been erased!
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn yank() {
     let (p, t) = get_token_test();
 
-    p.cargo("yank --vers 0.1.0 --registry alternative -Z credential-process")
-        .masquerade_as_nightly_cargo()
+    p.payload("yank --vers 0.1.0 --registry alternative -Z credential-process")
+        .masquerade_as_nightly_payload()
         .with_stderr(
             "\
 [UPDATING] [..]
@@ -369,12 +369,12 @@ fn yank() {
     t.join().ok().unwrap();
 }
 
-#[cargo_test]
+#[payload_test]
 fn owner() {
     let (p, t) = get_token_test();
 
-    p.cargo("owner --add username --registry alternative -Z credential-process")
-        .masquerade_as_nightly_cargo()
+    p.payload("owner --add username --registry alternative -Z credential-process")
+        .masquerade_as_nightly_payload()
         .with_stderr(
             "\
 [UPDATING] [..]
@@ -386,35 +386,35 @@ fn owner() {
     t.join().ok().unwrap();
 }
 
-#[cargo_test]
+#[payload_test]
 fn libexec_path() {
-    // cargo: prefixed names use the sysroot
+    // payload: prefixed names use the sysroot
     registry::RegistryBuilder::new().add_tokens(false).build();
-    cargo::util::paths::append(
-        &paths::home().join(".cargo/config"),
+    payload::util::paths::append(
+        &paths::home().join(".payload/config"),
         br#"
             [registry]
-            credential-process = "cargo:doesnotexist"
+            credential-process = "payload:doesnotexist"
         "#,
     )
     .unwrap();
 
-    cargo_process("login -Z credential-process abcdefg")
-        .masquerade_as_nightly_cargo()
+    payload_process("login -Z credential-process abcdefg")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_stderr(
             &format!("\
 [UPDATING] [..]
-[ERROR] failed to execute `[..]libexec/cargo-credential-doesnotexist[EXE]` to store authentication token for registry `crates-io`
+[ERROR] failed to execute `[..]libexec/payload-credential-doesnotexist[EXE]` to store authentication token for registry `crates-io`
 
 Caused by:
   {}
-", cargo_test_support::no_such_file_err_msg()),
+", payload_test_support::no_such_file_err_msg()),
         )
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn invalid_token_output() {
     // Error when credential process does not output the expected format for a token.
     registry::RegistryBuilder::new()
@@ -423,13 +423,13 @@ fn invalid_token_output() {
         .build();
     let cred_proj = project()
         .at("cred_proj")
-        .file("Cargo.toml", &basic_manifest("test-cred", "1.0.0"))
+        .file("Payload.toml", &basic_manifest("test-cred", "1.0.0"))
         .file("src/main.rs", r#"fn main() { print!("a\nb\n"); } "#)
         .build();
-    cred_proj.cargo("build").run();
+    cred_proj.payload("build").run();
 
-    cargo::util::paths::append(
-        &paths::home().join(".cargo/config"),
+    payload::util::paths::append(
+        &paths::home().join(".payload/config"),
         format!(
             r#"
                 [registry]
@@ -442,12 +442,12 @@ fn invalid_token_output() {
     .unwrap();
 
     let p = project()
-        .file("Cargo.toml", &basic_manifest("foo", "1.0.0"))
+        .file("Payload.toml", &basic_manifest("foo", "1.0.0"))
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("publish --no-verify --registry alternative -Z credential-process")
-        .masquerade_as_nightly_cargo()
+    p.payload("publish --no-verify --registry alternative -Z credential-process")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_stderr(
             "\

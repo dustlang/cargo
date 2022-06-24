@@ -1,14 +1,14 @@
-//! Tests for the `cargo update` command.
+//! Tests for the `payload update` command.
 
-use cargo_test_support::registry::Package;
-use cargo_test_support::{basic_manifest, project};
+use payload_test_support::registry::Package;
+use payload_test_support::{basic_manifest, project};
 
-#[cargo_test]
+#[payload_test]
 fn minor_update_two_places() {
     Package::new("log", "0.1.0").publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -22,7 +22,7 @@ fn minor_update_two_places() {
         )
         .file("src/lib.rs", "")
         .file(
-            "foo/Cargo.toml",
+            "foo/Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -36,11 +36,11 @@ fn minor_update_two_places() {
         .file("foo/src/lib.rs", "")
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
     Package::new("log", "0.1.1").publish();
 
     p.change_file(
-        "foo/Cargo.toml",
+        "foo/Payload.toml",
         r#"
             [package]
             name = "foo"
@@ -52,17 +52,17 @@ fn minor_update_two_places() {
         "#,
     );
 
-    p.cargo("build").run();
+    p.payload("build").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn transitive_minor_update() {
     Package::new("log", "0.1.0").publish();
     Package::new("serde", "0.1.0").dep("log", "0.1").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -77,7 +77,7 @@ fn transitive_minor_update() {
         )
         .file("src/lib.rs", "")
         .file(
-            "foo/Cargo.toml",
+            "foo/Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -91,7 +91,7 @@ fn transitive_minor_update() {
         .file("foo/src/lib.rs", "")
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 
     Package::new("log", "0.1.1").publish();
     Package::new("serde", "0.1.1").dep("log", "0.1.1").publish();
@@ -105,7 +105,7 @@ fn transitive_minor_update() {
     //
     // Also note that this is probably counterintuitive and weird. We may wish
     // to change this one day.
-    p.cargo("update -p serde")
+    p.payload("update -p serde")
         .with_stderr(
             "\
 [UPDATING] `[..]` index
@@ -114,14 +114,14 @@ fn transitive_minor_update() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn conservative() {
     Package::new("log", "0.1.0").publish();
     Package::new("serde", "0.1.0").dep("log", "0.1").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -136,7 +136,7 @@ fn conservative() {
         )
         .file("src/lib.rs", "")
         .file(
-            "foo/Cargo.toml",
+            "foo/Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -150,12 +150,12 @@ fn conservative() {
         .file("foo/src/lib.rs", "")
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 
     Package::new("log", "0.1.1").publish();
     Package::new("serde", "0.1.1").dep("log", "0.1").publish();
 
-    p.cargo("update -p serde")
+    p.payload("update -p serde")
         .with_stderr(
             "\
 [UPDATING] `[..]` index
@@ -165,12 +165,12 @@ fn conservative() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn update_via_new_dep() {
     Package::new("log", "0.1.0").publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -184,7 +184,7 @@ fn update_via_new_dep() {
         )
         .file("src/lib.rs", "")
         .file(
-            "foo/Cargo.toml",
+            "foo/Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -198,19 +198,19 @@ fn update_via_new_dep() {
         .file("foo/src/lib.rs", "")
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
     Package::new("log", "0.1.1").publish();
 
     p.uncomment_root_manifest();
-    p.cargo("build").env("CARGO_LOG", "cargo=trace").run();
+    p.payload("build").env("PAYLOAD_LOG", "payload=trace").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn update_via_new_member() {
     Package::new("log", "0.1.0").publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -226,7 +226,7 @@ fn update_via_new_member() {
         )
         .file("src/lib.rs", "")
         .file(
-            "foo/Cargo.toml",
+            "foo/Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -240,19 +240,19 @@ fn update_via_new_member() {
         .file("foo/src/lib.rs", "")
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
     Package::new("log", "0.1.1").publish();
 
     p.uncomment_root_manifest();
-    p.cargo("build").run();
+    p.payload("build").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn add_dep_deep_new_requirement() {
     Package::new("log", "0.1.0").publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -267,22 +267,22 @@ fn add_dep_deep_new_requirement() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 
     Package::new("log", "0.1.1").publish();
     Package::new("bar", "0.1.0").dep("log", "0.1.1").publish();
 
     p.uncomment_root_manifest();
-    p.cargo("build").run();
+    p.payload("build").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn everything_real_deep() {
     Package::new("log", "0.1.0").publish();
     Package::new("foo", "0.1.0").dep("log", "0.1").publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -297,20 +297,20 @@ fn everything_real_deep() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 
     Package::new("log", "0.1.1").publish();
     Package::new("bar", "0.1.0").dep("log", "0.1.1").publish();
 
     p.uncomment_root_manifest();
-    p.cargo("build").run();
+    p.payload("build").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn change_package_version() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "a-foo"
@@ -322,10 +322,10 @@ fn change_package_version() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.2.0-alpha"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.2.0-alpha"))
         .file("bar/src/lib.rs", "")
         .file(
-            "Cargo.lock",
+            "Payload.lock",
             r#"
                 [[package]]
                 name = "foo"
@@ -339,10 +339,10 @@ fn change_package_version() {
         )
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn update_precise() {
     Package::new("log", "0.1.0").publish();
     Package::new("serde", "0.1.0").publish();
@@ -350,7 +350,7 @@ fn update_precise() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -364,7 +364,7 @@ fn update_precise() {
         )
         .file("src/lib.rs", "")
         .file(
-            "foo/Cargo.toml",
+            "foo/Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -378,11 +378,11 @@ fn update_precise() {
         .file("foo/src/lib.rs", "")
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 
     Package::new("serde", "0.2.0").publish();
 
-    p.cargo("update -p serde:0.2.1 --precise 0.2.0")
+    p.payload("update -p serde:0.2.1 --precise 0.2.0")
         .with_stderr(
             "\
 [UPDATING] `[..]` index
@@ -392,10 +392,10 @@ fn update_precise() {
         .run();
 }
 
-// cargo update should respect its arguments even without a lockfile.
-// See issue "Running cargo update without a Cargo.lock ignores arguments"
-// at <https://github.com/rust-lang/cargo/issues/6872>.
-#[cargo_test]
+// payload update should respect its arguments even without a lockfile.
+// See issue "Running payload update without a Payload.lock ignores arguments"
+// at <https://github.com/dustlang/payload/issues/6872>.
+#[payload_test]
 fn update_precise_first_run() {
     Package::new("serde", "0.1.0").publish();
     Package::new("serde", "0.2.0").publish();
@@ -403,7 +403,7 @@ fn update_precise_first_run() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -416,7 +416,7 @@ fn update_precise_first_run() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("update -p serde --precise 0.2.0")
+    p.payload("update -p serde --precise 0.2.0")
         .with_stderr(
             "\
 [UPDATING] `[..]` index
@@ -425,8 +425,8 @@ fn update_precise_first_run() {
         )
         .run();
 
-    // Assert `cargo metadata` shows serde 0.2.0
-    p.cargo("metadata")
+    // Assert `payload metadata` shows serde 0.2.0
+    p.payload("metadata")
         .with_json(
             r#"{
   "packages": [
@@ -442,7 +442,7 @@ fn update_precise_first_run() {
           "registry": null,
           "rename": null,
           "req": "^0.2",
-          "source": "registry+https://github.com/rust-lang/crates.io-index",
+          "source": "registry+https://github.com/dustlang/crates.io-index",
           "target": null,
           "uses_default_features": true
         }
@@ -457,7 +457,7 @@ fn update_precise_first_run() {
       "license": null,
       "license_file": null,
       "links": null,
-      "manifest_path": "[..]/foo/Cargo.toml",
+      "manifest_path": "[..]/foo/Payload.toml",
       "metadata": null,
       "publish": null,
       "name": "bar",
@@ -491,18 +491,18 @@ fn update_precise_first_run() {
       "edition": "2015",
       "features": {},
       "homepage": null,
-      "id": "serde 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+      "id": "serde 0.2.0 (registry+https://github.com/dustlang/crates.io-index)",
       "keywords": [],
       "license": null,
       "license_file": null,
       "links": null,
-      "manifest_path": "[..]/home/.cargo/registry/src/-[..]/serde-0.2.0/Cargo.toml",
+      "manifest_path": "[..]/home/.payload/registry/src/-[..]/serde-0.2.0/Payload.toml",
       "metadata": null,
       "publish": null,
       "name": "serde",
       "readme": null,
       "repository": null,
-      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "source": "registry+https://github.com/dustlang/crates.io-index",
       "targets": [
         {
           "crate_types": [
@@ -515,7 +515,7 @@ fn update_precise_first_run() {
             "lib"
           ],
           "name": "serde",
-          "src_path": "[..]/home/.cargo/registry/src/-[..]/serde-0.2.0/src/lib.rs",
+          "src_path": "[..]/home/.payload/registry/src/-[..]/serde-0.2.0/src/lib.rs",
           "test": true
         }
       ],
@@ -526,7 +526,7 @@ fn update_precise_first_run() {
     "nodes": [
       {
         "dependencies": [
-          "serde 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)"
+          "serde 0.2.0 (registry+https://github.com/dustlang/crates.io-index)"
         ],
         "deps": [
           {
@@ -537,7 +537,7 @@ fn update_precise_first_run() {
               }
             ],
             "name": "serde",
-            "pkg": "serde 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)"
+            "pkg": "serde 0.2.0 (registry+https://github.com/dustlang/crates.io-index)"
           }
         ],
         "features": [],
@@ -547,7 +547,7 @@ fn update_precise_first_run() {
         "dependencies": [],
         "deps": [],
         "features": [],
-        "id": "serde 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)"
+        "id": "serde 0.2.0 (registry+https://github.com/dustlang/crates.io-index)"
       }
     ],
     "root": "bar 0.0.1 (path+file://[..]/foo)"
@@ -563,7 +563,7 @@ fn update_precise_first_run() {
         )
         .run();
 
-    p.cargo("update -p serde --precise 0.2.0")
+    p.payload("update -p serde --precise 0.2.0")
         .with_stderr(
             "\
 [UPDATING] `[..]` index
@@ -572,39 +572,39 @@ fn update_precise_first_run() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn preserve_top_comment() {
     let p = project().file("src/lib.rs", "").build();
 
-    p.cargo("update").run();
+    p.payload("update").run();
 
     let lockfile = p.read_lockfile();
-    assert!(lockfile.starts_with("# This file is automatically @generated by Cargo.\n# It is not intended for manual editing.\n"));
+    assert!(lockfile.starts_with("# This file is automatically @generated by Payload.\n# It is not intended for manual editing.\n"));
 
     let mut lines = lockfile.lines().collect::<Vec<_>>();
     lines.insert(2, "# some other comment");
     let mut lockfile = lines.join("\n");
     lockfile.push('\n'); // .lines/.join loses the last newline
-    println!("saving Cargo.lock contents:\n{}", lockfile);
+    println!("saving Payload.lock contents:\n{}", lockfile);
 
-    p.change_file("Cargo.lock", &lockfile);
+    p.change_file("Payload.lock", &lockfile);
 
-    p.cargo("update").run();
+    p.payload("update").run();
 
     let lockfile2 = p.read_lockfile();
-    println!("loaded Cargo.lock contents:\n{}", lockfile2);
+    println!("loaded Payload.lock contents:\n{}", lockfile2);
 
     assert_eq!(lockfile, lockfile2);
 }
 
-#[cargo_test]
+#[payload_test]
 fn dry_run_update() {
     Package::new("log", "0.1.0").publish();
     Package::new("serde", "0.1.0").dep("log", "0.1").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -619,7 +619,7 @@ fn dry_run_update() {
         )
         .file("src/lib.rs", "")
         .file(
-            "foo/Cargo.toml",
+            "foo/Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -633,13 +633,13 @@ fn dry_run_update() {
         .file("foo/src/lib.rs", "")
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
     let old_lockfile = p.read_lockfile();
 
     Package::new("log", "0.1.1").publish();
     Package::new("serde", "0.1.1").dep("log", "0.1").publish();
 
-    p.cargo("update -p serde --dry-run")
+    p.payload("update -p serde --dry-run")
         .with_stderr(
             "\
 [UPDATING] `[..]` index
@@ -652,14 +652,14 @@ fn dry_run_update() {
     assert_eq!(old_lockfile, new_lockfile)
 }
 
-#[cargo_test]
+#[payload_test]
 fn workspace_only() {
     let p = project().file("src/main.rs", "fn main() {}").build();
-    p.cargo("generate-lockfile").run();
+    p.payload("generate-lockfile").run();
     let lock1 = p.read_lockfile();
 
     p.change_file(
-        "Cargo.toml",
+        "Payload.toml",
         r#"
             [package]
             name = "foo"
@@ -667,7 +667,7 @@ fn workspace_only() {
             version = "0.0.2"
         "#,
     );
-    p.cargo("update --workspace").run();
+    p.payload("update --workspace").run();
     let lock2 = p.read_lockfile();
 
     assert_ne!(lock1, lock2);

@@ -1,57 +1,57 @@
-//! Tests for the `cargo verify-project` command.
+//! Tests for the `payload verify-project` command.
 
-use cargo_test_support::{basic_bin_manifest, main_file, project};
+use payload_test_support::{basic_bin_manifest, main_file, project};
 
 fn verify_project_success_output() -> String {
     r#"{"success":"true"}"#.into()
 }
 
-#[cargo_test]
-fn cargo_verify_project_path_to_cargo_toml_relative() {
+#[payload_test]
+fn payload_verify_project_path_to_payload_toml_relative() {
     let p = project()
-        .file("Cargo.toml", &basic_bin_manifest("foo"))
+        .file("Payload.toml", &basic_bin_manifest("foo"))
         .file("src/foo.rs", &main_file(r#""i am foo""#, &[]))
         .build();
 
-    p.cargo("verify-project --manifest-path foo/Cargo.toml")
+    p.payload("verify-project --manifest-path foo/Payload.toml")
         .cwd(p.root().parent().unwrap())
         .with_stdout(verify_project_success_output())
         .run();
 }
 
-#[cargo_test]
-fn cargo_verify_project_path_to_cargo_toml_absolute() {
+#[payload_test]
+fn payload_verify_project_path_to_payload_toml_absolute() {
     let p = project()
-        .file("Cargo.toml", &basic_bin_manifest("foo"))
+        .file("Payload.toml", &basic_bin_manifest("foo"))
         .file("src/foo.rs", &main_file(r#""i am foo""#, &[]))
         .build();
 
-    p.cargo("verify-project --manifest-path")
-        .arg(p.root().join("Cargo.toml"))
+    p.payload("verify-project --manifest-path")
+        .arg(p.root().join("Payload.toml"))
         .cwd(p.root().parent().unwrap())
         .with_stdout(verify_project_success_output())
         .run();
 }
 
-#[cargo_test]
-fn cargo_verify_project_cwd() {
+#[payload_test]
+fn payload_verify_project_cwd() {
     let p = project()
-        .file("Cargo.toml", &basic_bin_manifest("foo"))
+        .file("Payload.toml", &basic_bin_manifest("foo"))
         .file("src/foo.rs", &main_file(r#""i am foo""#, &[]))
         .build();
 
-    p.cargo("verify-project")
+    p.payload("verify-project")
         .with_stdout(verify_project_success_output())
         .run();
 }
 
-#[cargo_test]
-fn cargo_verify_project_honours_unstable_features() {
+#[payload_test]
+fn payload_verify_project_honours_unstable_features() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-                cargo-features = ["test-dummy-unstable"]
+                payload-features = ["test-dummy-unstable"]
 
                 [package]
                 name = "foo"
@@ -61,13 +61,13 @@ fn cargo_verify_project_honours_unstable_features() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("verify-project")
-        .masquerade_as_nightly_cargo()
+    p.payload("verify-project")
+        .masquerade_as_nightly_payload()
         .with_stdout(verify_project_success_output())
         .run();
 
-    p.cargo("verify-project")
+    p.payload("verify-project")
         .with_status(1)
-        .with_stdout(r#"{"invalid":"failed to parse manifest at `[CWD]/Cargo.toml`"}"#)
+        .with_stdout(r#"{"invalid":"failed to parse manifest at `[CWD]/Payload.toml`"}"#)
         .run();
 }

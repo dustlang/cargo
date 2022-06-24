@@ -1,14 +1,14 @@
-//! Tests for the `cargo pkgid` command.
+//! Tests for the `payload pkgid` command.
 
-use cargo_test_support::project;
-use cargo_test_support::registry::Package;
+use payload_test_support::project;
+use payload_test_support::registry::Package;
 
-#[cargo_test]
+#[payload_test]
 fn simple() {
     Package::new("bar", "0.1.0").publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -22,25 +22,25 @@ fn simple() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("generate-lockfile").run();
+    p.payload("generate-lockfile").run();
 
-    p.cargo("pkgid foo")
+    p.payload("pkgid foo")
         .with_stdout(format!("file://[..]{}#0.1.0", p.root().to_str().unwrap()))
         .run();
 
-    p.cargo("pkgid bar")
-        .with_stdout("https://github.com/rust-lang/crates.io-index#bar:0.1.0")
+    p.payload("pkgid bar")
+        .with_stdout("https://github.com/dustlang/crates.io-index#bar:0.1.0")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn suggestion_bad_pkgid() {
     Package::new("crates-io", "0.1.0").publish();
     Package::new("two-ver", "0.1.0").publish();
     Package::new("two-ver", "0.2.0").publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -57,10 +57,10 @@ fn suggestion_bad_pkgid() {
         .file("cratesio", "")
         .build();
 
-    p.cargo("generate-lockfile").run();
+    p.payload("generate-lockfile").run();
 
     // Bad URL.
-    p.cargo("pkgid https://example.com/crates-io")
+    p.payload("pkgid https://example.com/crates-io")
         .with_status(101)
         .with_stderr(
             "\
@@ -73,7 +73,7 @@ Did you mean one of these?
         .run();
 
     // Bad name.
-    p.cargo("pkgid crates_io")
+    p.payload("pkgid crates_io")
         .with_status(101)
         .with_stderr(
             "\
@@ -85,7 +85,7 @@ error: package ID specification `crates_io` did not match any packages
         .run();
 
     // Bad version.
-    p.cargo("pkgid two-ver:0.3.0")
+    p.payload("pkgid two-ver:0.3.0")
         .with_status(101)
         .with_stderr(
             "\
@@ -99,20 +99,20 @@ Did you mean one of these?
         .run();
 
     // Bad file URL.
-    p.cargo("pkgid ./Cargo.toml")
+    p.payload("pkgid ./Payload.toml")
         .with_status(101)
         .with_stderr(
             "\
-error: invalid package ID specification: `./Cargo.toml`
+error: invalid package ID specification: `./Payload.toml`
 
 Caused by:
-  package ID specification `./Cargo.toml` looks like a file path, maybe try file://[..]/Cargo.toml
+  package ID specification `./Payload.toml` looks like a file path, maybe try file://[..]/Payload.toml
 ",
         )
         .run();
 
     // Bad file URL with simliar name.
-    p.cargo("pkgid './cratesio'")
+    p.payload("pkgid './cratesio'")
         .with_status(101)
         .with_stderr(
             "\

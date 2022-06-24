@@ -1,6 +1,6 @@
 target
-Cargo.lock
-.cargo
+Payload.lock
+.payload
 /config.stamp
 /Makefile
 /config.mk

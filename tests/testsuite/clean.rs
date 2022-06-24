@@ -1,45 +1,45 @@
-//! Tests for the `cargo clean` command.
+//! Tests for the `payload clean` command.
 
-use cargo_test_support::paths::CargoPathExt;
-use cargo_test_support::registry::Package;
-use cargo_test_support::{basic_bin_manifest, basic_manifest, git, main_file, project, rustc_host};
+use payload_test_support::paths::PayloadPathExt;
+use payload_test_support::registry::Package;
+use payload_test_support::{basic_bin_manifest, basic_manifest, git, main_file, project, rustc_host};
 use std::env;
 use std::path::Path;
 
-#[cargo_test]
-fn cargo_clean_simple() {
+#[payload_test]
+fn payload_clean_simple() {
     let p = project()
-        .file("Cargo.toml", &basic_bin_manifest("foo"))
+        .file("Payload.toml", &basic_bin_manifest("foo"))
         .file("src/foo.rs", &main_file(r#""i am foo""#, &[]))
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
     assert!(p.build_dir().is_dir());
 
-    p.cargo("clean").run();
+    p.payload("clean").run();
     assert!(!p.build_dir().is_dir());
 }
 
-#[cargo_test]
+#[payload_test]
 fn different_dir() {
     let p = project()
-        .file("Cargo.toml", &basic_bin_manifest("foo"))
+        .file("Payload.toml", &basic_bin_manifest("foo"))
         .file("src/foo.rs", &main_file(r#""i am foo""#, &[]))
         .file("src/bar/a.rs", "")
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
     assert!(p.build_dir().is_dir());
 
-    p.cargo("clean").cwd("src").with_stdout("").run();
+    p.payload("clean").cwd("src").with_stdout("").run();
     assert!(!p.build_dir().is_dir());
 }
 
-#[cargo_test]
+#[payload_test]
 fn clean_multiple_packages() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -56,13 +56,13 @@ fn clean_multiple_packages() {
             "#,
         )
         .file("src/foo.rs", &main_file(r#""i am foo""#, &[]))
-        .file("d1/Cargo.toml", &basic_bin_manifest("d1"))
+        .file("d1/Payload.toml", &basic_bin_manifest("d1"))
         .file("d1/src/main.rs", "fn main() { println!(\"d1\"); }")
-        .file("d2/Cargo.toml", &basic_bin_manifest("d2"))
+        .file("d2/Payload.toml", &basic_bin_manifest("d2"))
         .file("d2/src/main.rs", "fn main() { println!(\"d2\"); }")
         .build();
 
-    p.cargo("build -p d1 -p d2 -p foo").run();
+    p.payload("build -p d1 -p d2 -p foo").run();
 
     let d1_path = &p
         .build_dir()
@@ -77,7 +77,7 @@ fn clean_multiple_packages() {
     assert!(d1_path.is_file());
     assert!(d2_path.is_file());
 
-    p.cargo("clean -p d1 -p d2")
+    p.payload("clean -p d1 -p d2")
         .cwd("src")
         .with_stdout("")
         .run();
@@ -86,11 +86,11 @@ fn clean_multiple_packages() {
     assert!(!d2_path.is_file());
 }
 
-#[cargo_test]
+#[payload_test]
 fn clean_release() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -102,17 +102,17 @@ fn clean_release() {
             "#,
         )
         .file("src/main.rs", "fn main() {}")
-        .file("a/Cargo.toml", &basic_manifest("a", "0.0.1"))
+        .file("a/Payload.toml", &basic_manifest("a", "0.0.1"))
         .file("a/src/lib.rs", "")
         .build();
 
-    p.cargo("build --release").run();
+    p.payload("build --release").run();
 
-    p.cargo("clean -p foo").run();
-    p.cargo("build --release").with_stdout("").run();
+    p.payload("clean -p foo").run();
+    p.payload("build --release").with_stdout("").run();
 
-    p.cargo("clean -p foo --release").run();
-    p.cargo("build --release")
+    p.payload("clean -p foo --release").run();
+    p.payload("build --release")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([..])
@@ -121,19 +121,19 @@ fn clean_release() {
         )
         .run();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 
-    p.cargo("clean").arg("--release").run();
+    p.payload("clean").arg("--release").run();
     assert!(p.build_dir().is_dir());
     assert!(p.build_dir().join("debug").is_dir());
     assert!(!p.build_dir().join("release").is_dir());
 }
 
-#[cargo_test]
+#[payload_test]
 fn clean_doc() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -145,27 +145,27 @@ fn clean_doc() {
             "#,
         )
         .file("src/main.rs", "fn main() {}")
-        .file("a/Cargo.toml", &basic_manifest("a", "0.0.1"))
+        .file("a/Payload.toml", &basic_manifest("a", "0.0.1"))
         .file("a/src/lib.rs", "")
         .build();
 
-    p.cargo("doc").run();
+    p.payload("doc").run();
 
     let doc_path = &p.build_dir().join("doc");
 
     assert!(doc_path.is_dir());
 
-    p.cargo("clean --doc").run();
+    p.payload("clean --doc").run();
 
     assert!(!doc_path.is_dir());
     assert!(p.build_dir().is_dir());
 }
 
-#[cargo_test]
+#[payload_test]
 fn build_script() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -194,9 +194,9 @@ fn build_script() {
         .file("a/src/lib.rs", "")
         .build();
 
-    p.cargo("build").env("FIRST", "1").run();
-    p.cargo("clean -p foo").run();
-    p.cargo("build -v")
+    p.payload("build").env("FIRST", "1").run();
+    p.payload("clean -p foo").run();
+    p.payload("build -v")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([..])
@@ -209,17 +209,17 @@ fn build_script() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn clean_git() {
     let git = git::new("dep", |project| {
         project
-            .file("Cargo.toml", &basic_manifest("dep", "0.5.0"))
+            .file("Payload.toml", &basic_manifest("dep", "0.5.0"))
             .file("src/lib.rs", "")
     });
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                     [package]
@@ -236,16 +236,16 @@ fn clean_git() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("build").run();
-    p.cargo("clean -p dep").with_stdout("").run();
-    p.cargo("build").run();
+    p.payload("build").run();
+    p.payload("clean -p dep").with_stdout("").run();
+    p.payload("build").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn registry() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -261,16 +261,16 @@ fn registry() {
 
     Package::new("bar", "0.1.0").publish();
 
-    p.cargo("build").run();
-    p.cargo("clean -p bar").with_stdout("").run();
-    p.cargo("build").run();
+    p.payload("build").run();
+    p.payload("clean -p bar").with_stdout("").run();
+    p.payload("build").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn clean_verbose() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -285,8 +285,8 @@ fn clean_verbose() {
 
     Package::new("bar", "0.1.0").publish();
 
-    p.cargo("build").run();
-    p.cargo("clean -p bar --verbose")
+    p.payload("build").run();
+    p.payload("clean -p bar --verbose")
         .with_stderr(
             "\
 [REMOVING] [..]
@@ -296,14 +296,14 @@ fn clean_verbose() {
 ",
         )
         .run();
-    p.cargo("build").run();
+    p.payload("build").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn clean_remove_rlib_rmeta() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -313,16 +313,16 @@ fn clean_remove_rlib_rmeta() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
     assert!(p.target_debug_dir().join("libfoo.rlib").exists());
     let rmeta = p.glob("target/debug/deps/*.rmeta").next().unwrap().unwrap();
     assert!(rmeta.exists());
-    p.cargo("clean -p foo").run();
+    p.payload("clean -p foo").run();
     assert!(!p.target_debug_dir().join("libfoo.rlib").exists());
     assert!(!rmeta.exists());
 }
 
-#[cargo_test]
+#[payload_test]
 fn package_cleans_all_the_things() {
     // -p cleans everything
     // Use dashes everywhere to make sure dash/underscore stuff is handled.
@@ -331,7 +331,7 @@ fn package_cleans_all_the_things() {
         // they are combined.
         let p = project()
             .file(
-                "Cargo.toml",
+                "Payload.toml",
                 &format!(
                     r#"
                     [package]
@@ -346,13 +346,13 @@ fn package_cleans_all_the_things() {
             )
             .file("src/lib.rs", "")
             .build();
-        p.cargo("build").run();
-        p.cargo("clean -p foo-bar").run();
+        p.payload("build").run();
+        p.payload("clean -p foo-bar").run();
         assert_all_clean(&p.build_dir());
     }
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo-bar"
@@ -388,23 +388,23 @@ fn package_cleans_all_the_things() {
         .file("build.rs", "fn main() {}")
         .build();
 
-    p.cargo("build --all-targets")
-        .env("CARGO_INCREMENTAL", "1")
+    p.payload("build --all-targets")
+        .env("PAYLOAD_INCREMENTAL", "1")
         .run();
-    p.cargo("test --all-targets")
-        .env("CARGO_INCREMENTAL", "1")
+    p.payload("test --all-targets")
+        .env("PAYLOAD_INCREMENTAL", "1")
         .run();
-    p.cargo("check --all-targets")
-        .env("CARGO_INCREMENTAL", "1")
+    p.payload("check --all-targets")
+        .env("PAYLOAD_INCREMENTAL", "1")
         .run();
-    p.cargo("clean -p foo-bar").run();
+    p.payload("clean -p foo-bar").run();
     assert_all_clean(&p.build_dir());
 
     // Try some targets.
-    p.cargo("build --all-targets --target")
+    p.payload("build --all-targets --target")
         .arg(rustc_host())
         .run();
-    p.cargo("clean -p foo-bar --target").arg(rustc_host()).run();
+    p.payload("clean -p foo-bar --target").arg(rustc_host()).run();
     assert_all_clean(&p.build_dir());
 }
 
@@ -433,7 +433,7 @@ fn assert_all_clean(build_dir: &Path) {
     }) {
         let entry = entry.unwrap();
         let path = entry.path();
-        if let ".rustc_info.json" | ".cargo-lock" | "CACHEDIR.TAG" =
+        if let ".rustc_info.json" | ".payload-lock" | "CACHEDIR.TAG" =
             path.file_name().unwrap().to_str().unwrap()
         {
             continue;
@@ -444,7 +444,7 @@ fn assert_all_clean(build_dir: &Path) {
     }
 }
 
-#[cargo_test]
+#[payload_test]
 fn clean_spec_multiple() {
     // clean -p foo where foo matches multiple versions
     Package::new("bar", "1.0.0").publish();
@@ -452,7 +452,7 @@ fn clean_spec_multiple() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -466,10 +466,10 @@ fn clean_spec_multiple() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 
     // Check suggestion for bad pkgid.
-    p.cargo("clean -p baz")
+    p.payload("clean -p baz")
         .with_status(101)
         .with_stderr(
             "\
@@ -480,7 +480,7 @@ error: package ID specification `baz` did not match any packages
         )
         .run();
 
-    p.cargo("clean -p bar:1.0.0")
+    p.payload("clean -p bar:1.0.0")
         .with_stderr(
             "warning: version qualifier in `-p bar:1.0.0` is ignored, \
             cleaning all versions of `bar` found",
@@ -498,7 +498,7 @@ error: package ID specification `baz` did not match any packages
     }
 }
 
-#[cargo_test]
+#[payload_test]
 fn clean_spec_reserved() {
     // Clean when a target (like a test) has a reserved name. In this case,
     // make sure `clean -p` doesn't delete the reserved directory `build` when
@@ -510,7 +510,7 @@ fn clean_spec_reserved() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -524,19 +524,19 @@ fn clean_spec_reserved() {
         .file("tests/build.rs", "")
         .build();
 
-    p.cargo("build --all-targets").run();
+    p.payload("build --all-targets").run();
     assert!(p.target_debug_dir().join("build").is_dir());
     let build_test = p.glob("target/debug/deps/build-*").next().unwrap().unwrap();
     assert!(build_test.exists());
     // Tests are never "uplifted".
     assert!(p.glob("target/debug/build-*").next().is_none());
 
-    p.cargo("clean -p foo").run();
+    p.payload("clean -p foo").run();
     // Should not delete this.
     assert!(p.target_debug_dir().join("build").is_dir());
 
     // This should not rebuild bar.
-    p.cargo("build -v --all-targets")
+    p.payload("build -v --all-targets")
         .with_stderr(
             "\
 [FRESH] bar v1.0.0

@@ -1,10 +1,10 @@
-//! Tests for the `cargo owner` command.
+//! Tests for the `payload owner` command.
 
 use std::fs;
 
-use cargo_test_support::paths::CargoPathExt;
-use cargo_test_support::project;
-use cargo_test_support::registry::{self, api_path};
+use payload_test_support::paths::PayloadPathExt;
+use payload_test_support::project;
+use payload_test_support::registry::{self, api_path};
 
 fn setup(name: &str, content: Option<&str>) {
     let dir = api_path().join(format!("api/v1/crates/{}", name));
@@ -14,14 +14,14 @@ fn setup(name: &str, content: Option<&str>) {
     }
 }
 
-#[cargo_test]
+#[payload_test]
 fn simple_list() {
     registry::init();
     let content = r#"{
         "users": [
             {
                 "id": 70,
-                "login": "github:rust-lang:core",
+                "login": "github:dustlang:core",
                 "name": "Core"
             },
             {
@@ -34,7 +34,7 @@ fn simple_list() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -47,24 +47,24 @@ fn simple_list() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("owner -l --token sekrit")
+    p.payload("owner -l --token sekrit")
         .with_stdout(
             "\
-github:rust-lang:core (Core)
+github:dustlang:core (Core)
 octocat
 ",
         )
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn simple_add() {
     registry::init();
     setup("foo", None);
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -77,7 +77,7 @@ fn simple_add() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("owner -a username --token sekrit")
+    p.payload("owner -a username --token sekrit")
         .with_status(101)
         .with_stderr(
             "    Updating `[..]` index
@@ -89,14 +89,14 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn simple_remove() {
     registry::init();
     setup("foo", None);
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -109,7 +109,7 @@ fn simple_remove() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("owner -r username --token sekrit")
+    p.payload("owner -r username --token sekrit")
         .with_status(101)
         .with_stderr(
             "    Updating `[..]` index

@@ -1,20 +1,20 @@
-//! Tests for the `cargo logout` command.
+//! Tests for the `payload logout` command.
 
-use cargo_test_support::install::cargo_home;
-use cargo_test_support::{cargo_process, registry};
+use payload_test_support::install::payload_home;
+use payload_test_support::{payload_process, registry};
 use std::fs;
 
-#[cargo_test]
+#[payload_test]
 fn gated() {
     registry::init();
-    cargo_process("logout")
-        .masquerade_as_nightly_cargo()
+    payload_process("logout")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_stderr(
             "\
-[ERROR] the `cargo logout` command is unstable, pass `-Z unstable-options` to enable it
-See https://github.com/rust-lang/cargo/issues/8933 for more information about \
-the `cargo logout` command.
+[ERROR] the `payload logout` command is unstable, pass `-Z unstable-options` to enable it
+See https://github.com/dustlang/payload/issues/8933 for more information about \
+the `payload logout` command.
 ",
         )
         .run();
@@ -22,7 +22,7 @@ the `cargo logout` command.
 
 /// Checks whether or not the token is set for the given token.
 fn check_config_token(registry: Option<&str>, should_be_set: bool) {
-    let credentials = cargo_home().join("credentials");
+    let credentials = payload_home().join("credentials");
     let contents = fs::read_to_string(&credentials).unwrap();
     let toml: toml::Value = contents.parse().unwrap();
     if let Some(registry) = registry {
@@ -47,8 +47,8 @@ fn simple_logout_test(reg: Option<&str>, flag: &str) {
     registry::init();
     let msg = reg.unwrap_or("crates.io");
     check_config_token(reg, true);
-    cargo_process(&format!("logout -Z unstable-options {}", flag))
-        .masquerade_as_nightly_cargo()
+    payload_process(&format!("logout -Z unstable-options {}", flag))
+        .masquerade_as_nightly_payload()
         .with_stderr(&format!(
             "\
 [UPDATING] [..]
@@ -59,8 +59,8 @@ fn simple_logout_test(reg: Option<&str>, flag: &str) {
         .run();
     check_config_token(reg, false);
 
-    cargo_process(&format!("logout -Z unstable-options {}", flag))
-        .masquerade_as_nightly_cargo()
+    payload_process(&format!("logout -Z unstable-options {}", flag))
+        .masquerade_as_nightly_payload()
         .with_stderr(&format!(
             "\
 [LOGOUT] not currently logged in to `{}`
@@ -71,12 +71,12 @@ fn simple_logout_test(reg: Option<&str>, flag: &str) {
     check_config_token(reg, false);
 }
 
-#[cargo_test]
+#[payload_test]
 fn default_registry() {
     simple_logout_test(None, "");
 }
 
-#[cargo_test]
+#[payload_test]
 fn other_registry() {
     registry::alt_init();
     simple_logout_test(Some("alternative"), "--registry alternative");

@@ -1,11 +1,11 @@
-## Cargo Reference
+## Payload Reference
 
-The reference covers the details of various areas of Cargo.
+The reference covers the details of various areas of Payload.
 
 * [Specifying Dependencies](specifying-dependencies.md)
     * [Overriding Dependencies](overriding-dependencies.md)
 * [The Manifest Format](manifest.md)
-    * [Cargo Targets](cargo-targets.md)
+    * [Payload Targets](payload-targets.md)
 * [Workspaces](workspaces.md)
 * [Features](features.md)
     * [Features Examples](features-examples.md)

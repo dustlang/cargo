@@ -1,12 +1,12 @@
 //! Tests for `[patch]` table source replacement.
 
-use cargo_test_support::git;
-use cargo_test_support::paths;
-use cargo_test_support::registry::{self, Package};
-use cargo_test_support::{basic_manifest, project};
+use payload_test_support::git;
+use payload_test_support::paths;
+use payload_test_support::registry::{self, Package};
+use payload_test_support::{basic_manifest, project};
 use std::fs;
 
-#[cargo_test]
+#[payload_test]
 fn replace() {
     Package::new("bar", "0.1.0").publish();
     Package::new("baz", "0.1.0")
@@ -19,7 +19,7 @@ fn replace() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -45,11 +45,11 @@ fn replace() {
             }
         ",
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "pub fn bar() {}")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [UPDATING] `[ROOT][..]` index
@@ -63,16 +63,16 @@ fn replace() {
         )
         .run();
 
-    p.cargo("build").with_stderr("[FINISHED] [..]").run();
+    p.payload("build").with_stderr("[FINISHED] [..]").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn from_config_without_z() {
     Package::new("bar", "0.1.0").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -84,21 +84,21 @@ fn from_config_without_z() {
             "#,
         )
         .file(
-            ".cargo/config.toml",
+            ".payload/config.toml",
             r#"
                 [patch.crates-io]
                 bar = { path = 'bar' }
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.1"))
         .file("bar/src/lib.rs", r#""#)
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
-[WARNING] `[patch]` in cargo config was ignored, the -Zpatch-in-config command-line flag is required
+[WARNING] `[patch]` in payload config was ignored, the -Zpatch-in-config command-line flag is required
 [UPDATING] `[ROOT][..]` index
 [DOWNLOADING] crates ...
 [DOWNLOADED] bar v0.1.0 ([..])
@@ -110,13 +110,13 @@ fn from_config_without_z() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn from_config() {
     Package::new("bar", "0.1.0").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -128,19 +128,19 @@ fn from_config() {
             "#,
         )
         .file(
-            ".cargo/config.toml",
+            ".payload/config.toml",
             r#"
                 [patch.crates-io]
                 bar = { path = 'bar' }
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.1"))
         .file("bar/src/lib.rs", r#""#)
         .build();
 
-    p.cargo("build -Zpatch-in-config")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -Zpatch-in-config")
+        .masquerade_as_nightly_payload()
         .with_stderr(
             "\
 [UPDATING] `[ROOT][..]` index
@@ -152,13 +152,13 @@ fn from_config() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn from_config_relative() {
     Package::new("bar", "0.1.0").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -170,19 +170,19 @@ fn from_config_relative() {
             "#,
         )
         .file(
-            "../.cargo/config.toml",
+            "../.payload/config.toml",
             r#"
                 [patch.crates-io]
                 bar = { path = 'foo/bar' }
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.1"))
         .file("bar/src/lib.rs", r#""#)
         .build();
 
-    p.cargo("build -Zpatch-in-config")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -Zpatch-in-config")
+        .masquerade_as_nightly_payload()
         .with_stderr(
             "\
 [UPDATING] `[ROOT][..]` index
@@ -194,13 +194,13 @@ fn from_config_relative() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn from_config_precedence() {
     Package::new("bar", "0.1.0").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -215,19 +215,19 @@ fn from_config_precedence() {
             "#,
         )
         .file(
-            ".cargo/config.toml",
+            ".payload/config.toml",
             r#"
                 [patch.crates-io]
                 bar = { path = 'no-such-path' }
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.1"))
         .file("bar/src/lib.rs", r#""#)
         .build();
 
-    p.cargo("build -Zpatch-in-config")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -Zpatch-in-config")
+        .masquerade_as_nightly_payload()
         .with_stderr(
             "\
 [UPDATING] `[ROOT][..]` index
@@ -239,13 +239,13 @@ fn from_config_precedence() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn nonexistent() {
     Package::new("baz", "0.1.0").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -263,11 +263,11 @@ fn nonexistent() {
             "src/lib.rs",
             "extern crate bar; pub fn foo() { bar::bar(); }",
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "pub fn bar() {}")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [UPDATING] `[ROOT][..]` index
@@ -277,19 +277,19 @@ fn nonexistent() {
 ",
         )
         .run();
-    p.cargo("build").with_stderr("[FINISHED] [..]").run();
+    p.payload("build").with_stderr("[FINISHED] [..]").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn patch_git() {
     let bar = git::repo(&paths::root().join("override"))
-        .file("Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("src/lib.rs", "")
         .build();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                     [package]
@@ -310,11 +310,11 @@ fn patch_git() {
             "src/lib.rs",
             "extern crate bar; pub fn foo() { bar::bar(); }",
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "pub fn bar() {}")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [UPDATING] git repository `file://[..]`
@@ -324,13 +324,13 @@ fn patch_git() {
 ",
         )
         .run();
-    p.cargo("build").with_stderr("[FINISHED] [..]").run();
+    p.payload("build").with_stderr("[FINISHED] [..]").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn patch_to_git() {
     let bar = git::repo(&paths::root().join("override"))
-        .file("Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("src/lib.rs", "pub fn bar() {}")
         .build();
 
@@ -338,7 +338,7 @@ fn patch_to_git() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                     [package]
@@ -361,7 +361,7 @@ fn patch_to_git() {
         )
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [UPDATING] git repository `file://[..]`
@@ -372,16 +372,16 @@ fn patch_to_git() {
 ",
         )
         .run();
-    p.cargo("build").with_stderr("[FINISHED] [..]").run();
+    p.payload("build").with_stderr("[FINISHED] [..]").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn unused() {
     Package::new("bar", "0.1.0").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -396,11 +396,11 @@ fn unused() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.2.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.2.0"))
         .file("bar/src/lib.rs", "not rust code")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [UPDATING] `[ROOT][..]` index
@@ -417,7 +417,7 @@ fn unused() {
 ",
         )
         .run();
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [WARNING] Patch `bar v0.2.0 ([CWD]/bar)` was not used in the crate graph.
@@ -441,13 +441,13 @@ fn unused() {
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn unused_from_config() {
     Package::new("bar", "0.1.0").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -459,19 +459,19 @@ fn unused_from_config() {
             "#,
         )
         .file(
-            ".cargo/config.toml",
+            ".payload/config.toml",
             r#"
                 [patch.crates-io]
                 bar = { path = "bar" }
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.2.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.2.0"))
         .file("bar/src/lib.rs", "not rust code")
         .build();
 
-    p.cargo("build -Zpatch-in-config")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -Zpatch-in-config")
+        .masquerade_as_nightly_payload()
         .with_stderr(
             "\
 [UPDATING] `[ROOT][..]` index
@@ -488,8 +488,8 @@ fn unused_from_config() {
 ",
         )
         .run();
-    p.cargo("build -Zpatch-in-config")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -Zpatch-in-config")
+        .masquerade_as_nightly_payload()
         .with_stderr(
             "\
 [WARNING] Patch `bar v0.2.0 ([CWD]/bar)` was not used in the crate graph.
@@ -513,18 +513,18 @@ fn unused_from_config() {
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn unused_git() {
     Package::new("bar", "0.1.0").publish();
 
     let foo = git::repo(&paths::root().join("override"))
-        .file("Cargo.toml", &basic_manifest("bar", "0.2.0"))
+        .file("Payload.toml", &basic_manifest("bar", "0.2.0"))
         .file("src/lib.rs", "")
         .build();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                     [package]
@@ -544,7 +544,7 @@ fn unused_git() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [UPDATING] git repository `file://[..]`
@@ -562,7 +562,7 @@ fn unused_git() {
 ",
         )
         .run();
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [WARNING] Patch `bar v0.2.0 ([..])` was not used in the crate graph.
@@ -576,13 +576,13 @@ fn unused_git() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn add_patch() {
     Package::new("bar", "0.1.0").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -594,11 +594,11 @@ fn add_patch() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", r#""#)
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [UPDATING] `[ROOT][..]` index
@@ -610,10 +610,10 @@ fn add_patch() {
 ",
         )
         .run();
-    p.cargo("build").with_stderr("[FINISHED] [..]").run();
+    p.payload("build").with_stderr("[FINISHED] [..]").run();
 
     p.change_file(
-        "Cargo.toml",
+        "Payload.toml",
         r#"
             [package]
             name = "foo"
@@ -628,7 +628,7 @@ fn add_patch() {
         "#,
     );
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [COMPILING] bar v0.1.0 ([CWD]/bar)
@@ -637,16 +637,16 @@ fn add_patch() {
 ",
         )
         .run();
-    p.cargo("build").with_stderr("[FINISHED] [..]").run();
+    p.payload("build").with_stderr("[FINISHED] [..]").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn add_patch_from_config() {
     Package::new("bar", "0.1.0").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -658,11 +658,11 @@ fn add_patch_from_config() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", r#""#)
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [UPDATING] `[ROOT][..]` index
@@ -674,18 +674,18 @@ fn add_patch_from_config() {
 ",
         )
         .run();
-    p.cargo("build").with_stderr("[FINISHED] [..]").run();
+    p.payload("build").with_stderr("[FINISHED] [..]").run();
 
     p.change_file(
-        ".cargo/config.toml",
+        ".payload/config.toml",
         r#"
             [patch.crates-io]
             bar = { path = 'bar' }
         "#,
     );
 
-    p.cargo("build -Zpatch-in-config")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -Zpatch-in-config")
+        .masquerade_as_nightly_payload()
         .with_stderr(
             "\
 [COMPILING] bar v0.1.0 ([CWD]/bar)
@@ -694,19 +694,19 @@ fn add_patch_from_config() {
 ",
         )
         .run();
-    p.cargo("build -Zpatch-in-config")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -Zpatch-in-config")
+        .masquerade_as_nightly_payload()
         .with_stderr("[FINISHED] [..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn add_ignored_patch() {
     Package::new("bar", "0.1.0").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -718,11 +718,11 @@ fn add_ignored_patch() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.1"))
         .file("bar/src/lib.rs", r#""#)
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [UPDATING] `[ROOT][..]` index
@@ -734,10 +734,10 @@ fn add_ignored_patch() {
 ",
         )
         .run();
-    p.cargo("build").with_stderr("[FINISHED] [..]").run();
+    p.payload("build").with_stderr("[FINISHED] [..]").run();
 
     p.change_file(
-        "Cargo.toml",
+        "Payload.toml",
         r#"
             [package]
             name = "foo"
@@ -752,7 +752,7 @@ fn add_ignored_patch() {
         "#,
     );
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [WARNING] Patch `bar v0.1.1 ([CWD]/bar)` was not used in the crate graph.
@@ -763,7 +763,7 @@ fn add_ignored_patch() {
 [FINISHED] dev [unoptimized + debuginfo] target(s) in [..]",
         )
         .run();
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [WARNING] Patch `bar v0.1.1 ([CWD]/bar)` was not used in the crate graph.
@@ -775,8 +775,8 @@ fn add_ignored_patch() {
         )
         .run();
 
-    p.cargo("update").run();
-    p.cargo("build")
+    p.payload("update").run();
+    p.payload("build")
         .with_stderr(
             "\
 [COMPILING] bar v0.1.1 ([CWD]/bar)
@@ -787,7 +787,7 @@ fn add_ignored_patch() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn no_warn_ws_patch() {
     Package::new("c", "0.1.0").publish();
 
@@ -795,7 +795,7 @@ fn no_warn_ws_patch() {
     // partially building a workspace.
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["a", "b", "c"]
@@ -804,10 +804,10 @@ fn no_warn_ws_patch() {
                 c = { path = "c" }
             "#,
         )
-        .file("a/Cargo.toml", &basic_manifest("a", "0.1.0"))
+        .file("a/Payload.toml", &basic_manifest("a", "0.1.0"))
         .file("a/src/lib.rs", "")
         .file(
-            "b/Cargo.toml",
+            "b/Payload.toml",
             r#"
                 [package]
                 name = "b"
@@ -817,11 +817,11 @@ fn no_warn_ws_patch() {
             "#,
         )
         .file("b/src/lib.rs", "")
-        .file("c/Cargo.toml", &basic_manifest("c", "0.1.0"))
+        .file("c/Payload.toml", &basic_manifest("c", "0.1.0"))
         .file("c/src/lib.rs", "")
         .build();
 
-    p.cargo("build -p a")
+    p.payload("build -p a")
         .with_stderr(
             "\
 [UPDATING] [..]
@@ -831,13 +831,13 @@ fn no_warn_ws_patch() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn new_minor() {
     Package::new("bar", "0.1.0").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -852,11 +852,11 @@ fn new_minor() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.1"))
         .file("bar/src/lib.rs", r#""#)
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [UPDATING] `[ROOT][..]` index
@@ -868,13 +868,13 @@ fn new_minor() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn transitive_new_minor() {
     Package::new("baz", "0.1.0").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -890,7 +890,7 @@ fn transitive_new_minor() {
         )
         .file("src/lib.rs", "")
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -902,11 +902,11 @@ fn transitive_new_minor() {
             "#,
         )
         .file("bar/src/lib.rs", r#""#)
-        .file("baz/Cargo.toml", &basic_manifest("baz", "0.1.1"))
+        .file("baz/Payload.toml", &basic_manifest("baz", "0.1.1"))
         .file("baz/src/lib.rs", r#""#)
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [UPDATING] `[ROOT][..]` index
@@ -919,13 +919,13 @@ fn transitive_new_minor() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn new_major() {
     Package::new("bar", "0.1.0").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -940,11 +940,11 @@ fn new_major() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.2.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.2.0"))
         .file("bar/src/lib.rs", r#""#)
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [UPDATING] `[ROOT][..]` index
@@ -956,13 +956,13 @@ fn new_major() {
         .run();
 
     Package::new("bar", "0.2.0").publish();
-    p.cargo("update").run();
-    p.cargo("build")
+    p.payload("update").run();
+    p.payload("build")
         .with_stderr("[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]")
         .run();
 
     p.change_file(
-        "Cargo.toml",
+        "Payload.toml",
         r#"
             [package]
             name = "foo"
@@ -973,7 +973,7 @@ fn new_major() {
             bar = "0.2.0"
         "#,
     );
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [UPDATING] `[ROOT][..]` index
@@ -987,13 +987,13 @@ fn new_major() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn transitive_new_major() {
     Package::new("baz", "0.1.0").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1009,7 +1009,7 @@ fn transitive_new_major() {
         )
         .file("src/lib.rs", "")
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -1021,11 +1021,11 @@ fn transitive_new_major() {
             "#,
         )
         .file("bar/src/lib.rs", r#""#)
-        .file("baz/Cargo.toml", &basic_manifest("baz", "0.2.0"))
+        .file("baz/Payload.toml", &basic_manifest("baz", "0.2.0"))
         .file("baz/src/lib.rs", r#""#)
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [UPDATING] `[ROOT][..]` index
@@ -1038,18 +1038,18 @@ fn transitive_new_major() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn shared_by_transitive() {
     Package::new("baz", "0.1.1").publish();
 
     let baz = git::repo(&paths::root().join("override"))
-        .file("Cargo.toml", &basic_manifest("baz", "0.1.2"))
+        .file("Payload.toml", &basic_manifest("baz", "0.1.2"))
         .file("src/lib.rs", "")
         .build();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                     [package]
@@ -1068,7 +1068,7 @@ fn shared_by_transitive() {
         )
         .file("src/lib.rs", "")
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -1081,7 +1081,7 @@ fn shared_by_transitive() {
         .file("bar/src/lib.rs", "")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [UPDATING] git repository `file://[..]`
@@ -1095,14 +1095,14 @@ fn shared_by_transitive() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn remove_patch() {
     Package::new("foo", "0.1.0").publish();
     Package::new("bar", "0.1.0").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1118,19 +1118,19 @@ fn remove_patch() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", r#""#)
-        .file("foo/Cargo.toml", &basic_manifest("foo", "0.1.0"))
+        .file("foo/Payload.toml", &basic_manifest("foo", "0.1.0"))
         .file("foo/src/lib.rs", r#""#)
         .build();
 
     // Generate a lock file where `foo` is unused
-    p.cargo("build").run();
+    p.payload("build").run();
     let lock_file1 = p.read_lockfile();
 
     // Remove `foo` and generate a new lock file form the old one
     p.change_file(
-        "Cargo.toml",
+        "Payload.toml",
         r#"
             [package]
             name = "foo"
@@ -1144,12 +1144,12 @@ fn remove_patch() {
             bar = { path = 'bar' }
         "#,
     );
-    p.cargo("build").run();
+    p.payload("build").run();
     let lock_file2 = p.read_lockfile();
 
     // Remove the lock file and build from scratch
-    fs::remove_file(p.root().join("Cargo.lock")).unwrap();
-    p.cargo("build").run();
+    fs::remove_file(p.root().join("Payload.lock")).unwrap();
+    p.payload("build").run();
     let lock_file3 = p.read_lockfile();
 
     assert!(lock_file1.contains("foo"));
@@ -1157,13 +1157,13 @@ fn remove_patch() {
     assert_ne!(lock_file1, lock_file2);
 }
 
-#[cargo_test]
+#[payload_test]
 fn non_crates_io() {
     Package::new("bar", "0.1.0").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1175,11 +1175,11 @@ fn non_crates_io() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", r#""#)
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "\
@@ -1195,13 +1195,13 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn replace_with_crates_io() {
     Package::new("bar", "0.1.0").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1213,11 +1213,11 @@ fn replace_with_crates_io() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", r#""#)
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "\
@@ -1232,13 +1232,13 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn patch_in_virtual() {
     Package::new("bar", "0.1.0").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["foo"]
@@ -1247,10 +1247,10 @@ fn patch_in_virtual() {
                 bar = { path = "bar" }
             "#,
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", r#""#)
         .file(
-            "foo/Cargo.toml",
+            "foo/Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1264,11 +1264,11 @@ fn patch_in_virtual() {
         .file("foo/src/lib.rs", r#""#)
         .build();
 
-    p.cargo("build").run();
-    p.cargo("build").with_stderr("[FINISHED] [..]").run();
+    p.payload("build").run();
+    p.payload("build").with_stderr("[FINISHED] [..]").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn patch_depends_on_another_patch() {
     Package::new("bar", "0.1.0")
         .file("src/lib.rs", "broken code")
@@ -1281,7 +1281,7 @@ fn patch_depends_on_another_patch() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1298,10 +1298,10 @@ fn patch_depends_on_another_patch() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.1"))
         .file("bar/src/lib.rs", r#""#)
         .file(
-            "baz/Cargo.toml",
+            "baz/Payload.toml",
             r#"
                 [package]
                 name = "baz"
@@ -1315,18 +1315,18 @@ fn patch_depends_on_another_patch() {
         .file("baz/src/lib.rs", r#""#)
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 
     // Nothing should be rebuilt, no registry should be updated.
-    p.cargo("build").with_stderr("[FINISHED] [..]").run();
+    p.payload("build").with_stderr("[FINISHED] [..]").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn replace_prerelease() {
     Package::new("baz", "1.1.0-pre.1").publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["bar"]
@@ -1336,7 +1336,7 @@ fn replace_prerelease() {
             "#,
         )
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [project]
                 name = "bar"
@@ -1352,7 +1352,7 @@ fn replace_prerelease() {
             "extern crate baz; fn main() { baz::baz() }",
         )
         .file(
-            "baz/Cargo.toml",
+            "baz/Payload.toml",
             r#"
                 [project]
                 name = "baz"
@@ -1364,16 +1364,16 @@ fn replace_prerelease() {
         .file("baz/src/lib.rs", "pub fn baz() {}")
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn patch_older() {
     Package::new("baz", "1.0.2").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1389,7 +1389,7 @@ fn patch_older() {
         )
         .file("src/lib.rs", "")
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [project]
                 name = "bar"
@@ -1402,7 +1402,7 @@ fn patch_older() {
         )
         .file("bar/src/lib.rs", "")
         .file(
-            "baz/Cargo.toml",
+            "baz/Payload.toml",
             r#"
                 [project]
                 name = "baz"
@@ -1413,7 +1413,7 @@ fn patch_older() {
         .file("baz/src/lib.rs", "")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [UPDATING] [..]
@@ -1426,13 +1426,13 @@ fn patch_older() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn cycle() {
     Package::new("a", "1.0.0").publish();
     Package::new("b", "1.0.0").publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["a", "b"]
@@ -1443,7 +1443,7 @@ fn cycle() {
             "#,
         )
         .file(
-            "a/Cargo.toml",
+            "a/Payload.toml",
             r#"
                 [package]
                 name = "a"
@@ -1455,7 +1455,7 @@ fn cycle() {
         )
         .file("a/src/lib.rs", "")
         .file(
-            "b/Cargo.toml",
+            "b/Payload.toml",
             r#"
                 [package]
                 name = "b"
@@ -1468,7 +1468,7 @@ fn cycle() {
         .file("b/src/lib.rs", "")
         .build();
 
-    p.cargo("check")
+    p.payload("check")
         .with_status(101)
         .with_stderr(
             "\
@@ -1482,13 +1482,13 @@ package `[..]`
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn multipatch() {
     Package::new("a", "1.0.0").publish();
     Package::new("a", "2.0.0").publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1505,7 +1505,7 @@ fn multipatch() {
         )
         .file("src/lib.rs", "pub fn foo() { a1::f1(); a2::f2(); }")
         .file(
-            "a1/Cargo.toml",
+            "a1/Payload.toml",
             r#"
                 [package]
                 name = "a"
@@ -1514,7 +1514,7 @@ fn multipatch() {
         )
         .file("a1/src/lib.rs", "pub fn f1() {}")
         .file(
-            "a2/Cargo.toml",
+            "a2/Payload.toml",
             r#"
                 [package]
                 name = "a"
@@ -1524,21 +1524,21 @@ fn multipatch() {
         .file("a2/src/lib.rs", "pub fn f2() {}")
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn patch_same_version() {
     let bar = git::repo(&paths::root().join("override"))
-        .file("Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("src/lib.rs", "")
         .build();
 
-    cargo_test_support::registry::init();
+    payload_test_support::registry::init();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                     [package]
@@ -1555,7 +1555,7 @@ fn patch_same_version() {
         )
         .file("src/lib.rs", "")
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -1565,7 +1565,7 @@ fn patch_same_version() {
         .file("bar/src/lib.rs", "")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "\
@@ -1576,18 +1576,18 @@ error: cannot have two `[patch]` entries which both resolve to `bar v0.1.0`
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn two_semver_compatible() {
     let bar = git::repo(&paths::root().join("override"))
-        .file("Cargo.toml", &basic_manifest("bar", "0.1.1"))
+        .file("Payload.toml", &basic_manifest("bar", "0.1.1"))
         .file("src/lib.rs", "")
         .build();
 
-    cargo_test_support::registry::init();
+    payload_test_support::registry::init();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                     [package]
@@ -1604,7 +1604,7 @@ fn two_semver_compatible() {
         )
         .file("src/lib.rs", "pub fn foo() { bar::foo() }")
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -1617,8 +1617,8 @@ fn two_semver_compatible() {
     // assert the build succeeds and doesn't panic anywhere, and then afterwards
     // assert that the build succeeds again without updating anything or
     // building anything else.
-    p.cargo("build").run();
-    p.cargo("build")
+    p.payload("build").run();
+    p.payload("build")
         .with_stderr(
             "\
 warning: Patch `bar v0.1.1 [..]` was not used in the crate graph.
@@ -1631,18 +1631,18 @@ version. [..]
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn multipatch_select_big() {
     let bar = git::repo(&paths::root().join("override"))
-        .file("Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("src/lib.rs", "")
         .build();
 
-    cargo_test_support::registry::init();
+    payload_test_support::registry::init();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                     [package]
@@ -1659,7 +1659,7 @@ fn multipatch_select_big() {
         )
         .file("src/lib.rs", "pub fn foo() { bar::foo() }")
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -1672,8 +1672,8 @@ fn multipatch_select_big() {
     // assert the build succeeds, which is only possible if 0.2.0 is selected
     // since 0.1.0 is missing the function we need. Afterwards assert that the
     // build succeeds again without updating anything or building anything else.
-    p.cargo("build").run();
-    p.cargo("build")
+    p.payload("build").run();
+    p.payload("build")
         .with_stderr(
             "\
 warning: Patch `bar v0.1.0 [..]` was not used in the crate graph.
@@ -1686,16 +1686,16 @@ version. [..]
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn canonicalize_a_bunch() {
     let base = git::repo(&paths::root().join("base"))
-        .file("Cargo.toml", &basic_manifest("base", "0.1.0"))
+        .file("Payload.toml", &basic_manifest("base", "0.1.0"))
         .file("src/lib.rs", "")
         .build();
 
     let intermediate = git::repo(&paths::root().join("intermediate"))
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                     [package]
@@ -1713,13 +1713,13 @@ fn canonicalize_a_bunch() {
         .build();
 
     let newbase = git::repo(&paths::root().join("newbase"))
-        .file("Cargo.toml", &basic_manifest("base", "0.1.0"))
+        .file("Payload.toml", &basic_manifest("base", "0.1.0"))
         .file("src/lib.rs", "pub fn f() {}")
         .build();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                     [package]
@@ -1743,25 +1743,25 @@ fn canonicalize_a_bunch() {
         .build();
 
     // Once to make sure it actually works
-    p.cargo("build").run();
+    p.payload("build").run();
 
     // Then a few more times for good measure to ensure no weird warnings about
     // `[patch]` are printed.
-    p.cargo("build").with_stderr("[FINISHED] [..]").run();
-    p.cargo("build").with_stderr("[FINISHED] [..]").run();
+    p.payload("build").with_stderr("[FINISHED] [..]").run();
+    p.payload("build").with_stderr("[FINISHED] [..]").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn update_unused_new_version() {
     // If there is an unused patch entry, and then you update the patch,
-    // make sure `cargo update` will be able to fix the lock file.
+    // make sure `payload update` will be able to fix the lock file.
     Package::new("bar", "0.1.5").publish();
 
     // Start with a lock file to 0.1.5, and an "unused" patch because the
     // version is too old.
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1780,11 +1780,11 @@ fn update_unused_new_version() {
     // Patch is too old.
     let bar = project()
         .at("bar")
-        .file("Cargo.toml", &basic_manifest("bar", "0.1.4"))
+        .file("Payload.toml", &basic_manifest("bar", "0.1.4"))
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr_contains("[WARNING] Patch `bar v0.1.4 [..] was not used in the crate graph.")
         .run();
     // unused patch should be in the lock file
@@ -1798,13 +1798,13 @@ fn update_unused_new_version() {
     );
 
     // Oh, OK, let's update to the latest version.
-    bar.change_file("Cargo.toml", &basic_manifest("bar", "0.1.6"));
+    bar.change_file("Payload.toml", &basic_manifest("bar", "0.1.6"));
 
     // Create a backup so we can test it with different options.
-    fs::copy(p.root().join("Cargo.lock"), p.root().join("Cargo.lock.bak")).unwrap();
+    fs::copy(p.root().join("Payload.lock"), p.root().join("Payload.lock.bak")).unwrap();
 
-    // Try to build again, this should automatically update Cargo.lock.
-    p.cargo("build")
+    // Try to build again, this should automatically update Payload.lock.
+    p.payload("build")
         .with_stderr(
             "\
 [UPDATING] `[..]/registry` index
@@ -1815,14 +1815,14 @@ fn update_unused_new_version() {
         )
         .run();
     // This should not update any registry.
-    p.cargo("build").with_stderr("[FINISHED] [..]").run();
+    p.payload("build").with_stderr("[FINISHED] [..]").run();
     assert!(!p.read_lockfile().contains("unused"));
 
     // Restore the lock file, and see if `update` will work, too.
-    fs::copy(p.root().join("Cargo.lock.bak"), p.root().join("Cargo.lock")).unwrap();
+    fs::copy(p.root().join("Payload.lock.bak"), p.root().join("Payload.lock")).unwrap();
 
     // Try `update -p`.
-    p.cargo("update -p bar")
+    p.payload("update -p bar")
         .with_stderr(
             "\
 [UPDATING] `[..]/registry` index
@@ -1832,9 +1832,9 @@ fn update_unused_new_version() {
         )
         .run();
 
-    // Try with bare `cargo update`.
-    fs::copy(p.root().join("Cargo.lock.bak"), p.root().join("Cargo.lock")).unwrap();
-    p.cargo("update")
+    // Try with bare `payload update`.
+    fs::copy(p.root().join("Payload.lock.bak"), p.root().join("Payload.lock")).unwrap();
+    p.payload("update")
         .with_stderr(
             "\
 [UPDATING] `[..]/registry` index
@@ -1845,7 +1845,7 @@ fn update_unused_new_version() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn too_many_matches() {
     // The patch locations has multiple versions that match.
     registry::alt_init();
@@ -1855,7 +1855,7 @@ fn too_many_matches() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1872,15 +1872,15 @@ fn too_many_matches() {
         .build();
 
     // Picks 0.1.1, the most recent version.
-    p.cargo("check")
+    p.payload("check")
         .with_status(101)
         .with_stderr(
             "\
 [UPDATING] `[..]/alternative-registry` index
-[ERROR] failed to resolve patches for `https://github.com/rust-lang/crates.io-index`
+[ERROR] failed to resolve patches for `https://github.com/dustlang/crates.io-index`
 
 Caused by:
-  patch for `bar` in `https://github.com/rust-lang/crates.io-index` failed to resolve
+  patch for `bar` in `https://github.com/dustlang/crates.io-index` failed to resolve
 
 Caused by:
   patch for `bar` in `registry `[..]/alternative-registry`` resolved to more than one candidate
@@ -1892,12 +1892,12 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn no_matches() {
     // A patch to a location that does not contain the named package.
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                  [package]
                  name = "foo"
@@ -1911,18 +1911,18 @@ fn no_matches() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("abc", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("abc", "0.1.0"))
         .file("bar/src/lib.rs", "")
         .build();
 
-    p.cargo("check")
+    p.payload("check")
         .with_status(101)
         .with_stderr(
             "\
-error: failed to resolve patches for `https://github.com/rust-lang/crates.io-index`
+error: failed to resolve patches for `https://github.com/dustlang/crates.io-index`
 
 Caused by:
-  patch for `bar` in `https://github.com/rust-lang/crates.io-index` failed to resolve
+  patch for `bar` in `https://github.com/dustlang/crates.io-index` failed to resolve
 
 Caused by:
   The patch location `[..]/foo/bar` does not appear to contain any packages matching the name `bar`.
@@ -1931,12 +1931,12 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn mismatched_version() {
     // A patch to a location that has an old version.
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                  [package]
                  name = "foo"
@@ -1950,18 +1950,18 @@ fn mismatched_version() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "")
         .build();
 
-    p.cargo("check")
+    p.payload("check")
         .with_status(101)
         .with_stderr(
             "\
-[ERROR] failed to resolve patches for `https://github.com/rust-lang/crates.io-index`
+[ERROR] failed to resolve patches for `https://github.com/dustlang/crates.io-index`
 
 Caused by:
-  patch for `bar` in `https://github.com/rust-lang/crates.io-index` failed to resolve
+  patch for `bar` in `https://github.com/dustlang/crates.io-index` failed to resolve
 
 Caused by:
   The patch location `[..]/foo/bar` contains a `bar` package with version `0.1.0`, \
@@ -1973,14 +1973,14 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn patch_walks_backwards() {
     // Starting with a locked patch, change the patch so it points to an older version.
     Package::new("bar", "0.1.0").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -1994,11 +1994,11 @@ fn patch_walks_backwards() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.1"))
         .file("bar/src/lib.rs", "")
         .build();
 
-    p.cargo("check")
+    p.payload("check")
         .with_stderr(
             "\
 [UPDATING] `[..]/registry` index
@@ -2010,9 +2010,9 @@ fn patch_walks_backwards() {
         .run();
 
     // Somehow the user changes the version backwards.
-    p.change_file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"));
+    p.change_file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"));
 
-    p.cargo("check")
+    p.payload("check")
         .with_stderr(
             "\
 [UPDATING] `[..]/registry` index
@@ -2024,7 +2024,7 @@ fn patch_walks_backwards() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn patch_walks_backwards_restricted() {
     // This is the same as `patch_walks_backwards`, but the patch contains a
     // `version` qualifier. This is unusual, just checking a strange edge case.
@@ -2032,7 +2032,7 @@ fn patch_walks_backwards_restricted() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -2046,11 +2046,11 @@ fn patch_walks_backwards_restricted() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.1"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.1"))
         .file("bar/src/lib.rs", "")
         .build();
 
-    p.cargo("check")
+    p.payload("check")
         .with_stderr(
             "\
 [UPDATING] `[..]/registry` index
@@ -2062,16 +2062,16 @@ fn patch_walks_backwards_restricted() {
         .run();
 
     // Somehow the user changes the version backwards.
-    p.change_file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"));
+    p.change_file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"));
 
-    p.cargo("check")
+    p.payload("check")
         .with_status(101)
         .with_stderr(
             "\
-error: failed to resolve patches for `https://github.com/rust-lang/crates.io-index`
+error: failed to resolve patches for `https://github.com/dustlang/crates.io-index`
 
 Caused by:
-  patch for `bar` in `https://github.com/rust-lang/crates.io-index` failed to resolve
+  patch for `bar` in `https://github.com/dustlang/crates.io-index` failed to resolve
 
 Caused by:
   The patch location `[..]/foo/bar` contains a `bar` package with version `0.1.0`, but the patch definition requires `^0.1.1`.
@@ -2081,7 +2081,7 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn patched_dep_new_version() {
     // What happens when a patch is locked, and then one of the patched
     // dependencies needs to be updated. In this case, the baz requirement
@@ -2091,7 +2091,7 @@ fn patched_dep_new_version() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -2106,7 +2106,7 @@ fn patched_dep_new_version() {
         )
         .file("src/lib.rs", "")
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
             [package]
             name = "bar"
@@ -2120,7 +2120,7 @@ fn patched_dep_new_version() {
         .build();
 
     // Lock everything.
-    p.cargo("check")
+    p.payload("check")
         .with_stderr(
             "\
 [UPDATING] `[..]/registry` index
@@ -2137,11 +2137,11 @@ fn patched_dep_new_version() {
     Package::new("baz", "0.1.1").publish();
 
     // Just the presence of the new version should not have changed anything.
-    p.cargo("check").with_stderr("[FINISHED] [..]").run();
+    p.payload("check").with_stderr("[FINISHED] [..]").run();
 
     // Modify the patch so it requires the new version.
     p.change_file(
-        "bar/Cargo.toml",
+        "bar/Payload.toml",
         r#"
             [package]
             name = "bar"
@@ -2153,7 +2153,7 @@ fn patched_dep_new_version() {
     );
 
     // Should unlock and update cleanly.
-    p.cargo("check")
+    p.payload("check")
         .with_stderr(
             "\
 [UPDATING] `[..]/registry` index
@@ -2168,7 +2168,7 @@ fn patched_dep_new_version() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn patch_update_doesnt_update_other_sources() {
     // Very extreme edge case, make sure a patch update doesn't update other
     // sources.
@@ -2178,7 +2178,7 @@ fn patch_update_doesnt_update_other_sources() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -2193,11 +2193,11 @@ fn patch_update_doesnt_update_other_sources() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "")
         .build();
 
-    p.cargo("check")
+    p.payload("check")
         .with_stderr_unordered(
             "\
 [UPDATING] `[..]/registry` index
@@ -2217,13 +2217,13 @@ fn patch_update_doesnt_update_other_sources() {
     Package::new("bar", "0.1.1").alternative(true).publish();
 
     // Since it is locked, nothing should change.
-    p.cargo("check").with_stderr("[FINISHED] [..]").run();
+    p.payload("check").with_stderr("[FINISHED] [..]").run();
 
     // Require new version on crates.io.
-    p.change_file("bar/Cargo.toml", &basic_manifest("bar", "0.1.1"));
+    p.change_file("bar/Payload.toml", &basic_manifest("bar", "0.1.1"));
 
     // This should not update bar_alt.
-    p.cargo("check")
+    p.payload("check")
         .with_stderr(
             "\
 [UPDATING] `[..]/registry` index
@@ -2235,7 +2235,7 @@ fn patch_update_doesnt_update_other_sources() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn can_update_with_alt_reg() {
     // A patch to an alt reg can update.
     registry::alt_init();
@@ -2245,7 +2245,7 @@ fn can_update_with_alt_reg() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -2261,7 +2261,7 @@ fn can_update_with_alt_reg() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("check")
+    p.payload("check")
         .with_stderr(
             "\
 [UPDATING] `[..]/alternative-registry` index
@@ -2278,10 +2278,10 @@ fn can_update_with_alt_reg() {
     Package::new("bar", "0.1.2").alternative(true).publish();
 
     // Should remain locked.
-    p.cargo("check").with_stderr("[FINISHED] [..]").run();
+    p.payload("check").with_stderr("[FINISHED] [..]").run();
 
     // This does nothing, due to `=` requirement.
-    p.cargo("update -p bar")
+    p.payload("update -p bar")
         .with_stderr(
             "\
 [UPDATING] `[..]/alternative-registry` index
@@ -2292,7 +2292,7 @@ fn can_update_with_alt_reg() {
 
     // Bump to 0.1.2.
     p.change_file(
-        "Cargo.toml",
+        "Payload.toml",
         r#"
             [package]
             name = "foo"
@@ -2306,7 +2306,7 @@ fn can_update_with_alt_reg() {
         "#,
     );
 
-    p.cargo("check")
+    p.payload("check")
         .with_stderr(
             "\
 [UPDATING] `[..]/alternative-registry` index

@@ -1,12 +1,12 @@
 //! Tests for network configuration.
 
-use cargo_test_support::project;
+use payload_test_support::project;
 
-#[cargo_test]
+#[payload_test]
 fn net_retry_loads_from_config() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -19,7 +19,7 @@ fn net_retry_loads_from_config() {
         )
         .file("src/main.rs", "")
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
            [net]
            retry=1
@@ -29,7 +29,7 @@ fn net_retry_loads_from_config() {
         )
         .build();
 
-    p.cargo("build -v")
+    p.payload("build -v")
         .with_status(101)
         .with_stderr_contains(
             "[WARNING] spurious network error \
@@ -38,11 +38,11 @@ fn net_retry_loads_from_config() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn net_retry_git_outputs_warning() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -54,7 +54,7 @@ fn net_retry_git_outputs_warning() {
             "#,
         )
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
            [http]
            timeout=1
@@ -63,7 +63,7 @@ fn net_retry_git_outputs_warning() {
         .file("src/main.rs", "")
         .build();
 
-    p.cargo("build -v -j 1")
+    p.payload("build -v -j 1")
         .with_status(101)
         .with_stderr_contains(
             "[WARNING] spurious network error \

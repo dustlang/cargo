@@ -1,9 +1,9 @@
-//! Tests for the `cargo search` command.
+//! Tests for the `payload search` command.
 
-use cargo_test_support::cargo_process;
-use cargo_test_support::git::repo;
-use cargo_test_support::paths;
-use cargo_test_support::registry::{api_path, registry_path, registry_url};
+use payload_test_support::payload_process;
+use payload_test_support::git::repo;
+use payload_test_support::paths;
+use payload_test_support::registry::{api_path, registry_path, registry_url};
 use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
@@ -98,8 +98,8 @@ postgres = \"0.17.3\"    # A native, synchronous PostgreSQL client
 ";
 
 fn setup() {
-    let cargo_home = paths::root().join(".cargo");
-    fs::create_dir_all(cargo_home).unwrap();
+    let payload_home = paths::root().join(".payload");
+    fs::create_dir_all(payload_home).unwrap();
     fs::create_dir_all(&api_path().join("api/v1")).unwrap();
 
     // Init a new registry
@@ -114,8 +114,8 @@ fn setup() {
     write_crates(&base);
 }
 
-fn set_cargo_config() {
-    let config = paths::root().join(".cargo/config");
+fn set_payload_config() {
+    let config = paths::root().join(".payload/config");
 
     fs::write(
         &config,
@@ -134,48 +134,48 @@ fn set_cargo_config() {
     .unwrap();
 }
 
-#[cargo_test]
+#[payload_test]
 fn not_update() {
     setup();
-    set_cargo_config();
+    set_payload_config();
 
-    use cargo::core::{Shell, Source, SourceId};
-    use cargo::sources::RegistrySource;
-    use cargo::util::Config;
+    use payload::core::{Shell, Source, SourceId};
+    use payload::sources::RegistrySource;
+    use payload::util::Config;
 
     let sid = SourceId::for_registry(&registry_url()).unwrap();
     let cfg = Config::new(
         Shell::from_write(Box::new(Vec::new())),
         paths::root(),
-        paths::home().join(".cargo"),
+        paths::home().join(".payload"),
     );
     let lock = cfg.acquire_package_cache_lock().unwrap();
     let mut regsrc = RegistrySource::remote(sid, &HashSet::new(), &cfg);
     regsrc.update().unwrap();
     drop(lock);
 
-    cargo_process("search postgres")
+    payload_process("search postgres")
         .with_stdout_contains(SEARCH_RESULTS)
         .with_stderr("") // without "Updating ... index"
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn replace_default() {
     setup();
-    set_cargo_config();
+    set_payload_config();
 
-    cargo_process("search postgres")
+    payload_process("search postgres")
         .with_stdout_contains(SEARCH_RESULTS)
         .with_stderr_contains("[..]Updating [..] index")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn simple() {
     setup();
 
-    cargo_process("search postgres --index")
+    payload_process("search postgres --index")
         .arg(registry_url().to_string())
         .with_stdout_contains(SEARCH_RESULTS)
         .run();
@@ -183,17 +183,17 @@ fn simple() {
 
 // TODO: Deprecated
 // remove once it has been decided '--host' can be safely removed
-#[cargo_test]
+#[payload_test]
 fn simple_with_host() {
     setup();
 
-    cargo_process("search postgres --host")
+    payload_process("search postgres --host")
         .arg(registry_url().to_string())
         .with_stderr(
             "\
 [WARNING] The flag '--host' is no longer valid.
 
-Previous versions of Cargo accepted this flag, but it is being
+Previous versions of Payload accepted this flag, but it is being
 deprecated. The flag is being renamed to 'index', as the flag
 wants the location of the index. Please use '--index' instead.
 
@@ -209,11 +209,11 @@ about this warning.
 
 // TODO: Deprecated
 // remove once it has been decided '--host' can be safely removed
-#[cargo_test]
+#[payload_test]
 fn simple_with_index_and_host() {
     setup();
 
-    cargo_process("search postgres --index")
+    payload_process("search postgres --index")
         .arg(registry_url().to_string())
         .arg("--host")
         .arg(registry_url().to_string())
@@ -221,7 +221,7 @@ fn simple_with_index_and_host() {
             "\
 [WARNING] The flag '--host' is no longer valid.
 
-Previous versions of Cargo accepted this flag, but it is being
+Previous versions of Payload accepted this flag, but it is being
 deprecated. The flag is being renamed to 'index', as the flag
 wants the location of the index. Please use '--index' instead.
 
@@ -235,11 +235,11 @@ about this warning.
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn multiple_query_params() {
     setup();
 
-    cargo_process("search postgres sql --index")
+    payload_process("search postgres sql --index")
         .arg(registry_url().to_string())
         .with_stdout_contains(SEARCH_RESULTS)
         .run();

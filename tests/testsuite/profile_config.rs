@@ -1,16 +1,16 @@
 //! Tests for profiles defined in config files.
 
-use cargo_test_support::paths::CargoPathExt;
-use cargo_test_support::registry::Package;
-use cargo_test_support::{basic_lib_manifest, paths, project};
+use payload_test_support::paths::PayloadPathExt;
+use payload_test_support::registry::Package;
+use payload_test_support::{basic_lib_manifest, paths, project};
 
-#[cargo_test]
+#[payload_test]
 fn named_profile_gated() {
-    // Named profile in config requires enabling in Cargo.toml.
+    // Named profile in config requires enabling in Payload.toml.
     let p = project()
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
             [profile.foo]
             inherits = 'dev'
@@ -18,29 +18,29 @@ fn named_profile_gated() {
             "#,
         )
         .build();
-    p.cargo("build --profile foo -Zunstable-options")
-        .masquerade_as_nightly_cargo()
+    p.payload("build --profile foo -Zunstable-options")
+        .masquerade_as_nightly_payload()
         .with_stderr(
             "\
-[ERROR] config profile `foo` is not valid (defined in `[..]/foo/.cargo/config`)
+[ERROR] config profile `foo` is not valid (defined in `[..]/foo/.payload/config`)
 
 Caused by:
   feature `named-profiles` is required
 
-  consider adding `cargo-features = [\"named-profiles\"]` to the manifest
+  consider adding `payload-features = [\"named-profiles\"]` to the manifest
 ",
         )
         .with_status(101)
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn profile_config_validate_warnings() {
     let p = project()
-        .file("Cargo.toml", &basic_lib_manifest("foo"))
+        .file("Payload.toml", &basic_lib_manifest("foo"))
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
                 [profile.test]
                 opt-level = 3
@@ -60,12 +60,12 @@ fn profile_config_validate_warnings() {
         )
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr_unordered(
             "\
-[WARNING] unused config key `profile.dev.bad-key` in `[..].cargo/config`
-[WARNING] unused config key `profile.dev.package.bar.bad-key-bar` in `[..].cargo/config`
-[WARNING] unused config key `profile.dev.build-override.bad-key-bo` in `[..].cargo/config`
+[WARNING] unused config key `profile.dev.bad-key` in `[..].payload/config`
+[WARNING] unused config key `profile.dev.package.bar.bad-key-bar` in `[..].payload/config`
+[WARNING] unused config key `profile.dev.build-override.bad-key-bo` in `[..].payload/config`
 [COMPILING] foo [..]
 [FINISHED] [..]
 ",
@@ -73,21 +73,21 @@ fn profile_config_validate_warnings() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn profile_config_error_paths() {
     // Errors in config show where the error is located.
     let p = project()
-        .file("Cargo.toml", &basic_lib_manifest("foo"))
+        .file("Payload.toml", &basic_lib_manifest("foo"))
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
                 [profile.dev]
                 opt-level = 3
             "#,
         )
         .file(
-            paths::home().join(".cargo/config"),
+            paths::home().join(".payload/config"),
             r#"
             [profile.dev]
             rpath = "foo"
@@ -95,26 +95,26 @@ fn profile_config_error_paths() {
         )
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "\
-[ERROR] error in [..]/foo/.cargo/config: could not load config key `profile.dev`
+[ERROR] error in [..]/foo/.payload/config: could not load config key `profile.dev`
 
 Caused by:
-  error in [..]/home/.cargo/config: `profile.dev.rpath` expected true/false, but found a string
+  error in [..]/home/.payload/config: `profile.dev.rpath` expected true/false, but found a string
 ",
         )
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn profile_config_validate_errors() {
     let p = project()
-        .file("Cargo.toml", &basic_lib_manifest("foo"))
+        .file("Payload.toml", &basic_lib_manifest("foo"))
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
                 [profile.dev.package.foo]
                 panic = "abort"
@@ -122,11 +122,11 @@ fn profile_config_validate_errors() {
         )
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "\
-[ERROR] config profile `dev` is not valid (defined in `[..]/foo/.cargo/config`)
+[ERROR] config profile `dev` is not valid (defined in `[..]/foo/.payload/config`)
 
 Caused by:
   `panic` may not be specified in a `package` profile
@@ -135,13 +135,13 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn profile_config_syntax_errors() {
     let p = project()
-        .file("Cargo.toml", &basic_lib_manifest("foo"))
+        .file("Payload.toml", &basic_lib_manifest("foo"))
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
                 [profile.dev]
                 codegen-units = "foo"
@@ -149,24 +149,24 @@ fn profile_config_syntax_errors() {
         )
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "\
-[ERROR] error in [..]/.cargo/config: could not load config key `profile.dev`
+[ERROR] error in [..]/.payload/config: could not load config key `profile.dev`
 
 Caused by:
-  error in [..]/foo/.cargo/config: `profile.dev.codegen-units` expected an integer, but found a string
+  error in [..]/foo/.payload/config: `profile.dev.codegen-units` expected an integer, but found a string
 ",
         )
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn profile_config_override_spec_multiple() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -177,7 +177,7 @@ fn profile_config_override_spec_multiple() {
             "#,
         )
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
                 [profile.dev.package.bar]
                 opt-level = 3
@@ -187,13 +187,13 @@ fn profile_config_override_spec_multiple() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_lib_manifest("bar"))
+        .file("bar/Payload.toml", &basic_lib_manifest("bar"))
         .file("bar/src/lib.rs", "")
         .build();
 
     // Unfortunately this doesn't tell you which file, hopefully it's not too
     // much of a problem.
-    p.cargo("build -v")
+    p.payload("build -v")
         .with_status(101)
         .with_stderr(
             "\
@@ -203,13 +203,13 @@ found package specs: bar, bar:0.5.0",
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn profile_config_all_options() {
     // Ensure all profile options are supported.
     let p = project()
         .file("src/main.rs", "fn main() {}")
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
             [profile.release]
             opt-level = 1
@@ -225,8 +225,8 @@ fn profile_config_all_options() {
         )
         .build();
 
-    p.cargo("build --release -v")
-        .env_remove("CARGO_INCREMENTAL")
+    p.payload("build --release -v")
+        .env_remove("PAYLOAD_INCREMENTAL")
         .with_stderr(
             "\
 [COMPILING] foo [..]
@@ -246,12 +246,12 @@ fn profile_config_all_options() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn profile_config_override_precedence() {
     // Config values take precedence over manifest values.
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -268,10 +268,10 @@ fn profile_config_override_precedence() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_lib_manifest("bar"))
+        .file("bar/Payload.toml", &basic_lib_manifest("bar"))
         .file("bar/src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
                 [profile.dev.package.bar]
                 opt-level = 2
@@ -279,7 +279,7 @@ fn profile_config_override_precedence() {
         )
         .build();
 
-    p.cargo("build -v")
+    p.payload("build -v")
         .with_stderr(
             "\
 [COMPILING] bar [..]
@@ -291,13 +291,13 @@ fn profile_config_override_precedence() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn profile_config_no_warn_unknown_override() {
     let p = project()
-        .file("Cargo.toml", &basic_lib_manifest("foo"))
+        .file("Payload.toml", &basic_lib_manifest("foo"))
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
                 [profile.dev.package.bar]
                 codegen-units = 4
@@ -305,25 +305,25 @@ fn profile_config_no_warn_unknown_override() {
         )
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr_does_not_contain("[..]warning[..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn profile_config_mixed_types() {
     let p = project()
-        .file("Cargo.toml", &basic_lib_manifest("foo"))
+        .file("Payload.toml", &basic_lib_manifest("foo"))
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
                 [profile.dev]
                 opt-level = 3
             "#,
         )
         .file(
-            paths::home().join(".cargo/config"),
+            paths::home().join(".payload/config"),
             r#"
             [profile.dev]
             opt-level = 's'
@@ -331,25 +331,25 @@ fn profile_config_mixed_types() {
         )
         .build();
 
-    p.cargo("build -v")
+    p.payload("build -v")
         .with_stderr_contains("[..]-C opt-level=3 [..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn named_config_profile() {
     // Exercises config named profies.
     // foo -> middle -> bar -> dev
-    // middle exists in Cargo.toml, the others in .cargo/config
+    // middle exists in Payload.toml, the others in .payload/config
     use super::config::ConfigBuilder;
-    use cargo::core::compiler::CompileMode;
-    use cargo::core::profiles::{Profiles, UnitFor};
-    use cargo::core::{PackageId, Workspace};
-    use cargo::util::interning::InternedString;
+    use payload::core::compiler::CompileMode;
+    use payload::core::profiles::{Profiles, UnitFor};
+    use payload::core::{PackageId, Workspace};
+    use payload::util::interning::InternedString;
     use std::fs;
-    paths::root().join(".cargo").mkdir_p();
+    paths::root().join(".payload").mkdir_p();
     fs::write(
-        paths::root().join(".cargo/config"),
+        paths::root().join(".payload/config"),
         r#"
             [profile.foo]
             inherits = "middle"
@@ -371,9 +371,9 @@ fn named_config_profile() {
     )
     .unwrap();
     fs::write(
-        paths::root().join("Cargo.toml"),
+        paths::root().join("Payload.toml"),
         r#"
-            cargo-features = ['named-profiles']
+            payload-features = ['named-profiles']
 
             [workspace]
 
@@ -394,10 +394,10 @@ fn named_config_profile() {
     .unwrap();
     let config = ConfigBuilder::new().nightly_features_allowed(true).build();
     let profile_name = InternedString::new("foo");
-    let ws = Workspace::new(&paths::root().join("Cargo.toml"), &config).unwrap();
+    let ws = Workspace::new(&paths::root().join("Payload.toml"), &config).unwrap();
     let profiles = Profiles::new(&ws, profile_name).unwrap();
 
-    let crates_io = cargo::core::source::SourceId::crates_io(&config).unwrap();
+    let crates_io = payload::core::source::SourceId::crates_io(&config).unwrap();
     let a_pkg = PackageId::new("a", "0.1.0", crates_io).unwrap();
     let dep_pkg = PackageId::new("dep", "0.1.0", crates_io).unwrap();
 
@@ -430,14 +430,14 @@ fn named_config_profile() {
     assert_eq!(po.overflow_checks, false); // "middle" package override from manifest
 }
 
-#[cargo_test]
+#[payload_test]
 fn named_env_profile() {
     // Environment variables used to define a named profile.
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-            cargo-features = ["named-profiles"]
+            payload-features = ["named-profiles"]
             [package]
             name = "foo"
             version = "0.1.0"
@@ -446,21 +446,21 @@ fn named_env_profile() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build -v -Zunstable-options --profile=other")
-        .masquerade_as_nightly_cargo()
-        .env("CARGO_PROFILE_OTHER_CODEGEN_UNITS", "1")
-        .env("CARGO_PROFILE_OTHER_INHERITS", "dev")
+    p.payload("build -v -Zunstable-options --profile=other")
+        .masquerade_as_nightly_payload()
+        .env("PAYLOAD_PROFILE_OTHER_CODEGEN_UNITS", "1")
+        .env("PAYLOAD_PROFILE_OTHER_INHERITS", "dev")
         .with_stderr_contains("[..]-C codegen-units=1 [..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn test_with_dev_profile() {
-    // `cargo test` uses "dev" profile for dependencies.
+    // `payload test` uses "dev" profile for dependencies.
     Package::new("somedep", "1.0.0").publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -472,8 +472,8 @@ fn test_with_dev_profile() {
         )
         .file("src/lib.rs", "")
         .build();
-    p.cargo("test --lib --no-run -v")
-        .env("CARGO_PROFILE_DEV_DEBUG", "0")
+    p.payload("test --lib --no-run -v")
+        .env("PAYLOAD_PROFILE_DEV_DEBUG", "0")
         .with_stderr(
             "\
 [UPDATING] [..]

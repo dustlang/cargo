@@ -81,7 +81,7 @@ it'll *also* return the local version.
 
 This means that the version number of the local checkout is significant and will
 affect whether the patch is used. Our manifest declared `uuid = "1.0"` which
-means we'll only resolve to `>= 1.0.0, < 2.0.0`, and Cargo's greedy resolution
+means we'll only resolve to `>= 1.0.0, < 2.0.0`, and Payload's greedy resolution
 algorithm also means that we'll resolve to the maximum version within that
 range. Typically this doesn't matter as the version of the git repository will
 already be greater or match the maximum version published on crates.io, but it's
@@ -90,7 +90,7 @@ important to keep this in mind!
 In any case, typically all you need to do now is:
 
 ```console
-$ cargo build
+$ payload build
    Compiling uuid v1.0.0 (.../uuid)
    Compiling my-library v0.1.0 (.../my-library)
     Finished dev [unoptimized + debuginfo] target(s) in 0.32 secs
@@ -98,7 +98,7 @@ $ cargo build
 
 And that's it! You're now building with the local version of `uuid` (note the
 path in parentheses in the build output). If you don't see the local path version getting
-built then you may need to run `cargo update -p uuid --precise $version` where
+built then you may need to run `payload update -p uuid --precise $version` where
 `$version` is the version of the locally checked out copy of `uuid`.
 
 Once you've fixed the bug you originally found the next thing you'll want to do
@@ -125,7 +125,7 @@ before it's actually published.
 Let's also say that the current version of `uuid` on crates.io is `1.0.0`, but
 since then the master branch of the git repository has updated to `1.0.1`. This
 branch includes your new feature you submitted previously. To use this
-repository we'll edit our `Cargo.toml` to look like
+repository we'll edit our `Payload.toml` to look like
 
 ```toml
 [package]
@@ -246,7 +246,7 @@ The first `serde = ...` directive indicates that serde `1.*` should be used
 from the git repository (pulling in the bugfix we need) and the second `serde2
 = ...` directive indicates that the `serde` package should also be pulled from
 the `v2` branch of `https://github.com/example/serde`. We're assuming here
-that `Cargo.toml` on that branch mentions version `2.0.0`.
+that `Payload.toml` on that branch mentions version `2.0.0`.
 
 Note that when using the `package` key the `serde2` identifier here is actually
 ignored. We simply need a unique name which doesn't conflict with other patched
@@ -254,7 +254,7 @@ crates.
 
 ### The `[patch]` section
 
-The `[patch]` section of `Cargo.toml` can be used to override dependencies
+The `[patch]` section of `Payload.toml` can be used to override dependencies
 with other copies. The syntax is similar to the
 [`[dependencies]`][dependencies] section:
 
@@ -294,7 +294,7 @@ source's original crate is replaced.
 > **Note**: `[replace]` is deprecated. You should use the
 > [`[patch]`](#the-patch-section) table instead.
 
-This section of Cargo.toml can be used to override dependencies with other
+This section of Payload.toml can be used to override dependencies with other
 copies. The syntax is similar to the `[dependencies]` section:
 
 ```toml
@@ -314,26 +314,26 @@ version, but it can come from a different source (e.g., git or a local path).
 ### `paths` overrides
 
 Sometimes you're only temporarily working on a crate and you don't want to have
-to modify `Cargo.toml` like with the `[patch]` section above. For this use
-case Cargo offers a much more limited version of overrides called **path
+to modify `Payload.toml` like with the `[patch]` section above. For this use
+case Payload offers a much more limited version of overrides called **path
 overrides**.
 
-Path overrides are specified through [`.cargo/config.toml`](config.md) instead of
-`Cargo.toml`. Inside of `.cargo/config.toml` you'll specify a key called `paths`:
+Path overrides are specified through [`.payload/config.toml`](config.md) instead of
+`Payload.toml`. Inside of `.payload/config.toml` you'll specify a key called `paths`:
 
 ```toml
 paths = ["/path/to/uuid"]
 ```
 
-This array should be filled with directories that contain a `Cargo.toml`. In
+This array should be filled with directories that contain a `Payload.toml`. In
 this instance, we’re just adding `uuid`, so it will be the only one that’s
 overridden. This path can be either absolute or relative to the directory that
-contains the `.cargo` folder.
+contains the `.payload` folder.
 
 Path overrides are more restricted than the `[patch]` section, however, in
 that they cannot change the structure of the dependency graph. When a
 path replacement is used then the previous set of dependencies
-must all match exactly to the new `Cargo.toml` specification. For example this
+must all match exactly to the new `Payload.toml` specification. For example this
 means that path overrides cannot be used to test out adding a dependency to a
 crate, instead `[patch]` must be used in that situation. As a result usage of a
 path override is typically isolated to quick bug fixes rather than larger
@@ -341,7 +341,7 @@ changes.
 
 Note: using a local configuration to override paths will only work for crates
 that have been published to [crates.io]. You cannot use this feature to tell
-Cargo how to find local unpublished crates.
+Payload how to find local unpublished crates.
 
 
 [crates.io]: https://crates.io/

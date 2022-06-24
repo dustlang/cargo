@@ -1,23 +1,23 @@
 //! Tests for feature selection on the command-line.
 
 use super::features2::switch_to_resolver_2;
-use cargo_test_support::registry::Package;
-use cargo_test_support::{basic_manifest, project};
+use payload_test_support::registry::Package;
+use payload_test_support::{basic_manifest, project};
 
-#[cargo_test]
+#[payload_test]
 fn virtual_no_default_features() {
     // --no-default-features in root of virtual workspace.
     Package::new("dep1", "1.0.0").publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [workspace]
             members = ["a", "b"]
             "#,
         )
         .file(
-            "a/Cargo.toml",
+            "a/Payload.toml",
             r#"
             [package]
             name = "a"
@@ -32,7 +32,7 @@ fn virtual_no_default_features() {
         )
         .file("a/src/lib.rs", "")
         .file(
-            "b/Cargo.toml",
+            "b/Payload.toml",
             r#"
             [package]
             name = "b"
@@ -52,7 +52,7 @@ fn virtual_no_default_features() {
         )
         .build();
 
-    p.cargo("check --no-default-features")
+    p.payload("check --no-default-features")
         .with_stderr_unordered(
             "\
 [UPDATING] [..]
@@ -63,32 +63,32 @@ fn virtual_no_default_features() {
         )
         .run();
 
-    p.cargo("check --features foo")
-        .masquerade_as_nightly_cargo()
+    p.payload("check --features foo")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_stderr("[ERROR] none of the selected packages contains these features: foo")
         .run();
 
-    p.cargo("check --features a/dep1,b/f1,b/f2,f2")
-        .masquerade_as_nightly_cargo()
+    p.payload("check --features a/dep1,b/f1,b/f2,f2")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_stderr("[ERROR] none of the selected packages contains these features: b/f2, f2")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn virtual_features() {
     // --features in root of virtual workspace.
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [workspace]
             members = ["a", "b"]
             "#,
         )
         .file(
-            "a/Cargo.toml",
+            "a/Payload.toml",
             r#"
             [package]
             name = "a"
@@ -105,11 +105,11 @@ fn virtual_features() {
             compile_error!{"f1 is missing"}
             "#,
         )
-        .file("b/Cargo.toml", &basic_manifest("b", "0.1.0"))
+        .file("b/Payload.toml", &basic_manifest("b", "0.1.0"))
         .file("b/src/lib.rs", "")
         .build();
 
-    p.cargo("check --features f1")
+    p.payload("check --features f1")
         .with_stderr_unordered(
             "\
 [CHECKING] a [..]
@@ -120,19 +120,19 @@ fn virtual_features() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn virtual_with_specific() {
     // -p flags with --features in root of virtual.
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [workspace]
             members = ["a", "b"]
             "#,
         )
         .file(
-            "a/Cargo.toml",
+            "a/Payload.toml",
             r#"
             [package]
             name = "a"
@@ -153,7 +153,7 @@ fn virtual_with_specific() {
             "#,
         )
         .file(
-            "b/Cargo.toml",
+            "b/Payload.toml",
             r#"
             [package]
             name = "b"
@@ -175,7 +175,7 @@ fn virtual_with_specific() {
         )
         .build();
 
-    p.cargo("check -p a -p b --features f1,f2,f3")
+    p.payload("check -p a -p b --features f1,f2,f3")
         .with_stderr_unordered(
             "\
 [CHECKING] a [..]
@@ -186,12 +186,12 @@ fn virtual_with_specific() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn other_member_from_current() {
     // -p for another member while in the current directory.
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [workspace]
             members = ["bar"]
@@ -208,7 +208,7 @@ fn other_member_from_current() {
         )
         .file("src/lib.rs", "")
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
             [package]
             name = "bar"
@@ -245,45 +245,45 @@ fn other_member_from_current() {
         .build();
 
     // Old behavior.
-    p.cargo("run -p bar --features f1")
+    p.payload("run -p bar --features f1")
         .with_stdout("f3f4")
         .run();
 
-    p.cargo("run -p bar --features f1,f2")
+    p.payload("run -p bar --features f1,f2")
         .with_status(101)
         .with_stderr("[ERROR] Package `foo[..]` does not have the feature `f2`")
         .run();
 
-    p.cargo("run -p bar --features bar/f1")
+    p.payload("run -p bar --features bar/f1")
         .with_stdout("f1f3")
         .run();
 
     // New behavior.
     switch_to_resolver_2(&p);
-    p.cargo("run -p bar --features f1").with_stdout("f1").run();
+    p.payload("run -p bar --features f1").with_stdout("f1").run();
 
-    p.cargo("run -p bar --features f1,f2")
+    p.payload("run -p bar --features f1,f2")
         .with_stdout("f1f2")
         .run();
 
-    p.cargo("run -p bar --features bar/f1")
+    p.payload("run -p bar --features bar/f1")
         .with_stdout("f1")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn virtual_member_slash() {
     // member slash feature syntax
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [workspace]
             members = ["a"]
             "#,
         )
         .file(
-            "a/Cargo.toml",
+            "a/Payload.toml",
             r#"
             [package]
             name = "a"
@@ -312,7 +312,7 @@ fn virtual_member_slash() {
             "#,
         )
         .file(
-            "b/Cargo.toml",
+            "b/Payload.toml",
             r#"
             [package]
             name = "b"
@@ -331,47 +331,47 @@ fn virtual_member_slash() {
         )
         .build();
 
-    p.cargo("check -p a")
+    p.payload("check -p a")
         .with_status(101)
         .with_stderr_contains("[..]f1 is set[..]")
         .with_stderr_does_not_contain("[..]f2 is set[..]")
         .with_stderr_does_not_contain("[..]b is set[..]")
         .run();
 
-    p.cargo("check -p a --features a/f1")
+    p.payload("check -p a --features a/f1")
         .with_status(101)
         .with_stderr_contains("[..]f1 is set[..]")
         .with_stderr_does_not_contain("[..]f2 is set[..]")
         .with_stderr_does_not_contain("[..]b is set[..]")
         .run();
 
-    p.cargo("check -p a --features a/f2")
+    p.payload("check -p a --features a/f2")
         .with_status(101)
         .with_stderr_contains("[..]f1 is set[..]")
         .with_stderr_contains("[..]f2 is set[..]")
         .with_stderr_does_not_contain("[..]b is set[..]")
         .run();
 
-    p.cargo("check -p a --features b/bfeat")
+    p.payload("check -p a --features b/bfeat")
         .with_status(101)
         .with_stderr_contains("[..]bfeat is set[..]")
         .run();
 
-    p.cargo("check -p a --no-default-features").run();
+    p.payload("check -p a --no-default-features").run();
 
-    p.cargo("check -p a --no-default-features --features b")
+    p.payload("check -p a --no-default-features --features b")
         .with_status(101)
         .with_stderr_contains("[..]b is set[..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn non_member() {
     // -p for a non-member
     Package::new("dep", "1.0.0").publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -388,24 +388,24 @@ fn non_member() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build -p dep --features f1")
+    p.payload("build -p dep --features f1")
         .with_status(101)
         .with_stderr(
             "[UPDATING][..]\n[ERROR] cannot specify features for packages outside of workspace",
         )
         .run();
 
-    p.cargo("build -p dep --all-features")
+    p.payload("build -p dep --all-features")
         .with_status(101)
         .with_stderr("[ERROR] cannot specify features for packages outside of workspace")
         .run();
 
-    p.cargo("build -p dep --no-default-features")
+    p.payload("build -p dep --no-default-features")
         .with_status(101)
         .with_stderr("[ERROR] cannot specify features for packages outside of workspace")
         .run();
 
-    p.cargo("build -p dep")
+    p.payload("build -p dep")
         .with_stderr(
             "\
 [DOWNLOADING] [..]
@@ -417,19 +417,19 @@ fn non_member() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn resolver1_member_features() {
     // --features member-name/feature-name with resolver="1"
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["member1", "member2"]
             "#,
         )
         .file(
-            "member1/Cargo.toml",
+            "member1/Payload.toml",
             r#"
                 [package]
                 name = "member1"
@@ -449,17 +449,17 @@ fn resolver1_member_features() {
                 }
             "#,
         )
-        .file("member2/Cargo.toml", &basic_manifest("member2", "0.1.0"))
+        .file("member2/Payload.toml", &basic_manifest("member2", "0.1.0"))
         .file("member2/src/lib.rs", "")
         .build();
 
-    p.cargo("run -p member1 --features member1/m1-feature")
+    p.payload("run -p member1 --features member1/m1-feature")
         .cwd("member2")
         .with_stdout("m1-feature set")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn resolver1_non_member_optional_feature() {
     // --features x/y for an optional dependency `x` with the v1 resolver.
     Package::new("bar", "1.0.0")
@@ -474,7 +474,7 @@ fn resolver1_non_member_optional_feature() {
         .publish();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -487,5 +487,5 @@ fn resolver1_non_member_optional_feature() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("check -p bar --features bar/feat1").run();
+    p.payload("check -p bar --features bar/feat1").run();
 }

@@ -2,13 +2,13 @@
 
 use std::env;
 
-use cargo_test_support::{is_nightly, project};
+use payload_test_support::{is_nightly, project};
 
-#[cargo_test]
+#[payload_test]
 fn profile_overrides() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
 
@@ -24,7 +24,7 @@ fn profile_overrides() {
         )
         .file("src/lib.rs", "")
         .build();
-    p.cargo("build -v")
+    p.payload("build -v")
         .with_stderr(
             "\
 [COMPILING] test v0.0.0 ([CWD])
@@ -42,11 +42,11 @@ fn profile_overrides() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn opt_level_override_0() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
 
@@ -60,7 +60,7 @@ fn opt_level_override_0() {
         )
         .file("src/lib.rs", "")
         .build();
-    p.cargo("build -v")
+    p.payload("build -v")
         .with_stderr(
             "\
 [COMPILING] test v0.0.0 ([CWD])
@@ -76,11 +76,11 @@ fn opt_level_override_0() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn debug_override_1() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "test"
@@ -93,7 +93,7 @@ fn debug_override_1() {
         )
         .file("src/lib.rs", "")
         .build();
-    p.cargo("build -v")
+    p.payload("build -v")
         .with_stderr(
             "\
 [COMPILING] test v0.0.0 ([CWD])
@@ -112,7 +112,7 @@ fn debug_override_1() {
 fn check_opt_level_override(profile_level: &str, rustc_level: &str) {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                     [package]
@@ -129,7 +129,7 @@ fn check_opt_level_override(profile_level: &str, rustc_level: &str) {
         )
         .file("src/lib.rs", "")
         .build();
-    p.cargo("build -v")
+    p.payload("build -v")
         .with_stderr(&format!(
             "\
 [COMPILING] test v0.0.0 ([CWD])
@@ -148,7 +148,7 @@ fn check_opt_level_override(profile_level: &str, rustc_level: &str) {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn opt_level_overrides() {
     for &(profile_level, rustc_level) in &[
         ("1", "1"),
@@ -161,11 +161,11 @@ fn opt_level_overrides() {
     }
 }
 
-#[cargo_test]
+#[payload_test]
 fn top_level_overrides_deps() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
 
@@ -183,7 +183,7 @@ fn top_level_overrides_deps() {
         )
         .file("src/lib.rs", "")
         .file(
-            "foo/Cargo.toml",
+            "foo/Payload.toml",
             r#"
                 [package]
 
@@ -202,7 +202,7 @@ fn top_level_overrides_deps() {
         )
         .file("foo/src/lib.rs", "")
         .build();
-    p.cargo("build -v --release")
+    p.payload("build -v --release")
         .with_stderr(&format!(
             "\
 [COMPILING] foo v0.0.0 ([CWD]/foo)
@@ -234,11 +234,11 @@ fn top_level_overrides_deps() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn profile_in_non_root_manifest_triggers_a_warning() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -254,7 +254,7 @@ fn profile_in_non_root_manifest_triggers_a_warning() {
         )
         .file("src/main.rs", "fn main() {}")
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [project]
                 name = "bar"
@@ -269,7 +269,7 @@ fn profile_in_non_root_manifest_triggers_a_warning() {
         .file("bar/src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("build -v")
+    p.payload("build -v")
         .cwd("bar")
         .with_stderr(
             "\
@@ -283,11 +283,11 @@ workspace: [..]
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn profile_in_virtual_manifest_works() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["bar"]
@@ -299,7 +299,7 @@ fn profile_in_virtual_manifest_works() {
         )
         .file("src/main.rs", "fn main() {}")
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [project]
                 name = "bar"
@@ -311,7 +311,7 @@ fn profile_in_virtual_manifest_works() {
         .file("bar/src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("build -v")
+    p.payload("build -v")
         .cwd("bar")
         .with_stderr(
             "\
@@ -322,11 +322,11 @@ fn profile_in_virtual_manifest_works() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn profile_panic_test_bench() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -342,7 +342,7 @@ fn profile_panic_test_bench() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr_contains(
             "\
 [WARNING] `panic` setting is ignored for `bench` profile
@@ -352,11 +352,11 @@ fn profile_panic_test_bench() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn profile_doc_deprecated() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -369,19 +369,19 @@ fn profile_doc_deprecated() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr_contains("[WARNING] profile `doc` is deprecated and has no effect")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn panic_unwind_does_not_build_twice() {
     // Check for a bug where `lib` was built twice, once with panic set and
     // once without. Since "unwind" is the default, they are the same and
     // should only be built once.
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -396,7 +396,7 @@ fn panic_unwind_does_not_build_twice() {
         .file("tests/t1.rs", "")
         .build();
 
-    p.cargo("test -v --tests --no-run")
+    p.payload("test -v --tests --no-run")
         .with_stderr_unordered(
             "\
 [COMPILING] foo [..]
@@ -411,12 +411,12 @@ fn panic_unwind_does_not_build_twice() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn debug_0_report() {
     // The finished line handles 0 correctly.
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -429,7 +429,7 @@ fn debug_0_report() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build -v")
+    p.payload("build -v")
         .with_stderr(
             "\
 [COMPILING] foo v0.1.0 [..]
@@ -440,11 +440,11 @@ fn debug_0_report() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn thin_lto_works() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "top"
@@ -458,7 +458,7 @@ fn thin_lto_works() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("build --release -v")
+    p.payload("build --release -v")
         .with_stderr(
             "\
 [COMPILING] top [..]
@@ -469,7 +469,7 @@ fn thin_lto_works() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 // Strip doesn't work on macos.
 #[cfg_attr(target_os = "macos", ignore)]
 fn strip_works() {
@@ -480,9 +480,9 @@ fn strip_works() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-                cargo-features = ["strip"]
+                payload-features = ["strip"]
 
                 [package]
                 name = "foo"
@@ -495,8 +495,8 @@ fn strip_works() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("build --release -v")
-        .masquerade_as_nightly_cargo()
+    p.payload("build --release -v")
+        .masquerade_as_nightly_payload()
         .with_stderr(
             "\
 [COMPILING] foo [..]
@@ -507,8 +507,8 @@ fn strip_works() {
         .run();
 }
 
-#[cargo_test]
-fn strip_requires_cargo_feature() {
+#[payload_test]
+fn strip_requires_payload_feature() {
     if !is_nightly() {
         // -Zstrip is unstable
         return;
@@ -516,7 +516,7 @@ fn strip_requires_cargo_feature() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -529,23 +529,23 @@ fn strip_requires_cargo_feature() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("build --release -v")
-        .masquerade_as_nightly_cargo()
+    p.payload("build --release -v")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_stderr(
             "\
-[ERROR] failed to parse manifest at `[CWD]/Cargo.toml`
+[ERROR] failed to parse manifest at `[CWD]/Payload.toml`
 
 Caused by:
   feature `strip` is required
 
-  consider adding `cargo-features = [\"strip\"]` to the manifest
+  consider adding `payload-features = [\"strip\"]` to the manifest
 ",
         )
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn strip_passes_unknown_option_to_rustc() {
     if !is_nightly() {
         // -Zstrip is unstable
@@ -554,9 +554,9 @@ fn strip_passes_unknown_option_to_rustc() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-                cargo-features = ["strip"]
+                payload-features = ["strip"]
 
                 [package]
                 name = "foo"
@@ -569,8 +569,8 @@ fn strip_passes_unknown_option_to_rustc() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("build --release -v")
-        .masquerade_as_nightly_cargo()
+    p.payload("build --release -v")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_stderr_contains(
             "\
@@ -582,7 +582,7 @@ error: incorrect value `unknown` for debugging option `strip` - either `none`, `
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn strip_accepts_true_to_strip_symbols() {
     if !is_nightly() {
         // -Zstrip is unstable
@@ -591,9 +591,9 @@ fn strip_accepts_true_to_strip_symbols() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-                cargo-features = ["strip"]
+                payload-features = ["strip"]
 
                 [package]
                 name = "foo"
@@ -606,8 +606,8 @@ fn strip_accepts_true_to_strip_symbols() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("build --release -v")
-        .masquerade_as_nightly_cargo()
+    p.payload("build --release -v")
+        .masquerade_as_nightly_payload()
         .with_stderr(
             "\
 [COMPILING] foo [..]
@@ -618,7 +618,7 @@ fn strip_accepts_true_to_strip_symbols() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn strip_accepts_false_to_disable_strip() {
     if !is_nightly() {
         // -Zstrip is unstable
@@ -626,9 +626,9 @@ fn strip_accepts_false_to_disable_strip() {
     }
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-                cargo-features = ["strip"]
+                payload-features = ["strip"]
 
                 [package]
                 name = "foo"
@@ -641,8 +641,8 @@ fn strip_accepts_false_to_disable_strip() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("build --release -v")
-        .masquerade_as_nightly_cargo()
+    p.payload("build --release -v")
+        .masquerade_as_nightly_payload()
         .with_stderr_does_not_contain("-Z strip")
         .run();
 }

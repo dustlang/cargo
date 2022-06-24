@@ -13,15 +13,15 @@ limit to the number of versions which can be published, however.
 First things first, you’ll need an account on [crates.io] to acquire
 an API token. To do so, [visit the home page][crates.io] and log in via a GitHub
 account (required for now). After this, visit your [Account
-Settings](https://crates.io/me) page and run the [`cargo login`] command
+Settings](https://crates.io/me) page and run the [`payload login`] command
 specified.
 
 ```console
-$ cargo login abcdefghijklmnopqrstuvwxyz012345
+$ payload login abcdefghijklmnopqrstuvwxyz012345
 ```
 
-This command will inform Cargo of your API token and store it locally in your
-`~/.cargo/credentials.toml`. Note that this token is a **secret** and should not be
+This command will inform Payload of your API token and store it locally in your
+`~/.payload/credentials.toml`. Note that this token is a **secret** and should not be
 shared with anyone else. If it leaks for any reason, you should revoke it
 immediately.
 
@@ -30,7 +30,7 @@ immediately.
 Keep in mind that crate names on [crates.io] are allocated on a first-come-first-
 serve basis. Once a crate name is taken, it cannot be used for another crate.
 
-Check out the [metadata you can specify](manifest.md) in `Cargo.toml` to
+Check out the [metadata you can specify](manifest.md) in `Payload.toml` to
 ensure your crate can be discovered more easily! Before publishing, make sure
 you have filled out the following fields:
 
@@ -51,7 +51,7 @@ Guidelines].
 #### Packaging a crate
 
 The next step is to package up your crate and upload it to [crates.io]. For
-this we’ll use the [`cargo publish`] subcommand. This command performs the following
+this we’ll use the [`payload publish`] subcommand. This command performs the following
 steps:
 
 1. Perform some verification checks on your package.
@@ -62,12 +62,12 @@ steps:
 5. The registry will perform some additional checks on the uploaded package
    before adding it.
 
-It is recommended that you first run `cargo publish --dry-run` (or [`cargo
+It is recommended that you first run `payload publish --dry-run` (or [`payload
 package`] which is equivalent) to ensure there aren't any warnings or errors
 before publishing. This will perform the first three steps listed above.
 
 ```console
-$ cargo publish --dry-run
+$ payload publish --dry-run
 ```
 
 You can inspect the generated `.crate` file in the `target/package` directory.
@@ -78,10 +78,10 @@ test data, website documentation, or code generation. You can check which
 files are included with the following command:
 
 ```console
-$ cargo package --list
+$ payload package --list
 ```
 
-Cargo will automatically ignore files ignored by your version control system
+Payload will automatically ignore files ignored by your version control system
 when packaging, but if you want to specify an extra set of files to ignore you
 can use the [`exclude` key](manifest.md#the-exclude-and-include-fields) in the
 manifest:
@@ -95,7 +95,7 @@ exclude = [
 ]
 ```
 
-If you’d rather explicitly list the files to include, Cargo also supports an
+If you’d rather explicitly list the files to include, Payload also supports an
 `include` key, which if set, overrides the `exclude` key:
 
 ```toml
@@ -103,17 +103,17 @@ If you’d rather explicitly list the files to include, Cargo also supports an
 # ...
 include = [
     "**/*.rs",
-    "Cargo.toml",
+    "Payload.toml",
 ]
 ```
 
 ### Uploading the crate
 
-When you are ready to publish, use the [`cargo publish`] command
+When you are ready to publish, use the [`payload publish`] command
 to upload to [crates.io]:
 
 ```console
-$ cargo publish
+$ payload publish
 ```
 
 And that’s it, you’ve now published your first crate!
@@ -121,27 +121,27 @@ And that’s it, you’ve now published your first crate!
 ### Publishing a new version of an existing crate
 
 In order to release a new version, change the `version` value specified in
-your `Cargo.toml` manifest. Keep in mind [the semver
+your `Payload.toml` manifest. Keep in mind [the semver
 rules](manifest.md#the-version-field), and consult [RFC 1105] for
-what constitutes a semver-breaking change. Then run [`cargo publish`] as
+what constitutes a semver-breaking change. Then run [`payload publish`] as
 described above to upload the new version.
 
 ### Managing a crates.io-based crate
 
-Management of crates is primarily done through the command line `cargo` tool
+Management of crates is primarily done through the command line `payload` tool
 rather than the [crates.io] web interface. For this, there are a few subcommands
 to manage a crate.
 
-#### `cargo yank`
+#### `payload yank`
 
 Occasions may arise where you publish a version of a crate that actually ends up
 being broken for one reason or another (syntax error, forgot to include a file,
-etc.). For situations such as this, Cargo supports a “yank” of a version of a
+etc.). For situations such as this, Payload supports a “yank” of a version of a
 crate.
 
 ```console
-$ cargo yank --vers 1.0.1
-$ cargo yank --vers 1.0.1 --undo
+$ payload yank --vers 1.0.1
+$ payload yank --vers 1.0.1 --undo
 ```
 
 A yank **does not** delete any code. This feature is not intended for deleting
@@ -152,21 +152,21 @@ The semantics of a yanked version are that no new dependencies can be created
 against that version, but all existing dependencies continue to work. One of the
 major goals of [crates.io] is to act as a permanent archive of crates that does
 not change over time, and allowing deletion of a version would go against this
-goal. Essentially a yank means that all packages with a `Cargo.lock` will not
-break, while any future `Cargo.lock` files generated will not list the yanked
+goal. Essentially a yank means that all packages with a `Payload.lock` will not
+break, while any future `Payload.lock` files generated will not list the yanked
 version.
 
-#### `cargo owner`
+#### `payload owner`
 
 A crate is often developed by more than one person, or the primary maintainer
 may change over time! The owner of a crate is the only person allowed to publish
 new versions of the crate, but an owner may designate additional owners.
 
 ```console
-$ cargo owner --add github-handle
-$ cargo owner --remove github-handle
-$ cargo owner --add github:rust-lang:owners
-$ cargo owner --remove github:rust-lang:owners
+$ payload owner --add github-handle
+$ payload owner --remove github-handle
+$ payload owner --add github:dustlang:owners
+$ payload owner --remove github:dustlang:owners
 ```
 
 The owner IDs given to these commands must be GitHub user names or GitHub teams.
@@ -225,7 +225,7 @@ actively denying third party access. To check this, you can go to:
 https://github.com/organizations/:org/settings/oauth_application_policy
 ```
 
-where `:org` is the name of the organization (e.g., `rust-lang`). You may see
+where `:org` is the name of the organization (e.g., `dustlang`). You may see
 something like:
 
 ![Organization Access Control](../images/org-level-acl.png)
@@ -256,12 +256,12 @@ listed in the "Organization access" list with a green check mark. If there's
 a button labeled `Grant` or `Request`, you should grant the access or
 request the org owner to do so.
 
-[RFC 1105]: https://github.com/rust-lang/rfcs/blob/master/text/1105-api-evolution.md
-[Rust API Guidelines]: https://rust-lang.github.io/api-guidelines/
+[RFC 1105]: https://github.com/dustlang/rfcs/blob/master/text/1105-api-evolution.md
+[Rust API Guidelines]: https://dustlang.github.io/api-guidelines/
 [`authors`]: manifest.md#the-authors-field
-[`cargo login`]: ../commands/cargo-login.md
-[`cargo package`]: ../commands/cargo-package.md
-[`cargo publish`]: ../commands/cargo-publish.md
+[`payload login`]: ../commands/payload-login.md
+[`payload package`]: ../commands/payload-package.md
+[`payload publish`]: ../commands/payload-publish.md
 [`categories`]: manifest.md#the-categories-field
 [`description`]: manifest.md#the-description-field
 [`documentation`]: manifest.md#the-documentation-field

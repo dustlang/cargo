@@ -9,7 +9,7 @@
 #![warn(clippy::redundant_clone)]
 
 #[macro_use]
-extern crate cargo_test_macro;
+extern crate payload_test_macro;
 
 mod advanced_env;
 mod alt_registry;
@@ -22,11 +22,11 @@ mod build_script;
 mod build_script_env;
 mod build_script_extra_link_arg;
 mod cache_messages;
-mod cargo_alias_config;
-mod cargo_command;
-mod cargo_env_config;
-mod cargo_features;
-mod cargo_targets;
+mod payload_alias_config;
+mod payload_command;
+mod payload_env_config;
+mod payload_features;
+mod payload_targets;
 mod cfg;
 mod check;
 mod clean;
@@ -80,7 +80,7 @@ mod multitarget;
 mod net_config;
 mod new;
 mod offline;
-mod old_cargos;
+mod old_payloads;
 mod out_dir;
 mod owner;
 mod package;
@@ -131,8 +131,8 @@ mod weak_dep_features;
 mod workspaces;
 mod yank;
 
-#[cargo_test]
+#[payload_test]
 fn aaa_trigger_cross_compile_disabled_check() {
     // This triggers the cross compile disabled check to run ASAP, see #5141
-    cargo_test_support::cross_compile::disabled();
+    payload_test_support::cross_compile::disabled();
 }

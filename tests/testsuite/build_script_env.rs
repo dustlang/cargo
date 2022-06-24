@@ -1,9 +1,9 @@
 //! Tests for build.rs rerun-if-env-changed and rustc-env
 
-use cargo_test_support::project;
-use cargo_test_support::sleep_ms;
+use payload_test_support::project;
+use payload_test_support::sleep_ms;
 
-#[cargo_test]
+#[payload_test]
 fn rerun_if_env_changes() {
     let p = project()
         .file("src/main.rs", "fn main() {}")
@@ -11,13 +11,13 @@ fn rerun_if_env_changes() {
             "build.rs",
             r#"
                 fn main() {
-                    println!("cargo:rerun-if-env-changed=FOO");
+                    println!("payload:rerun-if-env-changed=FOO");
                 }
             "#,
         )
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([..])
@@ -25,7 +25,7 @@ fn rerun_if_env_changes() {
 ",
         )
         .run();
-    p.cargo("build")
+    p.payload("build")
         .env("FOO", "bar")
         .with_stderr(
             "\
@@ -34,7 +34,7 @@ fn rerun_if_env_changes() {
 ",
         )
         .run();
-    p.cargo("build")
+    p.payload("build")
         .env("FOO", "baz")
         .with_stderr(
             "\
@@ -43,11 +43,11 @@ fn rerun_if_env_changes() {
 ",
         )
         .run();
-    p.cargo("build")
+    p.payload("build")
         .env("FOO", "baz")
         .with_stderr("[FINISHED] [..]")
         .run();
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([..])
@@ -57,7 +57,7 @@ fn rerun_if_env_changes() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn rerun_if_env_or_file_changes() {
     let p = project()
         .file("src/main.rs", "fn main() {}")
@@ -65,15 +65,15 @@ fn rerun_if_env_or_file_changes() {
             "build.rs",
             r#"
                 fn main() {
-                    println!("cargo:rerun-if-env-changed=FOO");
-                    println!("cargo:rerun-if-changed=foo");
+                    println!("payload:rerun-if-env-changed=FOO");
+                    println!("payload:rerun-if-changed=foo");
                 }
             "#,
         )
         .file("foo", "")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([..])
@@ -81,7 +81,7 @@ fn rerun_if_env_or_file_changes() {
 ",
         )
         .run();
-    p.cargo("build")
+    p.payload("build")
         .env("FOO", "bar")
         .with_stderr(
             "\
@@ -90,13 +90,13 @@ fn rerun_if_env_or_file_changes() {
 ",
         )
         .run();
-    p.cargo("build")
+    p.payload("build")
         .env("FOO", "bar")
         .with_stderr("[FINISHED] [..]")
         .run();
     sleep_ms(1000);
     p.change_file("foo", "");
-    p.cargo("build")
+    p.payload("build")
         .env("FOO", "bar")
         .with_stderr(
             "\
@@ -107,7 +107,7 @@ fn rerun_if_env_or_file_changes() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn rustc_bootstrap() {
     let p = project()
         .file("src/main.rs", "fn main() {}")
@@ -115,18 +115,18 @@ fn rustc_bootstrap() {
             "build.rs",
             r#"
             fn main() {
-                println!("cargo:rustc-env=RUSTC_BOOTSTRAP=1");
+                println!("payload:rustc-env=RUSTC_BOOTSTRAP=1");
             }
         "#,
         )
         .build();
-    p.cargo("build")
+    p.payload("build")
         .with_stderr_contains("error: Cannot set `RUSTC_BOOTSTRAP=1` [..]")
         .with_stderr_contains("help: [..] set the environment variable `RUSTC_BOOTSTRAP=foo` [..]")
         .with_status(101)
         .run();
-    p.cargo("build")
-        .masquerade_as_nightly_cargo()
+    p.payload("build")
+        .masquerade_as_nightly_payload()
         .with_stderr_contains("warning: Cannot set `RUSTC_BOOTSTRAP=1` [..]")
         .run();
 }

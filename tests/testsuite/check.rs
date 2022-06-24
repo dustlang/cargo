@@ -1,17 +1,17 @@
-//! Tests for the `cargo check` command.
+//! Tests for the `payload check` command.
 
 use std::fmt::{self, Write};
 
-use cargo_test_support::install::exe;
-use cargo_test_support::paths::CargoPathExt;
-use cargo_test_support::registry::Package;
-use cargo_test_support::{basic_manifest, project};
+use payload_test_support::install::exe;
+use payload_test_support::paths::PayloadPathExt;
+use payload_test_support::registry::Package;
+use payload_test_support::{basic_manifest, project};
 
-#[cargo_test]
+#[payload_test]
 fn check_success() {
     let foo = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -29,18 +29,18 @@ fn check_success() {
         .build();
     let _bar = project()
         .at("bar")
-        .file("Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("src/lib.rs", "pub fn baz() {}")
         .build();
 
-    foo.cargo("check").run();
+    foo.payload("check").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn check_fail() {
     let foo = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -58,21 +58,21 @@ fn check_fail() {
         .build();
     let _bar = project()
         .at("bar")
-        .file("Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("src/lib.rs", "pub fn baz() {}")
         .build();
 
-    foo.cargo("check")
+    foo.payload("check")
         .with_status(101)
         .with_stderr_contains("[..]this function takes 0[..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn custom_derive() {
     let foo = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -106,7 +106,7 @@ fn custom_derive() {
     let _bar = project()
         .at("bar")
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -131,14 +131,14 @@ fn custom_derive() {
         )
         .build();
 
-    foo.cargo("check").run();
+    foo.payload("check").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn check_build() {
     let foo = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -157,19 +157,19 @@ fn check_build() {
 
     let _bar = project()
         .at("bar")
-        .file("Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("src/lib.rs", "pub fn baz() {}")
         .build();
 
-    foo.cargo("check").run();
-    foo.cargo("build").run();
+    foo.payload("check").run();
+    foo.payload("build").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn build_check() {
     let foo = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -188,35 +188,35 @@ fn build_check() {
 
     let _bar = project()
         .at("bar")
-        .file("Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("src/lib.rs", "pub fn baz() {}")
         .build();
 
-    foo.cargo("build -v").run();
-    foo.cargo("check -v").run();
+    foo.payload("build -v").run();
+    foo.payload("check -v").run();
 }
 
 // Checks that where a project has both a lib and a bin, the lib is only checked
 // not built.
-#[cargo_test]
+#[payload_test]
 fn issue_3418() {
     let foo = project()
         .file("src/lib.rs", "")
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    foo.cargo("check -v")
+    foo.payload("check -v")
         .with_stderr_contains("[..] --emit=[..]metadata [..]")
         .run();
 }
 
 // Some weirdness that seems to be caused by a crate being built as well as
 // checked, but in this case with a proc macro too.
-#[cargo_test]
+#[payload_test]
 fn issue_3419() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -271,15 +271,15 @@ fn issue_3419() {
         )
         .publish();
 
-    p.cargo("check").run();
+    p.payload("check").run();
 }
 
 // Check on a dylib should have a different metadata hash than build.
-#[cargo_test]
+#[payload_test]
 fn dylib_check_preserves_build_cache() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -295,7 +295,7 @@ fn dylib_check_preserves_build_cache() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [..]Compiling foo v0.1.0 ([..])
@@ -304,19 +304,19 @@ fn dylib_check_preserves_build_cache() {
         )
         .run();
 
-    p.cargo("check").run();
+    p.payload("check").run();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr("[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]")
         .run();
 }
 
-// test `cargo rustc --profile check`
-#[cargo_test]
+// test `payload rustc --profile check`
+#[payload_test]
 fn rustc_check() {
     let foo = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -334,24 +334,24 @@ fn rustc_check() {
         .build();
     let _bar = project()
         .at("bar")
-        .file("Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("src/lib.rs", "pub fn baz() {}")
         .build();
 
-    foo.cargo("rustc --profile check -- --emit=metadata").run();
+    foo.payload("rustc --profile check -- --emit=metadata").run();
 
     // Verify compatible usage of --profile with --release, issue #7488
-    foo.cargo("rustc --profile check --release -- --emit=metadata")
+    foo.payload("rustc --profile check --release -- --emit=metadata")
         .run();
-    foo.cargo("rustc --profile test --release -- --emit=metadata")
+    foo.payload("rustc --profile test --release -- --emit=metadata")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn rustc_check_err() {
     let foo = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -369,11 +369,11 @@ fn rustc_check_err() {
         .build();
     let _bar = project()
         .at("bar")
-        .file("Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("src/lib.rs", "pub fn baz() {}")
         .build();
 
-    foo.cargo("rustc --profile check -- --emit=metadata")
+    foo.payload("rustc --profile check -- --emit=metadata")
         .with_status(101)
         .with_stderr_contains("[CHECKING] bar [..]")
         .with_stderr_contains("[CHECKING] foo [..]")
@@ -381,11 +381,11 @@ fn rustc_check_err() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn check_all() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -401,12 +401,12 @@ fn check_all() {
         .file("examples/a.rs", "fn main() {}")
         .file("tests/a.rs", "")
         .file("src/lib.rs", "")
-        .file("b/Cargo.toml", &basic_manifest("b", "0.0.1"))
+        .file("b/Payload.toml", &basic_manifest("b", "0.0.1"))
         .file("b/src/main.rs", "fn main() {}")
         .file("b/src/lib.rs", "")
         .build();
 
-    p.cargo("check --workspace -v")
+    p.payload("check --workspace -v")
         .with_stderr_contains("[..] --crate-name foo src/lib.rs [..]")
         .with_stderr_contains("[..] --crate-name foo src/main.rs [..]")
         .with_stderr_contains("[..] --crate-name b b/src/lib.rs [..]")
@@ -414,23 +414,23 @@ fn check_all() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn check_all_exclude() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["bar", "baz"]
             "#,
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "pub fn bar() {}")
-        .file("baz/Cargo.toml", &basic_manifest("baz", "0.1.0"))
+        .file("baz/Payload.toml", &basic_manifest("baz", "0.1.0"))
         .file("baz/src/lib.rs", "pub fn baz() { break_the_build(); }")
         .build();
 
-    p.cargo("check --workspace --exclude baz")
+    p.payload("check --workspace --exclude baz")
         .with_stderr_does_not_contain("[CHECKING] baz v0.1.0 [..]")
         .with_stderr(
             "\
@@ -441,23 +441,23 @@ fn check_all_exclude() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn check_all_exclude_glob() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["bar", "baz"]
             "#,
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "pub fn bar() {}")
-        .file("baz/Cargo.toml", &basic_manifest("baz", "0.1.0"))
+        .file("baz/Payload.toml", &basic_manifest("baz", "0.1.0"))
         .file("baz/src/lib.rs", "pub fn baz() { break_the_build(); }")
         .build();
 
-    p.cargo("check --workspace --exclude '*z'")
+    p.payload("check --workspace --exclude '*z'")
         .with_stderr_does_not_contain("[CHECKING] baz v0.1.0 [..]")
         .with_stderr(
             "\
@@ -468,45 +468,45 @@ fn check_all_exclude_glob() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn check_virtual_all_implied() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["bar", "baz"]
             "#,
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "pub fn bar() {}")
-        .file("baz/Cargo.toml", &basic_manifest("baz", "0.1.0"))
+        .file("baz/Payload.toml", &basic_manifest("baz", "0.1.0"))
         .file("baz/src/lib.rs", "pub fn baz() {}")
         .build();
 
-    p.cargo("check -v")
+    p.payload("check -v")
         .with_stderr_contains("[..] --crate-name bar bar/src/lib.rs [..]")
         .with_stderr_contains("[..] --crate-name baz baz/src/lib.rs [..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn check_virtual_manifest_one_project() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["bar", "baz"]
             "#,
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "pub fn bar() {}")
-        .file("baz/Cargo.toml", &basic_manifest("baz", "0.1.0"))
+        .file("baz/Payload.toml", &basic_manifest("baz", "0.1.0"))
         .file("baz/src/lib.rs", "pub fn baz() { break_the_build(); }")
         .build();
 
-    p.cargo("check -p bar")
+    p.payload("check -p bar")
         .with_stderr_does_not_contain("[CHECKING] baz v0.1.0 [..]")
         .with_stderr(
             "\
@@ -517,23 +517,23 @@ fn check_virtual_manifest_one_project() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn check_virtual_manifest_glob() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["bar", "baz"]
             "#,
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "pub fn bar() {  break_the_build(); }")
-        .file("baz/Cargo.toml", &basic_manifest("baz", "0.1.0"))
+        .file("baz/Payload.toml", &basic_manifest("baz", "0.1.0"))
         .file("baz/src/lib.rs", "pub fn baz() {}")
         .build();
 
-    p.cargo("check -p '*z'")
+    p.payload("check -p '*z'")
         .with_stderr_does_not_contain("[CHECKING] bar v0.1.0 [..]")
         .with_stderr(
             "\
@@ -544,10 +544,10 @@ fn check_virtual_manifest_glob() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn exclude_warns_on_non_existing_package() {
     let p = project().file("src/lib.rs", "").build();
-    p.cargo("check --workspace --exclude bar")
+    p.payload("check --workspace --exclude bar")
         .with_stdout("")
         .with_stderr(
             "\
@@ -559,7 +559,7 @@ fn exclude_warns_on_non_existing_package() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn targets_selected_default() {
     let foo = project()
         .file("src/main.rs", "fn main() {}")
@@ -569,7 +569,7 @@ fn targets_selected_default() {
         .file("benches/bench3.rs", "")
         .build();
 
-    foo.cargo("check -v")
+    foo.payload("check -v")
         .with_stderr_contains("[..] --crate-name foo src/lib.rs [..]")
         .with_stderr_contains("[..] --crate-name foo src/main.rs [..]")
         .with_stderr_does_not_contain("[..] --crate-name example1 examples/example1.rs [..]")
@@ -578,7 +578,7 @@ fn targets_selected_default() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn targets_selected_all() {
     let foo = project()
         .file("src/main.rs", "fn main() {}")
@@ -588,7 +588,7 @@ fn targets_selected_all() {
         .file("benches/bench3.rs", "")
         .build();
 
-    foo.cargo("check --all-targets -v")
+    foo.payload("check --all-targets -v")
         .with_stderr_contains("[..] --crate-name foo src/lib.rs [..]")
         .with_stderr_contains("[..] --crate-name foo src/main.rs [..]")
         .with_stderr_contains("[..] --crate-name example1 examples/example1.rs [..]")
@@ -597,7 +597,7 @@ fn targets_selected_all() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn check_unit_test_profile() {
     let foo = project()
         .file(
@@ -614,15 +614,15 @@ fn check_unit_test_profile() {
         )
         .build();
 
-    foo.cargo("check").run();
-    foo.cargo("check --profile test")
+    foo.payload("check").run();
+    foo.payload("check --profile test")
         .with_status(101)
         .with_stderr_contains("[..]badtext[..]")
         .run();
 }
 
 // Verify what is checked with various command-line filters.
-#[cargo_test]
+#[payload_test]
 fn check_filters() {
     let p = project()
         .file(
@@ -679,7 +679,7 @@ fn check_filters() {
         )
         .build();
 
-    p.cargo("check")
+    p.payload("check")
         .with_stderr_contains("[..]unused_normal_lib[..]")
         .with_stderr_contains("[..]unused_normal_bin[..]")
         .with_stderr_does_not_contain("[..]unused_normal_t1[..]")
@@ -688,7 +688,7 @@ fn check_filters() {
         .with_stderr_does_not_contain("[..]unused_unit_[..]")
         .run();
     p.root().join("target").rm_rf();
-    p.cargo("check --tests -v")
+    p.payload("check --tests -v")
         .with_stderr_contains("[..] --crate-name foo src/lib.rs [..] --test [..]")
         .with_stderr_contains("[..] --crate-name foo src/lib.rs [..] --crate-type lib [..]")
         .with_stderr_contains("[..] --crate-name foo src/main.rs [..] --test [..]")
@@ -704,7 +704,7 @@ fn check_filters() {
         .with_stderr_does_not_contain("[..]--crate-type bin[..]")
         .run();
     p.root().join("target").rm_rf();
-    p.cargo("check --test t1 -v")
+    p.payload("check --test t1 -v")
         .with_stderr_contains("[..]unused_normal_lib[..]")
         .with_stderr_contains("[..]unused_unit_t1[..]")
         .with_stderr_does_not_contain("[..]unused_unit_lib[..]")
@@ -716,7 +716,7 @@ fn check_filters() {
         .with_stderr_does_not_contain("[..]unused_unit_b1[..]")
         .run();
     p.root().join("target").rm_rf();
-    p.cargo("check --all-targets -v")
+    p.payload("check --all-targets -v")
         .with_stderr_contains("[..]unused_normal_lib[..]")
         .with_stderr_contains("[..]unused_normal_bin[..]")
         .with_stderr_contains("[..]unused_normal_t1[..]")
@@ -730,7 +730,7 @@ fn check_filters() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn check_artifacts() {
     // Verify which artifacts are created when running check (#4059).
     let p = project()
@@ -741,28 +741,28 @@ fn check_artifacts() {
         .file("benches/b1.rs", "")
         .build();
 
-    p.cargo("check").run();
+    p.payload("check").run();
     assert!(!p.root().join("target/debug/libfoo.rmeta").is_file());
     assert!(!p.root().join("target/debug/libfoo.rlib").is_file());
     assert!(!p.root().join("target/debug").join(exe("foo")).is_file());
     assert_eq!(p.glob("target/debug/deps/libfoo-*.rmeta").count(), 2);
 
     p.root().join("target").rm_rf();
-    p.cargo("check --lib").run();
+    p.payload("check --lib").run();
     assert!(!p.root().join("target/debug/libfoo.rmeta").is_file());
     assert!(!p.root().join("target/debug/libfoo.rlib").is_file());
     assert!(!p.root().join("target/debug").join(exe("foo")).is_file());
     assert_eq!(p.glob("target/debug/deps/libfoo-*.rmeta").count(), 1);
 
     p.root().join("target").rm_rf();
-    p.cargo("check --bin foo").run();
+    p.payload("check --bin foo").run();
     assert!(!p.root().join("target/debug/libfoo.rmeta").is_file());
     assert!(!p.root().join("target/debug/libfoo.rlib").is_file());
     assert!(!p.root().join("target/debug").join(exe("foo")).is_file());
     assert_eq!(p.glob("target/debug/deps/libfoo-*.rmeta").count(), 2);
 
     p.root().join("target").rm_rf();
-    p.cargo("check --test t1").run();
+    p.payload("check --test t1").run();
     assert!(!p.root().join("target/debug/libfoo.rmeta").is_file());
     assert!(!p.root().join("target/debug/libfoo.rlib").is_file());
     assert!(!p.root().join("target/debug").join(exe("foo")).is_file());
@@ -771,7 +771,7 @@ fn check_artifacts() {
     assert_eq!(p.glob("target/debug/deps/libt1-*.rmeta").count(), 1);
 
     p.root().join("target").rm_rf();
-    p.cargo("check --example ex1").run();
+    p.payload("check --example ex1").run();
     assert!(!p.root().join("target/debug/libfoo.rmeta").is_file());
     assert!(!p.root().join("target/debug/libfoo.rlib").is_file());
     assert!(!p
@@ -783,7 +783,7 @@ fn check_artifacts() {
     assert_eq!(p.glob("target/debug/examples/libex1-*.rmeta").count(), 1);
 
     p.root().join("target").rm_rf();
-    p.cargo("check --bench b1").run();
+    p.payload("check --bench b1").run();
     assert!(!p.root().join("target/debug/libfoo.rmeta").is_file());
     assert!(!p.root().join("target/debug/libfoo.rlib").is_file());
     assert!(!p.root().join("target/debug").join(exe("foo")).is_file());
@@ -792,12 +792,12 @@ fn check_artifacts() {
     assert_eq!(p.glob("target/debug/deps/libb1-*.rmeta").count(), 1);
 }
 
-#[cargo_test]
+#[payload_test]
 fn short_message_format() {
     let foo = project()
         .file("src/lib.rs", "fn foo() { let _x: bool = 'a'; }")
         .build();
-    foo.cargo("check --message-format=short")
+    foo.payload("check --message-format=short")
         .with_status(101)
         .with_stderr_contains(
             "\
@@ -809,11 +809,11 @@ error: could not compile `foo`
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn proc_macro() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "demo"
@@ -849,22 +849,22 @@ fn proc_macro() {
             "#,
         )
         .build();
-    p.cargo("check -v").env("CARGO_LOG", "cargo=trace").run();
+    p.payload("check -v").env("PAYLOAD_LOG", "payload=trace").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn does_not_use_empty_rustc_wrapper() {
     let p = project().file("src/lib.rs", "").build();
-    p.cargo("check").env("RUSTC_WRAPPER", "").run();
+    p.payload("check").env("RUSTC_WRAPPER", "").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn does_not_use_empty_rustc_workspace_wrapper() {
     let p = project().file("src/lib.rs", "").build();
-    p.cargo("check").env("RUSTC_WORKSPACE_WRAPPER", "").run();
+    p.payload("check").env("RUSTC_WORKSPACE_WRAPPER", "").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn error_from_deep_recursion() -> Result<(), fmt::Error> {
     let mut big_macro = String::new();
     writeln!(big_macro, "macro_rules! m {{")?;
@@ -875,7 +875,7 @@ fn error_from_deep_recursion() -> Result<(), fmt::Error> {
     writeln!(big_macro, "m!(0);")?;
 
     let p = project().file("src/lib.rs", &big_macro).build();
-    p.cargo("check --message-format=json")
+    p.payload("check --message-format=json")
         .with_status(101)
         .with_stdout_contains(
             "[..]\"message\":\"recursion limit reached while expanding [..]`m[..]`\"[..]",
@@ -885,36 +885,36 @@ fn error_from_deep_recursion() -> Result<(), fmt::Error> {
     Ok(())
 }
 
-#[cargo_test]
+#[payload_test]
 fn rustc_workspace_wrapper_affects_all_workspace_members() {
-    use cargo_test_support::paths;
+    use payload_test_support::paths;
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["bar", "baz"]
             "#,
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "pub fn bar() {}")
-        .file("baz/Cargo.toml", &basic_manifest("baz", "0.1.0"))
+        .file("baz/Payload.toml", &basic_manifest("baz", "0.1.0"))
         .file("baz/src/lib.rs", "pub fn baz() {}")
         .build();
 
-    p.cargo("check")
+    p.payload("check")
         .env("RUSTC_WORKSPACE_WRAPPER", paths::echo_wrapper())
         .with_stderr_contains("WRAPPER CALLED: rustc --crate-name bar [..]")
         .with_stderr_contains("WRAPPER CALLED: rustc --crate-name baz [..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn rustc_workspace_wrapper_includes_path_deps() {
-    use cargo_test_support::paths;
+    use payload_test_support::paths;
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -929,13 +929,13 @@ fn rustc_workspace_wrapper_includes_path_deps() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "pub fn bar() {}")
-        .file("baz/Cargo.toml", &basic_manifest("baz", "0.1.0"))
+        .file("baz/Payload.toml", &basic_manifest("baz", "0.1.0"))
         .file("baz/src/lib.rs", "pub fn baz() {}")
         .build();
 
-    p.cargo("check --workspace")
+    p.payload("check --workspace")
         .env("RUSTC_WORKSPACE_WRAPPER", paths::echo_wrapper())
         .with_stderr_contains("WRAPPER CALLED: rustc --crate-name foo [..]")
         .with_stderr_contains("WRAPPER CALLED: rustc --crate-name bar [..]")
@@ -943,36 +943,36 @@ fn rustc_workspace_wrapper_includes_path_deps() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn rustc_workspace_wrapper_respects_primary_units() {
-    use cargo_test_support::paths;
+    use payload_test_support::paths;
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["bar", "baz"]
             "#,
         )
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "pub fn bar() {}")
-        .file("baz/Cargo.toml", &basic_manifest("baz", "0.1.0"))
+        .file("baz/Payload.toml", &basic_manifest("baz", "0.1.0"))
         .file("baz/src/lib.rs", "pub fn baz() {}")
         .build();
 
-    p.cargo("check -p bar")
+    p.payload("check -p bar")
         .env("RUSTC_WORKSPACE_WRAPPER", paths::echo_wrapper())
         .with_stderr_contains("WRAPPER CALLED: rustc --crate-name bar [..]")
         .with_stdout_does_not_contain("WRAPPER CALLED: rustc --crate-name baz [..]")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn rustc_workspace_wrapper_excludes_published_deps() {
-    use cargo_test_support::paths;
+    use payload_test_support::paths;
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -987,13 +987,13 @@ fn rustc_workspace_wrapper_excludes_published_deps() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("bar/src/lib.rs", "pub fn bar() {}")
         .build();
 
     Package::new("baz", "1.0.0").publish();
 
-    p.cargo("check --workspace -v")
+    p.payload("check --workspace -v")
         .env("RUSTC_WORKSPACE_WRAPPER", paths::echo_wrapper())
         .with_stderr_contains("WRAPPER CALLED: rustc --crate-name foo [..]")
         .with_stderr_contains("WRAPPER CALLED: rustc --crate-name bar [..]")

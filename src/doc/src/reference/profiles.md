@@ -3,12 +3,12 @@
 Profiles provide a way to alter the compiler settings, influencing things like
 optimizations and debugging symbols.
 
-Cargo has 4 built-in profiles: `dev`, `release`, `test`, and `bench`. It
+Payload has 4 built-in profiles: `dev`, `release`, `test`, and `bench`. It
 automatically chooses the profile based on which command is being run, the
 package and target that is being built, and command-line flags like
 `--release`. The selection process is [described below](#profile-selection).
 
-Profile settings can be changed in [`Cargo.toml`](manifest.md) with the
+Profile settings can be changed in [`Payload.toml`](manifest.md) with the
 `[profile]` table. Within each named profile, individual settings can be changed
 with key/value pairs like this:
 
@@ -18,13 +18,13 @@ opt-level = 1               # Use slightly better optimizations.
 overflow-checks = false     # Disable integer overflow checks.
 ```
 
-Cargo only looks at the profile settings in the `Cargo.toml` manifest at the
+Payload only looks at the profile settings in the `Payload.toml` manifest at the
 root of the workspace. Profile settings defined in dependencies will be
 ignored.
 
 Additionally, profiles can be overridden from a [config] definition.
 Specifying a profile in a config file or environment variable will override
-the settings from `Cargo.toml`.
+the settings from `Payload.toml`.
 
 [config]: config.md
 
@@ -188,7 +188,7 @@ The valid options are:
 Incremental compilation is only used for workspace members and "path"
 dependencies.
 
-The incremental value can be overridden globally with the `CARGO_INCREMENTAL`
+The incremental value can be overridden globally with the `PAYLOAD_INCREMENTAL`
 [environment variable] or the [`build.incremental`] config variable.
 
 [`-C incremental` flag]: ../../rustc/codegen-options/index.html#incremental
@@ -222,7 +222,7 @@ whether or not [`rpath`] is enabled.
 #### dev
 
 The `dev` profile is used for normal development and debugging. It is the
-default for build commands like [`cargo build`].
+default for build commands like [`payload build`].
 
 The default settings for the `dev` profile are:
 
@@ -244,7 +244,7 @@ rpath = false
 
 The `release` profile is intended for optimized artifacts used for releases
 and in production. This profile is used when the `--release` flag is used, and
-is the default for [`cargo install`].
+is the default for [`payload install`].
 
 The default settings for the `release` profile are:
 
@@ -265,7 +265,7 @@ rpath = false
 #### test
 
 The `test` profile is used for building tests, or when benchmarks are built in
-debug mode with `cargo build`.
+debug mode with `payload build`.
 
 The default settings for the `test` profile are:
 
@@ -325,24 +325,24 @@ described below.
 
 ### Profile selection
 
-The profile used depends on the command, the package, the Cargo target, and
+The profile used depends on the command, the package, the Payload target, and
 command-line flags like `--release`.
 
-Build commands like [`cargo build`], [`cargo rustc`], [`cargo check`], and
-[`cargo run`] default to using the `dev` profile. The `--release` flag may be
+Build commands like [`payload build`], [`payload rustc`], [`payload check`], and
+[`payload run`] default to using the `dev` profile. The `--release` flag may be
 used to switch to the `release` profile.
 
-The [`cargo install`] command defaults to the `release` profile, and may use
+The [`payload install`] command defaults to the `release` profile, and may use
 the `--debug` flag to switch to the `dev` profile.
 
 Test targets are built with the `test` profile by default. The `--release`
 flag switches tests to the `bench` profile.
 
-Bench targets are built with the `bench` profile by default. The [`cargo
+Bench targets are built with the `bench` profile by default. The [`payload
 build`] command can be used to build a bench target with the `test` profile to
 enable debugging.
 
-Note that when using the [`cargo test`] and [`cargo bench`] commands, the
+Note that when using the [`payload test`] and [`payload bench`] commands, the
 `test`/`bench` profiles only apply to the final test executable. Dependencies
 will continue to use the `dev`/`release` profiles. Also note that when a
 library is built for unit tests, then the library is built with the `test`
@@ -350,16 +350,16 @@ profile. However, when building an integration test target, the library target
 is built with the `dev` profile and linked into the integration test
 executable.
 
-![Profile selection for cargo test](../images/profile-selection.svg)
+![Profile selection for payload test](../images/profile-selection.svg)
 
 
-[`cargo bench`]: ../commands/cargo-bench.md
-[`cargo build`]: ../commands/cargo-build.md
-[`cargo check`]: ../commands/cargo-check.md
-[`cargo install`]: ../commands/cargo-install.md
-[`cargo run`]: ../commands/cargo-run.md
-[`cargo rustc`]: ../commands/cargo-rustc.md
-[`cargo test`]: ../commands/cargo-test.md
+[`payload bench`]: ../commands/payload-bench.md
+[`payload build`]: ../commands/payload-build.md
+[`payload check`]: ../commands/payload-check.md
+[`payload install`]: ../commands/payload-install.md
+[`payload run`]: ../commands/payload-run.md
+[`payload rustc`]: ../commands/payload-rustc.md
+[`payload test`]: ../commands/payload-test.md
 
 ### Overrides
 
@@ -396,7 +396,7 @@ opt-level = 3
 ```
 
 > Note: When a dependency is both a normal dependency and a build dependency,
-> Cargo will try to only build it once when `--target` is not specified. When
+> Payload will try to only build it once when `--target` is not specified. When
 > using `build-override`, the dependency may need to be built twice, once as a
 > normal dependency and once with the overridden build settings. This may
 > increase initial build times.
@@ -408,8 +408,8 @@ match wins):
 2. `[profile.dev.package."*"]` — For any non-workspace member.
 3. `[profile.dev.build-override]` — Only for build scripts, proc macros, and
    their dependencies.
-4. `[profile.dev]` — Settings in `Cargo.toml`.
-5. Default values built-in to Cargo.
+4. `[profile.dev]` — Settings in `Payload.toml`.
+5. Default values built-in to Payload.
 
 Overrides cannot specify the `panic`, `lto`, or `rpath` settings.
 

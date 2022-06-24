@@ -1,14 +1,14 @@
 //! Tests for named profiles.
 
-use cargo_test_support::{basic_lib_manifest, project};
+use payload_test_support::{basic_lib_manifest, project};
 
-#[cargo_test]
+#[payload_test]
 fn inherits_on_release() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-                cargo-features = ["named-profiles"]
+                payload-features = ["named-profiles"]
 
                 [package]
                 name = "foo"
@@ -22,8 +22,8 @@ fn inherits_on_release() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build")
-        .masquerade_as_nightly_cargo()
+    p.payload("build")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_stderr(
             "\
@@ -33,13 +33,13 @@ fn inherits_on_release() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn missing_inherits() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-                cargo-features = ["named-profiles"]
+                payload-features = ["named-profiles"]
 
                 [package]
                 name = "foo"
@@ -53,8 +53,8 @@ fn missing_inherits() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build")
-        .masquerade_as_nightly_cargo()
+    p.payload("build")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_stderr(
             "\
@@ -65,13 +65,13 @@ fn missing_inherits() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn invalid_profile_name() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-                cargo-features = ["named-profiles"]
+                payload-features = ["named-profiles"]
 
                 [package]
                 name = "foo"
@@ -86,8 +86,8 @@ fn invalid_profile_name() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build")
-        .masquerade_as_nightly_cargo()
+    p.payload("build")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_stderr(
             "\
@@ -99,13 +99,13 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn invalid_dir_name() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-                cargo-features = ["named-profiles"]
+                payload-features = ["named-profiles"]
 
                 [package]
                 name = "foo"
@@ -121,8 +121,8 @@ fn invalid_dir_name() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build")
-        .masquerade_as_nightly_cargo()
+    p.payload("build")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_stderr(
             "\
@@ -134,13 +134,13 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn invalid_inherits() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-                cargo-features = ["named-profiles"]
+                payload-features = ["named-profiles"]
 
                 [package]
                 name = "foo"
@@ -155,8 +155,8 @@ fn invalid_inherits() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build")
-        .masquerade_as_nightly_cargo()
+    p.payload("build")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_stderr(
             "\
@@ -168,13 +168,13 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn non_existent_inherits() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-                cargo-features = ["named-profiles"]
+                payload-features = ["named-profiles"]
 
                 [package]
                 name = "foo"
@@ -189,8 +189,8 @@ fn non_existent_inherits() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build")
-        .masquerade_as_nightly_cargo()
+    p.payload("build")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_stderr(
             "\
@@ -200,13 +200,13 @@ fn non_existent_inherits() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn self_inherits() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-                cargo-features = ["named-profiles"]
+                payload-features = ["named-profiles"]
 
                 [package]
                 name = "foo"
@@ -221,8 +221,8 @@ fn self_inherits() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build")
-        .masquerade_as_nightly_cargo()
+    p.payload("build")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_stderr(
             "\
@@ -232,13 +232,13 @@ fn self_inherits() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn inherits_loop() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-                cargo-features = ["named-profiles"]
+                payload-features = ["named-profiles"]
 
                 [package]
                 name = "foo"
@@ -257,8 +257,8 @@ fn inherits_loop() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build")
-        .masquerade_as_nightly_cargo()
+    p.payload("build")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_stderr(
             "\
@@ -268,13 +268,13 @@ fn inherits_loop() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn overrides_with_custom() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-                cargo-features = ["named-profiles"]
+                payload-features = ["named-profiles"]
 
                 [package]
                 name = "foo"
@@ -302,16 +302,16 @@ fn overrides_with_custom() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("xxx/Cargo.toml", &basic_lib_manifest("xxx"))
+        .file("xxx/Payload.toml", &basic_lib_manifest("xxx"))
         .file("xxx/src/lib.rs", "")
-        .file("yyy/Cargo.toml", &basic_lib_manifest("yyy"))
+        .file("yyy/Payload.toml", &basic_lib_manifest("yyy"))
         .file("yyy/src/lib.rs", "")
         .build();
 
     // profile overrides are inherited between profiles using inherits and have a
     // higher priority than profile options provided by custom profiles
-    p.cargo("build -v")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -v")
+        .masquerade_as_nightly_payload()
         .with_stderr_unordered(
             "\
 [COMPILING] xxx [..]
@@ -326,8 +326,8 @@ fn overrides_with_custom() {
         .run();
 
     // This also verifies that the custom profile names appears in the finished line.
-    p.cargo("build --profile=other -Z unstable-options -v")
-        .masquerade_as_nightly_cargo()
+    p.payload("build --profile=other -Z unstable-options -v")
+        .masquerade_as_nightly_payload()
         .with_stderr_unordered(
             "\
 [COMPILING] xxx [..]
@@ -342,11 +342,11 @@ fn overrides_with_custom() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn conflicting_usage() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -357,26 +357,26 @@ fn conflicting_usage() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build -Z unstable-options --profile=dev --release")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -Z unstable-options --profile=dev --release")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_stderr_unordered("error: Conflicting usage of --profile and --release")
         .run();
 
-    p.cargo("install -Z unstable-options --profile=release --debug")
-        .masquerade_as_nightly_cargo()
+    p.payload("install -Z unstable-options --profile=release --debug")
+        .masquerade_as_nightly_payload()
         .with_status(101)
         .with_stderr_unordered("error: Conflicting usage of --profile and --debug")
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn clean_custom_dirname() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-                cargo-features = ["named-profiles"]
+                payload-features = ["named-profiles"]
 
                 [package]
                 name = "foo"
@@ -390,8 +390,8 @@ fn clean_custom_dirname() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("build --release")
-        .masquerade_as_nightly_cargo()
+    p.payload("build --release")
+        .masquerade_as_nightly_payload()
         .with_stdout("")
         .with_stderr(
             "\
@@ -401,10 +401,10 @@ fn clean_custom_dirname() {
         )
         .run();
 
-    p.cargo("clean -p foo").masquerade_as_nightly_cargo().run();
+    p.payload("clean -p foo").masquerade_as_nightly_payload().run();
 
-    p.cargo("build --release")
-        .masquerade_as_nightly_cargo()
+    p.payload("build --release")
+        .masquerade_as_nightly_payload()
         .with_stdout("")
         .with_stderr(
             "\
@@ -413,12 +413,12 @@ fn clean_custom_dirname() {
         )
         .run();
 
-    p.cargo("clean -p foo --release")
-        .masquerade_as_nightly_cargo()
+    p.payload("clean -p foo --release")
+        .masquerade_as_nightly_payload()
         .run();
 
-    p.cargo("build --release")
-        .masquerade_as_nightly_cargo()
+    p.payload("build --release")
+        .masquerade_as_nightly_payload()
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([..])
@@ -427,8 +427,8 @@ fn clean_custom_dirname() {
         )
         .run();
 
-    p.cargo("build")
-        .masquerade_as_nightly_cargo()
+    p.payload("build")
+        .masquerade_as_nightly_payload()
         .with_stdout("")
         .with_stderr(
             "\
@@ -438,8 +438,8 @@ fn clean_custom_dirname() {
         )
         .run();
 
-    p.cargo("build -Z unstable-options --profile=other")
-        .masquerade_as_nightly_cargo()
+    p.payload("build -Z unstable-options --profile=other")
+        .masquerade_as_nightly_payload()
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([..])
@@ -448,9 +448,9 @@ fn clean_custom_dirname() {
         )
         .run();
 
-    p.cargo("clean")
+    p.payload("clean")
         .arg("--release")
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_payload()
         .run();
 
     // Make sure that 'other' was not cleaned
@@ -460,21 +460,21 @@ fn clean_custom_dirname() {
     assert!(!p.build_dir().join("release").is_dir());
 
     // This should clean 'other'
-    p.cargo("clean -Z unstable-options --profile=other")
-        .masquerade_as_nightly_cargo()
+    p.payload("clean -Z unstable-options --profile=other")
+        .masquerade_as_nightly_payload()
         .with_stderr("")
         .run();
     assert!(p.build_dir().join("debug").is_dir());
     assert!(!p.build_dir().join("other").is_dir());
 }
 
-#[cargo_test]
+#[payload_test]
 fn unknown_profile() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
-            cargo-features = ["named-profiles"]
+            payload-features = ["named-profiles"]
 
             [package]
             name = "foo"
@@ -484,14 +484,14 @@ fn unknown_profile() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build --profile alpha -Zunstable-options")
-        .masquerade_as_nightly_cargo()
+    p.payload("build --profile alpha -Zunstable-options")
+        .masquerade_as_nightly_payload()
         .with_stderr("[ERROR] profile `alpha` is not defined")
         .with_status(101)
         .run();
     // Clean has a separate code path, need to check it too.
-    p.cargo("clean --profile alpha -Zunstable-options")
-        .masquerade_as_nightly_cargo()
+    p.payload("clean --profile alpha -Zunstable-options")
+        .masquerade_as_nightly_payload()
         .with_stderr("[ERROR] profile `alpha` is not defined")
         .with_status(101)
         .run();

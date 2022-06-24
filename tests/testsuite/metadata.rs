@@ -1,18 +1,18 @@
-//! Tests for the `cargo metadata` command.
+//! Tests for the `payload metadata` command.
 
-use cargo_test_support::install::cargo_home;
-use cargo_test_support::paths::CargoPathExt;
-use cargo_test_support::registry::Package;
-use cargo_test_support::{basic_bin_manifest, basic_lib_manifest, main_file, project, rustc_host};
+use payload_test_support::install::payload_home;
+use payload_test_support::paths::PayloadPathExt;
+use payload_test_support::registry::Package;
+use payload_test_support::{basic_bin_manifest, basic_lib_manifest, main_file, project, rustc_host};
 
-#[cargo_test]
-fn cargo_metadata_simple() {
+#[payload_test]
+fn payload_metadata_simple() {
     let p = project()
         .file("src/foo.rs", "")
-        .file("Cargo.toml", &basic_bin_manifest("foo"))
+        .file("Payload.toml", &basic_bin_manifest("foo"))
         .build();
 
-    p.cargo("metadata")
+    p.payload("metadata")
         .with_json(
             r#"
     {
@@ -56,7 +56,7 @@ fn cargo_metadata_simple() {
                     }
                 ],
                 "features": {},
-                "manifest_path": "[..]Cargo.toml",
+                "manifest_path": "[..]Payload.toml",
                 "metadata": null,
                 "publish": null
             }
@@ -82,24 +82,24 @@ fn cargo_metadata_simple() {
         .run();
 }
 
-#[cargo_test]
-fn cargo_metadata_warns_on_implicit_version() {
+#[payload_test]
+fn payload_metadata_warns_on_implicit_version() {
     let p = project()
         .file("src/foo.rs", "")
-        .file("Cargo.toml", &basic_bin_manifest("foo"))
+        .file("Payload.toml", &basic_bin_manifest("foo"))
         .build();
 
-    p.cargo("metadata").with_stderr("[WARNING] please specify `--format-version` flag explicitly to avoid compatibility problems").run();
+    p.payload("metadata").with_stderr("[WARNING] please specify `--format-version` flag explicitly to avoid compatibility problems").run();
 
-    p.cargo("metadata --format-version 1").with_stderr("").run();
+    p.payload("metadata --format-version 1").with_stderr("").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn library_with_several_crate_types() {
     let p = project()
         .file("src/lib.rs", "")
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
 [package]
 name = "foo"
@@ -111,7 +111,7 @@ crate-type = ["lib", "staticlib"]
         )
         .build();
 
-    p.cargo("metadata")
+    p.payload("metadata")
         .with_json(
             r#"
     {
@@ -153,7 +153,7 @@ crate-type = ["lib", "staticlib"]
                     }
                 ],
                 "features": {},
-                "manifest_path": "[..]Cargo.toml",
+                "manifest_path": "[..]Payload.toml",
                 "metadata": null,
                 "publish": null
             }
@@ -179,12 +179,12 @@ crate-type = ["lib", "staticlib"]
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn library_with_features() {
     let p = project()
         .file("src/lib.rs", "")
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
 [package]
 name = "foo"
@@ -198,7 +198,7 @@ optional_feat = []
         )
         .build();
 
-    p.cargo("metadata")
+    p.payload("metadata")
         .with_json(
             r#"
     {
@@ -244,7 +244,7 @@ optional_feat = []
                   "default_feat": [],
                   "optional_feat": []
                 },
-                "manifest_path": "[..]Cargo.toml",
+                "manifest_path": "[..]Payload.toml",
                 "metadata": null,
                 "publish": null
             }
@@ -273,12 +273,12 @@ optional_feat = []
         .run();
 }
 
-#[cargo_test]
-fn cargo_metadata_with_deps_and_version() {
+#[payload_test]
+fn payload_metadata_with_deps_and_version() {
     let p = project()
         .file("src/foo.rs", "")
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -301,7 +301,7 @@ fn cargo_metadata_with_deps_and_version() {
     Package::new("foobar", "0.0.1").publish();
     Package::new("bar", "0.0.1").dep("baz", "0.0.1").publish();
 
-    p.cargo("metadata -q --format-version 1")
+    p.payload("metadata -q --format-version 1")
         .with_json(
             r#"
     {
@@ -318,7 +318,7 @@ fn cargo_metadata_with_deps_and_version() {
                         "registry": null,
                         "rename": null,
                         "req": "^0.0.1",
-                        "source": "registry+https://github.com/rust-lang/crates.io-index",
+                        "source": "registry+https://github.com/dustlang/crates.io-index",
                         "target": null,
                         "uses_default_features": true
                     }
@@ -326,12 +326,12 @@ fn cargo_metadata_with_deps_and_version() {
                 "description": null,
                 "edition": "2015",
                 "features": {},
-                "id": "bar 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+                "id": "bar 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
                 "keywords": [],
                 "license": null,
                 "license_file": null,
                 "links": null,
-                "manifest_path": "[..]Cargo.toml",
+                "manifest_path": "[..]Payload.toml",
                 "metadata": null,
                 "publish": null,
                 "name": "bar",
@@ -339,7 +339,7 @@ fn cargo_metadata_with_deps_and_version() {
                 "repository": null,
                 "homepage": null,
                 "documentation": null,
-                "source": "registry+https://github.com/rust-lang/crates.io-index",
+                "source": "registry+https://github.com/dustlang/crates.io-index",
                 "targets": [
                     {
                         "crate_types": [
@@ -365,12 +365,12 @@ fn cargo_metadata_with_deps_and_version() {
                 "description": null,
                 "edition": "2015",
                 "features": {},
-                "id": "baz 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+                "id": "baz 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
                 "keywords": [],
                 "license": null,
                 "license_file": null,
                 "links": null,
-                "manifest_path": "[..]Cargo.toml",
+                "manifest_path": "[..]Payload.toml",
                 "metadata": null,
                 "publish": null,
                 "name": "baz",
@@ -378,7 +378,7 @@ fn cargo_metadata_with_deps_and_version() {
                 "repository": null,
                 "homepage": null,
                 "documentation": null,
-                "source": "registry+https://github.com/rust-lang/crates.io-index",
+                "source": "registry+https://github.com/dustlang/crates.io-index",
                 "targets": [
                     {
                         "crate_types": [
@@ -409,7 +409,7 @@ fn cargo_metadata_with_deps_and_version() {
                         "registry": null,
                         "rename": null,
                         "req": "*",
-                        "source": "registry+https://github.com/rust-lang/crates.io-index",
+                        "source": "registry+https://github.com/dustlang/crates.io-index",
                         "target": null,
                         "uses_default_features": true
                     },
@@ -421,7 +421,7 @@ fn cargo_metadata_with_deps_and_version() {
                         "registry": null,
                         "rename": null,
                         "req": "*",
-                        "source": "registry+https://github.com/rust-lang/crates.io-index",
+                        "source": "registry+https://github.com/dustlang/crates.io-index",
                         "target": null,
                         "uses_default_features": true
                     }
@@ -434,7 +434,7 @@ fn cargo_metadata_with_deps_and_version() {
                 "license": "MIT",
                 "license_file": null,
                 "links": null,
-                "manifest_path": "[..]Cargo.toml",
+                "manifest_path": "[..]Payload.toml",
                 "metadata": null,
                 "publish": null,
                 "name": "foo",
@@ -468,12 +468,12 @@ fn cargo_metadata_with_deps_and_version() {
                 "description": null,
                 "edition": "2015",
                 "features": {},
-                "id": "foobar 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+                "id": "foobar 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
                 "keywords": [],
                 "license": null,
                 "license_file": null,
                 "links": null,
-                "manifest_path": "[..]Cargo.toml",
+                "manifest_path": "[..]Payload.toml",
                 "metadata": null,
                 "publish": null,
                 "name": "foobar",
@@ -481,7 +481,7 @@ fn cargo_metadata_with_deps_and_version() {
                 "repository": null,
                 "homepage": null,
                 "documentation": null,
-                "source": "registry+https://github.com/rust-lang/crates.io-index",
+                "source": "registry+https://github.com/dustlang/crates.io-index",
                 "targets": [
                     {
                         "crate_types": [
@@ -505,7 +505,7 @@ fn cargo_metadata_with_deps_and_version() {
             "nodes": [
                 {
                     "dependencies": [
-                        "baz 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)"
+                        "baz 0.0.1 (registry+https://github.com/dustlang/crates.io-index)"
                     ],
                     "deps": [
                         {
@@ -516,22 +516,22 @@ fn cargo_metadata_with_deps_and_version() {
                               }
                             ],
                             "name": "baz",
-                            "pkg": "baz 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)"
+                            "pkg": "baz 0.0.1 (registry+https://github.com/dustlang/crates.io-index)"
                         }
                     ],
                     "features": [],
-                    "id": "bar 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)"
+                    "id": "bar 0.0.1 (registry+https://github.com/dustlang/crates.io-index)"
                 },
                 {
                     "dependencies": [],
                     "deps": [],
                     "features": [],
-                    "id": "baz 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)"
+                    "id": "baz 0.0.1 (registry+https://github.com/dustlang/crates.io-index)"
                 },
                 {
                     "dependencies": [
-                        "bar 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
-                        "foobar 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)"
+                        "bar 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
+                        "foobar 0.0.1 (registry+https://github.com/dustlang/crates.io-index)"
                     ],
                     "deps": [
                         {
@@ -542,7 +542,7 @@ fn cargo_metadata_with_deps_and_version() {
                               }
                             ],
                             "name": "bar",
-                            "pkg": "bar 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)"
+                            "pkg": "bar 0.0.1 (registry+https://github.com/dustlang/crates.io-index)"
                         },
                         {
                             "dep_kinds": [
@@ -552,7 +552,7 @@ fn cargo_metadata_with_deps_and_version() {
                               }
                             ],
                             "name": "foobar",
-                            "pkg": "foobar 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)"
+                            "pkg": "foobar 0.0.1 (registry+https://github.com/dustlang/crates.io-index)"
                         }
                     ],
                     "features": [],
@@ -562,7 +562,7 @@ fn cargo_metadata_with_deps_and_version() {
                     "dependencies": [],
                     "deps": [],
                     "features": [],
-                    "id": "foobar 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)"
+                    "id": "foobar 0.0.1 (registry+https://github.com/dustlang/crates.io-index)"
                 }
             ],
             "root": "foo 0.5.0 (path+file:[..]foo)"
@@ -579,13 +579,13 @@ fn cargo_metadata_with_deps_and_version() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn example() {
     let p = project()
         .file("src/lib.rs", "")
         .file("examples/ex.rs", "")
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
 [package]
 name = "foo"
@@ -597,7 +597,7 @@ name = "ex"
         )
         .build();
 
-    p.cargo("metadata")
+    p.payload("metadata")
         .with_json(
             r#"
     {
@@ -643,7 +643,7 @@ name = "ex"
                     }
                 ],
                 "features": {},
-                "manifest_path": "[..]Cargo.toml",
+                "manifest_path": "[..]Payload.toml",
                 "metadata": null,
                 "publish": null
             }
@@ -671,13 +671,13 @@ name = "ex"
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn example_lib() {
     let p = project()
         .file("src/lib.rs", "")
         .file("examples/ex.rs", "")
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
 [package]
 name = "foo"
@@ -690,7 +690,7 @@ crate-type = ["rlib", "dylib"]
         )
         .build();
 
-    p.cargo("metadata")
+    p.payload("metadata")
         .with_json(
             r#"
     {
@@ -736,7 +736,7 @@ crate-type = ["rlib", "dylib"]
                     }
                 ],
                 "features": {},
-                "manifest_path": "[..]Cargo.toml",
+                "manifest_path": "[..]Payload.toml",
                 "metadata": null,
                 "publish": null
             }
@@ -764,11 +764,11 @@ crate-type = ["rlib", "dylib"]
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn workspace_metadata() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["bar", "baz"]
@@ -782,13 +782,13 @@ fn workspace_metadata() {
 
             "#,
         )
-        .file("bar/Cargo.toml", &basic_lib_manifest("bar"))
+        .file("bar/Payload.toml", &basic_lib_manifest("bar"))
         .file("bar/src/lib.rs", "")
-        .file("baz/Cargo.toml", &basic_lib_manifest("baz"))
+        .file("baz/Payload.toml", &basic_lib_manifest("baz"))
         .file("baz/src/lib.rs", "")
         .build();
 
-    p.cargo("metadata")
+    p.payload("metadata")
         .with_json(
             r#"
     {
@@ -826,7 +826,7 @@ fn workspace_metadata() {
                     }
                 ],
                 "features": {},
-                "manifest_path": "[..]bar/Cargo.toml",
+                "manifest_path": "[..]bar/Payload.toml",
                 "metadata": null,
                 "publish": null
             },
@@ -863,7 +863,7 @@ fn workspace_metadata() {
                     }
                 ],
                 "features": {},
-                "manifest_path": "[..]baz/Cargo.toml",
+                "manifest_path": "[..]baz/Payload.toml",
                 "metadata": null,
                 "publish": null
             }
@@ -901,23 +901,23 @@ fn workspace_metadata() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn workspace_metadata_no_deps() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["bar", "baz"]
             "#,
         )
-        .file("bar/Cargo.toml", &basic_lib_manifest("bar"))
+        .file("bar/Payload.toml", &basic_lib_manifest("bar"))
         .file("bar/src/lib.rs", "")
-        .file("baz/Cargo.toml", &basic_lib_manifest("baz"))
+        .file("baz/Payload.toml", &basic_lib_manifest("baz"))
         .file("baz/src/lib.rs", "")
         .build();
 
-    p.cargo("metadata --no-deps")
+    p.payload("metadata --no-deps")
         .with_json(
             r#"
     {
@@ -955,7 +955,7 @@ fn workspace_metadata_no_deps() {
                     }
                 ],
                 "features": {},
-                "manifest_path": "[..]bar/Cargo.toml",
+                "manifest_path": "[..]bar/Payload.toml",
                 "metadata": null,
                 "publish": null
             },
@@ -992,7 +992,7 @@ fn workspace_metadata_no_deps() {
                     }
                 ],
                 "features": {},
-                "manifest_path": "[..]baz/Cargo.toml",
+                "manifest_path": "[..]baz/Payload.toml",
                 "metadata": null,
                 "publish": null
             }
@@ -1008,11 +1008,11 @@ fn workspace_metadata_no_deps() {
         .run();
 }
 
-#[cargo_test]
-fn cargo_metadata_with_invalid_manifest() {
-    let p = project().file("Cargo.toml", "").build();
+#[payload_test]
+fn payload_metadata_with_invalid_manifest() {
+    let p = project().file("Payload.toml", "").build();
 
-    p.cargo("metadata --format-version 1")
+    p.payload("metadata --format-version 1")
         .with_status(101)
         .with_stderr(
             "\
@@ -1053,7 +1053,7 @@ const MANIFEST_OUTPUT: &str = r#"
             "src_path":"[..]/foo/src/foo.rs"
         }],
         "features":{},
-        "manifest_path":"[..]Cargo.toml",
+        "manifest_path":"[..]Payload.toml",
         "metadata": null,
         "publish": null,
         "readme": null,
@@ -1069,88 +1069,88 @@ const MANIFEST_OUTPUT: &str = r#"
     "metadata": null
 }"#;
 
-#[cargo_test]
-fn cargo_metadata_no_deps_path_to_cargo_toml_relative() {
+#[payload_test]
+fn payload_metadata_no_deps_path_to_payload_toml_relative() {
     let p = project()
-        .file("Cargo.toml", &basic_bin_manifest("foo"))
+        .file("Payload.toml", &basic_bin_manifest("foo"))
         .file("src/foo.rs", &main_file(r#""i am foo""#, &[]))
         .build();
 
-    p.cargo("metadata --no-deps --manifest-path foo/Cargo.toml")
+    p.payload("metadata --no-deps --manifest-path foo/Payload.toml")
         .cwd(p.root().parent().unwrap())
         .with_json(MANIFEST_OUTPUT)
         .run();
 }
 
-#[cargo_test]
-fn cargo_metadata_no_deps_path_to_cargo_toml_absolute() {
+#[payload_test]
+fn payload_metadata_no_deps_path_to_payload_toml_absolute() {
     let p = project()
-        .file("Cargo.toml", &basic_bin_manifest("foo"))
+        .file("Payload.toml", &basic_bin_manifest("foo"))
         .file("src/foo.rs", &main_file(r#""i am foo""#, &[]))
         .build();
 
-    p.cargo("metadata --no-deps --manifest-path")
-        .arg(p.root().join("Cargo.toml"))
+    p.payload("metadata --no-deps --manifest-path")
+        .arg(p.root().join("Payload.toml"))
         .cwd(p.root().parent().unwrap())
         .with_json(MANIFEST_OUTPUT)
         .run();
 }
 
-#[cargo_test]
-fn cargo_metadata_no_deps_path_to_cargo_toml_parent_relative() {
+#[payload_test]
+fn payload_metadata_no_deps_path_to_payload_toml_parent_relative() {
     let p = project()
-        .file("Cargo.toml", &basic_bin_manifest("foo"))
+        .file("Payload.toml", &basic_bin_manifest("foo"))
         .file("src/foo.rs", &main_file(r#""i am foo""#, &[]))
         .build();
 
-    p.cargo("metadata --no-deps --manifest-path foo")
+    p.payload("metadata --no-deps --manifest-path foo")
         .cwd(p.root().parent().unwrap())
         .with_status(101)
         .with_stderr(
             "[ERROR] the manifest-path must be \
-             a path to a Cargo.toml file",
+             a path to a Payload.toml file",
         )
         .run();
 }
 
-#[cargo_test]
-fn cargo_metadata_no_deps_path_to_cargo_toml_parent_absolute() {
+#[payload_test]
+fn payload_metadata_no_deps_path_to_payload_toml_parent_absolute() {
     let p = project()
-        .file("Cargo.toml", &basic_bin_manifest("foo"))
+        .file("Payload.toml", &basic_bin_manifest("foo"))
         .file("src/foo.rs", &main_file(r#""i am foo""#, &[]))
         .build();
 
-    p.cargo("metadata --no-deps --manifest-path")
+    p.payload("metadata --no-deps --manifest-path")
         .arg(p.root())
         .cwd(p.root().parent().unwrap())
         .with_status(101)
         .with_stderr(
             "[ERROR] the manifest-path must be \
-             a path to a Cargo.toml file",
+             a path to a Payload.toml file",
         )
         .run();
 }
 
-#[cargo_test]
-fn cargo_metadata_no_deps_cwd() {
+#[payload_test]
+fn payload_metadata_no_deps_cwd() {
     let p = project()
-        .file("Cargo.toml", &basic_bin_manifest("foo"))
+        .file("Payload.toml", &basic_bin_manifest("foo"))
         .file("src/foo.rs", &main_file(r#""i am foo""#, &[]))
         .build();
 
-    p.cargo("metadata --no-deps")
+    p.payload("metadata --no-deps")
         .with_json(MANIFEST_OUTPUT)
         .run();
 }
 
-#[cargo_test]
-fn cargo_metadata_bad_version() {
+#[payload_test]
+fn payload_metadata_bad_version() {
     let p = project()
-        .file("Cargo.toml", &basic_bin_manifest("foo"))
+        .file("Payload.toml", &basic_bin_manifest("foo"))
         .file("src/foo.rs", &main_file(r#""i am foo""#, &[]))
         .build();
 
-    p.cargo("metadata --no-deps --format-version 2")
+    p.payload("metadata --no-deps --format-version 2")
         .with_status(1)
         .with_stderr_contains(
             "\
@@ -1161,11 +1161,11 @@ error: '2' isn't a valid value for '--format-version <VERSION>'
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn multiple_features() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1180,14 +1180,14 @@ fn multiple_features() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("metadata --features").arg("a b").run();
+    p.payload("metadata --features").arg("a b").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn package_metadata() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1196,9 +1196,9 @@ fn package_metadata() {
                 categories = ["database"]
                 keywords = ["database"]
                 readme = "README.md"
-                repository = "https://github.com/rust-lang/cargo"
-                homepage = "https://rust-lang.org"
-                documentation = "https://doc.rust-lang.org/stable/std/"
+                repository = "https://github.com/dustlang/payload"
+                homepage = "https://dustlang.com"
+                documentation = "https://doc.dustlang.com/stable/std/"
 
                 [package.metadata.bar]
                 baz = "quux"
@@ -1208,7 +1208,7 @@ fn package_metadata() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("metadata --no-deps")
+    p.payload("metadata --no-deps")
         .with_json(
             r#"
     {
@@ -1218,9 +1218,9 @@ fn package_metadata() {
                 "categories": ["database"],
                 "name": "foo",
                 "readme": "README.md",
-                "repository": "https://github.com/rust-lang/cargo",
-                "homepage": "https://rust-lang.org",
-                "documentation": "https://doc.rust-lang.org/stable/std/",
+                "repository": "https://github.com/dustlang/payload",
+                "homepage": "https://dustlang.com",
+                "documentation": "https://doc.dustlang.com/stable/std/",
                 "version": "0.1.0",
                 "id": "foo[..]",
                 "keywords": ["database"],
@@ -1244,7 +1244,7 @@ fn package_metadata() {
                     }
                 ],
                 "features": {},
-                "manifest_path": "[..]foo/Cargo.toml",
+                "manifest_path": "[..]foo/Payload.toml",
                 "metadata": {
                     "bar": {
                         "baz": "quux"
@@ -1264,11 +1264,11 @@ fn package_metadata() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn package_publish() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1277,7 +1277,7 @@ fn package_publish() {
                 categories = ["database"]
                 keywords = ["database"]
                 readme = "README.md"
-                repository = "https://github.com/rust-lang/cargo"
+                repository = "https://github.com/dustlang/payload"
                 publish = ["my-registry"]
             "#,
         )
@@ -1285,7 +1285,7 @@ fn package_publish() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("metadata --no-deps")
+    p.payload("metadata --no-deps")
         .with_json(
             r#"
     {
@@ -1295,7 +1295,7 @@ fn package_publish() {
                 "categories": ["database"],
                 "name": "foo",
                 "readme": "README.md",
-                "repository": "https://github.com/rust-lang/cargo",
+                "repository": "https://github.com/dustlang/payload",
                 "homepage": null,
                 "documentation": null,
                 "version": "0.1.0",
@@ -1321,7 +1321,7 @@ fn package_publish() {
                     }
                 ],
                 "features": {},
-                "manifest_path": "[..]foo/Cargo.toml",
+                "manifest_path": "[..]foo/Payload.toml",
                 "metadata": null,
                 "publish": ["my-registry"]
             }
@@ -1337,27 +1337,27 @@ fn package_publish() {
         .run();
 }
 
-#[cargo_test]
-fn cargo_metadata_path_to_cargo_toml_project() {
+#[payload_test]
+fn payload_metadata_path_to_payload_toml_project() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [workspace]
                 members = ["bar"]
             "#,
         )
-        .file("bar/Cargo.toml", &basic_lib_manifest("bar"))
+        .file("bar/Payload.toml", &basic_lib_manifest("bar"))
         .file("bar/src/lib.rs", "")
         .build();
 
-    p.cargo("package --manifest-path")
-        .arg(p.root().join("bar/Cargo.toml"))
+    p.payload("package --manifest-path")
+        .arg(p.root().join("bar/Payload.toml"))
         .cwd(p.root().parent().unwrap())
         .run();
 
-    p.cargo("metadata --manifest-path")
-        .arg(p.root().join("target/package/bar-0.5.0/Cargo.toml"))
+    p.payload("metadata --manifest-path")
+        .arg(p.root().join("target/package/bar-0.5.0/Payload.toml"))
         .with_json(
             r#"
             {
@@ -1376,7 +1376,7 @@ fn cargo_metadata_path_to_cargo_toml_project() {
                     "license": null,
                     "license_file": null,
                     "links": null,
-                    "manifest_path": "[..]Cargo.toml",
+                    "manifest_path": "[..]Payload.toml",
                     "metadata": null,
                     "publish": null,
                     "name": "bar",
@@ -1428,12 +1428,12 @@ fn cargo_metadata_path_to_cargo_toml_project() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn package_edition_2018() {
     let p = project()
         .file("src/lib.rs", "")
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1443,7 +1443,7 @@ fn package_edition_2018() {
             "#,
         )
         .build();
-    p.cargo("metadata")
+    p.payload("metadata")
         .with_json(
             r#"
             {
@@ -1462,7 +1462,7 @@ fn package_edition_2018() {
                         "license": null,
                         "license_file": null,
                         "links": null,
-                        "manifest_path": "[..]Cargo.toml",
+                        "manifest_path": "[..]Payload.toml",
                         "metadata": null,
                         "publish": null,
                         "name": "foo",
@@ -1514,13 +1514,13 @@ fn package_edition_2018() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn target_edition_2018() {
     let p = project()
         .file("src/lib.rs", "")
         .file("src/main.rs", "")
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1533,7 +1533,7 @@ fn target_edition_2018() {
             "#,
         )
         .build();
-    p.cargo("metadata")
+    p.payload("metadata")
         .with_json(
             r#"
             {
@@ -1552,7 +1552,7 @@ fn target_edition_2018() {
                         "license": null,
                         "license_file": null,
                         "links": null,
-                        "manifest_path": "[..]Cargo.toml",
+                        "manifest_path": "[..]Payload.toml",
                         "metadata": null,
                         "publish": null,
                         "name": "foo",
@@ -1618,14 +1618,14 @@ fn target_edition_2018() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn rename_dependency() {
     Package::new("bar", "0.1.0").publish();
     Package::new("bar", "0.2.0").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [project]
                 name = "foo"
@@ -1640,7 +1640,7 @@ fn rename_dependency() {
         .file("src/lib.rs", "extern crate bar; extern crate baz;")
         .build();
 
-    p.cargo("metadata")
+    p.payload("metadata")
         .with_json(
             r#"
 {
@@ -1652,7 +1652,7 @@ fn rename_dependency() {
             "description": null,
             "edition": "2015",
             "features": {},
-            "id": "bar 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+            "id": "bar 0.1.0 (registry+https://github.com/dustlang/crates.io-index)",
             "keywords": [],
             "license": null,
             "license_file": null,
@@ -1665,7 +1665,7 @@ fn rename_dependency() {
             "repository": null,
             "homepage": null,
             "documentation": null,
-            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "source": "registry+https://github.com/dustlang/crates.io-index",
             "targets": [
                 {
                     "crate_types": [
@@ -1691,7 +1691,7 @@ fn rename_dependency() {
             "description": null,
             "edition": "2015",
             "features": {},
-            "id": "bar 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+            "id": "bar 0.2.0 (registry+https://github.com/dustlang/crates.io-index)",
             "keywords": [],
             "license": null,
             "license_file": null,
@@ -1704,7 +1704,7 @@ fn rename_dependency() {
             "repository": null,
             "homepage": null,
             "documentation": null,
-            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "source": "registry+https://github.com/dustlang/crates.io-index",
             "targets": [
                 {
                     "crate_types": [
@@ -1735,7 +1735,7 @@ fn rename_dependency() {
                     "rename": null,
                     "registry": null,
                     "req": "^0.1.0",
-                    "source": "registry+https://github.com/rust-lang/crates.io-index",
+                    "source": "registry+https://github.com/dustlang/crates.io-index",
                     "target": null,
                     "uses_default_features": true
                 },
@@ -1747,7 +1747,7 @@ fn rename_dependency() {
                     "rename": "baz",
                     "registry": null,
                     "req": "^0.2.0",
-                    "source": "registry+https://github.com/rust-lang/crates.io-index",
+                    "source": "registry+https://github.com/dustlang/crates.io-index",
                     "target": null,
                     "uses_default_features": true
                 }
@@ -1794,18 +1794,18 @@ fn rename_dependency() {
                 "dependencies": [],
                 "deps": [],
                 "features": [],
-                "id": "bar 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)"
+                "id": "bar 0.1.0 (registry+https://github.com/dustlang/crates.io-index)"
             },
             {
                 "dependencies": [],
                 "deps": [],
                 "features": [],
-                "id": "bar 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)"
+                "id": "bar 0.2.0 (registry+https://github.com/dustlang/crates.io-index)"
             },
             {
                 "dependencies": [
-                    "bar 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
-                    "bar 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)"
+                    "bar 0.1.0 (registry+https://github.com/dustlang/crates.io-index)",
+                    "bar 0.2.0 (registry+https://github.com/dustlang/crates.io-index)"
                 ],
                 "deps": [
                     {
@@ -1816,7 +1816,7 @@ fn rename_dependency() {
                           }
                         ],
                         "name": "bar",
-                        "pkg": "bar 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)"
+                        "pkg": "bar 0.1.0 (registry+https://github.com/dustlang/crates.io-index)"
                     },
                     {
                         "dep_kinds": [
@@ -1826,7 +1826,7 @@ fn rename_dependency() {
                           }
                         ],
                         "name": "baz",
-                        "pkg": "bar 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)"
+                        "pkg": "bar 0.2.0 (registry+https://github.com/dustlang/crates.io-index)"
                     }
                 ],
                 "features": [],
@@ -1847,11 +1847,11 @@ fn rename_dependency() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn metadata_links() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [project]
             name = "foo"
@@ -1863,7 +1863,7 @@ fn metadata_links() {
         .file("build.rs", "fn main() {}")
         .build();
 
-    p.cargo("metadata")
+    p.payload("metadata")
         .with_json(
             r#"
             {
@@ -1880,7 +1880,7 @@ fn metadata_links() {
                   "license": null,
                   "license_file": null,
                   "links": "a",
-                  "manifest_path": "[..]/foo/Cargo.toml",
+                  "manifest_path": "[..]/foo/Payload.toml",
                   "metadata": null,
                   "publish": null,
                   "name": "foo",
@@ -1946,11 +1946,11 @@ fn metadata_links() {
         .run()
 }
 
-#[cargo_test]
+#[payload_test]
 fn deps_with_bin_only() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -1960,11 +1960,11 @@ fn deps_with_bin_only() {
             "#,
         )
         .file("src/lib.rs", "")
-        .file("bdep/Cargo.toml", &basic_bin_manifest("bdep"))
+        .file("bdep/Payload.toml", &basic_bin_manifest("bdep"))
         .file("bdep/src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("metadata")
+    p.payload("metadata")
         .with_json(
             r#"
             {
@@ -2009,7 +2009,7 @@ fn deps_with_bin_only() {
                     }
                   ],
                   "features": {},
-                  "manifest_path": "[..]/foo/Cargo.toml",
+                  "manifest_path": "[..]/foo/Payload.toml",
                   "metadata": null,
                   "publish": null,
                   "authors": [],
@@ -2047,7 +2047,7 @@ fn deps_with_bin_only() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn filter_platform() {
     // Testing the --filter-platform flag.
     Package::new("normal-dep", "0.0.1").publish();
@@ -2060,7 +2060,7 @@ fn filter_platform() {
     let host_target = rustc_host();
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                 [package]
@@ -2089,11 +2089,11 @@ fn filter_platform() {
     {
       "name": "alt-dep",
       "version": "0.0.1",
-      "id": "alt-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+      "id": "alt-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
       "license": null,
       "license_file": null,
       "description": null,
-      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "source": "registry+https://github.com/dustlang/crates.io-index",
       "dependencies": [],
       "targets": [
         {
@@ -2112,7 +2112,7 @@ fn filter_platform() {
         }
       ],
       "features": {},
-      "manifest_path": "[..]/alt-dep-0.0.1/Cargo.toml",
+      "manifest_path": "[..]/alt-dep-0.0.1/Payload.toml",
       "metadata": null,
       "publish": null,
       "authors": [],
@@ -2131,11 +2131,11 @@ fn filter_platform() {
     {
       "name": "cfg-dep",
       "version": "0.0.1",
-      "id": "cfg-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+      "id": "cfg-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
       "license": null,
       "license_file": null,
       "description": null,
-      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "source": "registry+https://github.com/dustlang/crates.io-index",
       "dependencies": [],
       "targets": [
         {
@@ -2154,7 +2154,7 @@ fn filter_platform() {
         }
       ],
       "features": {},
-      "manifest_path": "[..]/cfg-dep-0.0.1/Cargo.toml",
+      "manifest_path": "[..]/cfg-dep-0.0.1/Payload.toml",
       "metadata": null,
       "publish": null,
       "authors": [],
@@ -2173,11 +2173,11 @@ fn filter_platform() {
     {
       "name": "host-dep",
       "version": "0.0.1",
-      "id": "host-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+      "id": "host-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
       "license": null,
       "license_file": null,
       "description": null,
-      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "source": "registry+https://github.com/dustlang/crates.io-index",
       "dependencies": [],
       "targets": [
         {
@@ -2196,7 +2196,7 @@ fn filter_platform() {
         }
       ],
       "features": {},
-      "manifest_path": "[..]/host-dep-0.0.1/Cargo.toml",
+      "manifest_path": "[..]/host-dep-0.0.1/Payload.toml",
       "metadata": null,
       "publish": null,
       "authors": [],
@@ -2215,11 +2215,11 @@ fn filter_platform() {
     {
       "name": "normal-dep",
       "version": "0.0.1",
-      "id": "normal-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+      "id": "normal-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
       "license": null,
       "license_file": null,
       "description": null,
-      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "source": "registry+https://github.com/dustlang/crates.io-index",
       "dependencies": [],
       "targets": [
         {
@@ -2238,7 +2238,7 @@ fn filter_platform() {
         }
       ],
       "features": {},
-      "manifest_path": "[..]/normal-dep-0.0.1/Cargo.toml",
+      "manifest_path": "[..]/normal-dep-0.0.1/Payload.toml",
       "metadata": null,
       "publish": null,
       "authors": [],
@@ -2259,7 +2259,7 @@ fn filter_platform() {
     let mut foo_deps = serde_json::json!([
         {
           "name": "normal-dep",
-          "source": "registry+https://github.com/rust-lang/crates.io-index",
+          "source": "registry+https://github.com/dustlang/crates.io-index",
           "req": "^0.0.1",
           "kind": null,
           "rename": null,
@@ -2271,7 +2271,7 @@ fn filter_platform() {
         },
         {
           "name": "cfg-dep",
-          "source": "registry+https://github.com/rust-lang/crates.io-index",
+          "source": "registry+https://github.com/dustlang/crates.io-index",
           "req": "^0.0.1",
           "kind": null,
           "rename": null,
@@ -2283,7 +2283,7 @@ fn filter_platform() {
         },
         {
           "name": "alt-dep",
-          "source": "registry+https://github.com/rust-lang/crates.io-index",
+          "source": "registry+https://github.com/dustlang/crates.io-index",
           "req": "^0.0.1",
           "kind": null,
           "rename": null,
@@ -2295,7 +2295,7 @@ fn filter_platform() {
         },
         {
           "name": "host-dep",
-          "source": "registry+https://github.com/rust-lang/crates.io-index",
+          "source": "registry+https://github.com/dustlang/crates.io-index",
           "req": "^0.0.1",
           "kind": null,
           "rename": null,
@@ -2343,7 +2343,7 @@ fn filter_platform() {
         }
       ],
       "features": {},
-      "manifest_path": "[..]/foo/Cargo.toml",
+      "manifest_path": "[..]/foo/Payload.toml",
       "metadata": null,
       "publish": null,
       "authors": [],
@@ -2364,13 +2364,13 @@ fn filter_platform() {
     // We're going to be checking that we don't download excessively,
     // so we need to ensure that downloads will happen.
     let clear = || {
-        cargo_home().join("registry/cache").rm_rf();
-        cargo_home().join("registry/src").rm_rf();
+        payload_home().join("registry/cache").rm_rf();
+        payload_home().join("registry/src").rm_rf();
         p.build_dir().rm_rf();
     };
 
     // Normal metadata, no filtering, returns *everything*.
-    p.cargo("metadata")
+    p.payload("metadata")
         .with_stderr_unordered(
             "\
 [UPDATING] [..]
@@ -2398,13 +2398,13 @@ fn filter_platform() {
   "resolve": {
     "nodes": [
       {
-        "id": "alt-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+        "id": "alt-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
         "dependencies": [],
         "deps": [],
         "features": []
       },
       {
-        "id": "cfg-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+        "id": "cfg-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
         "dependencies": [],
         "deps": [],
         "features": []
@@ -2412,15 +2412,15 @@ fn filter_platform() {
       {
         "id": "foo 0.1.0 (path+file:[..]foo)",
         "dependencies": [
-          "alt-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
-          "cfg-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
-          "host-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
-          "normal-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)"
+          "alt-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
+          "cfg-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
+          "host-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
+          "normal-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)"
         ],
         "deps": [
           {
             "name": "alt_dep",
-            "pkg": "alt-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+            "pkg": "alt-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
             "dep_kinds": [
               {
                 "kind": null,
@@ -2430,7 +2430,7 @@ fn filter_platform() {
           },
           {
             "name": "cfg_dep",
-            "pkg": "cfg-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+            "pkg": "cfg-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
             "dep_kinds": [
               {
                 "kind": null,
@@ -2440,7 +2440,7 @@ fn filter_platform() {
           },
           {
             "name": "host_dep",
-            "pkg": "host-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+            "pkg": "host-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
             "dep_kinds": [
               {
                 "kind": null,
@@ -2450,7 +2450,7 @@ fn filter_platform() {
           },
           {
             "name": "normal_dep",
-            "pkg": "normal-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+            "pkg": "normal-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
             "dep_kinds": [
               {
                 "kind": null,
@@ -2462,13 +2462,13 @@ fn filter_platform() {
         "features": []
       },
       {
-        "id": "host-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+        "id": "host-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
         "dependencies": [],
         "deps": [],
         "features": []
       },
       {
-        "id": "normal-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+        "id": "normal-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
         "dependencies": [],
         "deps": [],
         "features": []
@@ -2494,7 +2494,7 @@ fn filter_platform() {
     clear();
 
     // Filter on alternate, removes cfg and host.
-    p.cargo("metadata --filter-platform")
+    p.payload("metadata --filter-platform")
         .arg(alt_target)
         .with_stderr_unordered(
             "\
@@ -2517,7 +2517,7 @@ fn filter_platform() {
   "resolve": {
     "nodes": [
       {
-        "id": "alt-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+        "id": "alt-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
         "dependencies": [],
         "deps": [],
         "features": []
@@ -2525,13 +2525,13 @@ fn filter_platform() {
       {
         "id": "foo 0.1.0 (path+file:[..]foo)",
         "dependencies": [
-          "alt-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
-          "normal-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)"
+          "alt-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
+          "normal-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)"
         ],
         "deps": [
           {
             "name": "alt_dep",
-            "pkg": "alt-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+            "pkg": "alt-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
             "dep_kinds": [
               {
                 "kind": null,
@@ -2541,7 +2541,7 @@ fn filter_platform() {
           },
           {
             "name": "normal_dep",
-            "pkg": "normal-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+            "pkg": "normal-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
             "dep_kinds": [
               {
                 "kind": null,
@@ -2553,7 +2553,7 @@ fn filter_platform() {
         "features": []
       },
       {
-        "id": "normal-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+        "id": "normal-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
         "dependencies": [],
         "deps": [],
         "features": []
@@ -2576,7 +2576,7 @@ fn filter_platform() {
     clear();
 
     // Filter on host, removes alt and cfg.
-    p.cargo("metadata --filter-platform")
+    p.payload("metadata --filter-platform")
         .arg(&host_target)
         .with_stderr_unordered(
             "\
@@ -2600,13 +2600,13 @@ fn filter_platform() {
       {
         "id": "foo 0.1.0 (path+file:[..]foo)",
         "dependencies": [
-          "host-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
-          "normal-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)"
+          "host-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
+          "normal-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)"
         ],
         "deps": [
           {
             "name": "host_dep",
-            "pkg": "host-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+            "pkg": "host-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
             "dep_kinds": [
               {
                 "kind": null,
@@ -2616,7 +2616,7 @@ fn filter_platform() {
           },
           {
             "name": "normal_dep",
-            "pkg": "normal-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+            "pkg": "normal-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
             "dep_kinds": [
               {
                 "kind": null,
@@ -2628,13 +2628,13 @@ fn filter_platform() {
         "features": []
       },
       {
-        "id": "host-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+        "id": "host-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
         "dependencies": [],
         "deps": [],
         "features": []
       },
       {
-        "id": "normal-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+        "id": "normal-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
         "dependencies": [],
         "deps": [],
         "features": []
@@ -2657,7 +2657,7 @@ fn filter_platform() {
     clear();
 
     // Filter host with cfg, removes alt only
-    p.cargo("metadata --filter-platform")
+    p.payload("metadata --filter-platform")
         .arg(&host_target)
         .env("RUSTFLAGS", "--cfg=foobar")
         .with_stderr_unordered(
@@ -2682,7 +2682,7 @@ fn filter_platform() {
   "resolve": {
     "nodes": [
       {
-        "id": "cfg-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+        "id": "cfg-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
         "dependencies": [],
         "deps": [],
         "features": []
@@ -2690,14 +2690,14 @@ fn filter_platform() {
       {
         "id": "foo 0.1.0 (path+file:[..]/foo)",
         "dependencies": [
-          "cfg-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
-          "host-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
-          "normal-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)"
+          "cfg-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
+          "host-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
+          "normal-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)"
         ],
         "deps": [
           {
             "name": "cfg_dep",
-            "pkg": "cfg-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+            "pkg": "cfg-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
             "dep_kinds": [
               {
                 "kind": null,
@@ -2707,7 +2707,7 @@ fn filter_platform() {
           },
           {
             "name": "host_dep",
-            "pkg": "host-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+            "pkg": "host-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
             "dep_kinds": [
               {
                 "kind": null,
@@ -2717,7 +2717,7 @@ fn filter_platform() {
           },
           {
             "name": "normal_dep",
-            "pkg": "normal-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+            "pkg": "normal-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
             "dep_kinds": [
               {
                 "kind": null,
@@ -2729,13 +2729,13 @@ fn filter_platform() {
         "features": []
       },
       {
-        "id": "host-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+        "id": "host-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
         "dependencies": [],
         "deps": [],
         "features": []
       },
       {
-        "id": "normal-dep 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+        "id": "normal-dep 0.0.1 (registry+https://github.com/dustlang/crates.io-index)",
         "dependencies": [],
         "deps": [],
         "features": []
@@ -2758,14 +2758,14 @@ fn filter_platform() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn dep_kinds() {
     Package::new("bar", "0.1.0").publish();
     Package::new("winapi", "0.1.0").publish();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
             [package]
             name = "foo"
@@ -2787,7 +2787,7 @@ fn dep_kinds() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("metadata")
+    p.payload("metadata")
         .with_json(
             r#"
             {
@@ -2858,7 +2858,7 @@ fn dep_kinds() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn dep_kinds_workspace() {
     // Check for bug with duplicate dep kinds in a workspace.
     // If different members select different features for the same package,
@@ -2869,7 +2869,7 @@ fn dep_kinds_workspace() {
     //     bar -> foo[feat1] -> dep
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -2887,7 +2887,7 @@ fn dep_kinds_workspace() {
         )
         .file("src/lib.rs", "")
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
             [package]
             name = "bar"
@@ -2898,11 +2898,11 @@ fn dep_kinds_workspace() {
             "#,
         )
         .file("bar/src/lib.rs", "")
-        .file("dep/Cargo.toml", &basic_lib_manifest("dep"))
+        .file("dep/Payload.toml", &basic_lib_manifest("dep"))
         .file("dep/src/lib.rs", "")
         .build();
 
-    p.cargo("metadata")
+    p.payload("metadata")
         .with_json(
             r#"
             {
@@ -2972,8 +2972,8 @@ fn dep_kinds_workspace() {
 // Creating non-utf8 path is an OS-specific pain, so let's run this only on
 // linux, where arbitrary bytes work.
 #[cfg(target_os = "linux")]
-#[cargo_test]
-fn cargo_metadata_non_utf8() {
+#[payload_test]
+fn payload_metadata_non_utf8() {
     use std::ffi::OsString;
     use std::os::unix::ffi::OsStringExt;
     use std::path::PathBuf;
@@ -2983,10 +2983,10 @@ fn cargo_metadata_non_utf8() {
     let p = project()
         .no_manifest()
         .file(base.join("./src/lib.rs"), "")
-        .file(base.join("./Cargo.toml"), &basic_lib_manifest("foo"))
+        .file(base.join("./Payload.toml"), &basic_lib_manifest("foo"))
         .build();
 
-    p.cargo("metadata")
+    p.payload("metadata")
         .cwd(p.root().join(base))
         .arg("--format-version")
         .arg("1")

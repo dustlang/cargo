@@ -3,27 +3,27 @@
 use super::config::{
     assert_error, assert_match, read_output, write_config, write_config_at, ConfigBuilder,
 };
-use cargo_test_support::{no_such_file_err_msg, paths};
+use payload_test_support::{no_such_file_err_msg, paths};
 use std::fs;
 
-#[cargo_test]
+#[payload_test]
 fn gated() {
     // Requires -Z flag.
     write_config("include='other'");
     let config = ConfigBuilder::new().build();
     let output = read_output(config);
     let expected = "\
-warning: config `include` in `[..]/.cargo/config` ignored, \
+warning: config `include` in `[..]/.payload/config` ignored, \
 the -Zconfig-include command-line flag is required
 ";
     assert_match(expected, &output);
 }
 
-#[cargo_test]
+#[payload_test]
 fn simple() {
     // Simple test.
     write_config_at(
-        ".cargo/config",
+        ".payload/config",
         "
         include = 'other'
         key1 = 1
@@ -31,7 +31,7 @@ fn simple() {
         ",
     );
     write_config_at(
-        ".cargo/other",
+        ".payload/other",
         "
         key2 = 3
         key3 = 4
@@ -43,25 +43,25 @@ fn simple() {
     assert_eq!(config.get::<i32>("key3").unwrap(), 4);
 }
 
-#[cargo_test]
+#[payload_test]
 fn left_to_right() {
     // How it merges multiple includes.
     write_config_at(
-        ".cargo/config",
+        ".payload/config",
         "
         include = ['one', 'two']
         primary = 1
         ",
     );
     write_config_at(
-        ".cargo/one",
+        ".payload/one",
         "
         one = 1
         primary = 2
         ",
     );
     write_config_at(
-        ".cargo/two",
+        ".payload/two",
         "
         two = 2
         primary = 3
@@ -73,7 +73,7 @@ fn left_to_right() {
     assert_eq!(config.get::<i32>("two").unwrap(), 2);
 }
 
-#[cargo_test]
+#[payload_test]
 fn missing_file() {
     // Error when there's a missing file.
     write_config("include='missing'");
@@ -82,13 +82,13 @@ fn missing_file() {
         config.get::<i32>("whatever").unwrap_err(),
         &format!(
             "\
-could not load Cargo configuration
+could not load Payload configuration
 
 Caused by:
-  failed to load config include `missing` from `[..]/.cargo/config`
+  failed to load config include `missing` from `[..]/.payload/config`
 
 Caused by:
-  failed to read configuration file `[..]/.cargo/missing`
+  failed to read configuration file `[..]/.payload/missing`
 
 Caused by:
   {}",
@@ -97,53 +97,53 @@ Caused by:
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn cycle() {
     // Detects a cycle.
-    write_config_at(".cargo/config", "include='one'");
-    write_config_at(".cargo/one", "include='two'");
-    write_config_at(".cargo/two", "include='config'");
+    write_config_at(".payload/config", "include='one'");
+    write_config_at(".payload/one", "include='two'");
+    write_config_at(".payload/two", "include='config'");
     let config = ConfigBuilder::new().unstable_flag("config-include").build();
     assert_error(
         config.get::<i32>("whatever").unwrap_err(),
         "\
-could not load Cargo configuration
+could not load Payload configuration
 
 Caused by:
-  failed to load config include `one` from `[..]/.cargo/config`
+  failed to load config include `one` from `[..]/.payload/config`
 
 Caused by:
-  failed to load config include `two` from `[..]/.cargo/one`
+  failed to load config include `two` from `[..]/.payload/one`
 
 Caused by:
-  failed to load config include `config` from `[..]/.cargo/two`
+  failed to load config include `config` from `[..]/.payload/two`
 
 Caused by:
-  config `include` cycle detected with path `[..]/.cargo/config`",
+  config `include` cycle detected with path `[..]/.payload/config`",
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn cli_include() {
     // Using --config with include.
     // CLI takes priority over files.
     write_config_at(
-        ".cargo/config",
+        ".payload/config",
         "
         foo = 1
         bar = 2
         ",
     );
-    write_config_at(".cargo/config-foo", "foo = 2");
+    write_config_at(".payload/config-foo", "foo = 2");
     let config = ConfigBuilder::new()
         .unstable_flag("config-include")
-        .config_arg("include='.cargo/config-foo'")
+        .config_arg("include='.payload/config-foo'")
         .build();
     assert_eq!(config.get::<i32>("foo").unwrap(), 2);
     assert_eq!(config.get::<i32>("bar").unwrap(), 2);
 }
 
-#[cargo_test]
+#[payload_test]
 fn bad_format() {
     // Not a valid format.
     write_config("include = 1");
@@ -151,14 +151,14 @@ fn bad_format() {
     assert_error(
         config.get::<i32>("whatever").unwrap_err(),
         "\
-could not load Cargo configuration
+could not load Payload configuration
 
 Caused by:
-  `include` expected a string or list, but found integer in `[..]/.cargo/config`",
+  `include` expected a string or list, but found integer in `[..]/.payload/config`",
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn cli_include_failed() {
     // Error message when CLI include fails to load.
     let config = ConfigBuilder::new()
@@ -184,33 +184,33 @@ Caused by:
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn cli_merge_failed() {
     // Error message when CLI include merge fails.
     write_config("foo = ['a']");
     write_config_at(
-        ".cargo/other",
+        ".payload/other",
         "
         foo = 'b'
         ",
     );
     let config = ConfigBuilder::new()
         .unstable_flag("config-include")
-        .config_arg("include='.cargo/other'")
+        .config_arg("include='.payload/other'")
         .build_err();
     // Maybe this error message should mention it was from an include file?
     assert_error(
         config.unwrap_err(),
         "\
-failed to merge --config key `foo` into `[..]/.cargo/config`
+failed to merge --config key `foo` into `[..]/.payload/config`
 
 Caused by:
-  failed to merge config value from `[..]/.cargo/other` into `[..]/.cargo/config`: \
+  failed to merge config value from `[..]/.payload/other` into `[..]/.payload/config`: \
   expected array, but found string",
     );
 }
 
-#[cargo_test]
+#[payload_test]
 fn cli_path() {
     // --config path_to_file
     fs::write(paths::root().join("myconfig.toml"), "key = 123").unwrap();

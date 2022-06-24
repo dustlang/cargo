@@ -6,17 +6,17 @@ use std::str;
 
 use serde::Serialize;
 
-use cargo_test_support::cargo_process;
-use cargo_test_support::git;
-use cargo_test_support::paths;
-use cargo_test_support::registry::{cksum, Package};
-use cargo_test_support::{basic_manifest, project, t, ProjectBuilder};
+use payload_test_support::payload_process;
+use payload_test_support::git;
+use payload_test_support::paths;
+use payload_test_support::registry::{cksum, Package};
+use payload_test_support::{basic_manifest, project, t, ProjectBuilder};
 
 fn setup() {
     let root = paths::root();
-    t!(fs::create_dir(&root.join(".cargo")));
+    t!(fs::create_dir(&root.join(".payload")));
     t!(fs::write(
-        root.join(".cargo/config"),
+        root.join(".payload/config"),
         r#"
             [source.crates-io]
             replace-with = 'my-awesome-local-registry'
@@ -70,23 +70,23 @@ impl VendorPackage {
     fn build(&mut self) {
         let p = self.p.take().unwrap();
         let json = serde_json::to_string(&self.cksum).unwrap();
-        let p = p.file(".cargo-checksum.json", &json);
+        let p = p.file(".payload-checksum.json", &json);
         let _ = p.build();
     }
 }
 
-#[cargo_test]
+#[payload_test]
 fn simple() {
     setup();
 
     VendorPackage::new("bar")
-        .file("Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("src/lib.rs", "pub fn bar() {}")
         .build();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -103,7 +103,7 @@ fn simple() {
         )
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [COMPILING] bar v0.1.0
@@ -114,7 +114,7 @@ fn simple() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn simple_install() {
     setup();
 
@@ -124,7 +124,7 @@ fn simple_install() {
 
     VendorPackage::new("bar")
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -141,7 +141,7 @@ fn simple_install() {
         )
         .build();
 
-    cargo_process("install bar")
+    payload_process("install bar")
         .with_stderr(
             "\
 [INSTALLING] bar v0.1.0
@@ -156,7 +156,7 @@ fn simple_install() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn simple_install_fail() {
     setup();
 
@@ -166,7 +166,7 @@ fn simple_install_fail() {
 
     VendorPackage::new("bar")
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -184,7 +184,7 @@ fn simple_install_fail() {
         )
         .build();
 
-    cargo_process("install bar")
+    payload_process("install bar")
         .with_status(101)
         .with_stderr(
             "  Installing bar v0.1.0
@@ -192,7 +192,7 @@ error: failed to compile `bar v0.1.0`, intermediate artifacts can be found at `[
 
 Caused by:
   no matching package named `baz` found
-  location searched: registry `https://github.com/rust-lang/crates.io-index`
+  location searched: registry `https://github.com/dustlang/crates.io-index`
   perhaps you meant: bar or foo
   required by package `bar v0.1.0`
 ",
@@ -200,7 +200,7 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn install_without_feature_dep() {
     setup();
 
@@ -210,7 +210,7 @@ fn install_without_feature_dep() {
 
     VendorPackage::new("bar")
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -231,7 +231,7 @@ fn install_without_feature_dep() {
         )
         .build();
 
-    cargo_process("install bar")
+    payload_process("install bar")
         .with_stderr(
             "\
 [INSTALLING] bar v0.1.0
@@ -246,7 +246,7 @@ fn install_without_feature_dep() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn not_there() {
     setup();
 
@@ -254,7 +254,7 @@ fn not_there() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -271,7 +271,7 @@ fn not_there() {
         )
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "\
@@ -283,25 +283,25 @@ required by package `foo v0.1.0 ([..])`
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn multiple() {
     setup();
 
     VendorPackage::new("bar-0.1.0")
-        .file("Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("src/lib.rs", "pub fn bar() {}")
-        .file(".cargo-checksum", "")
+        .file(".payload-checksum", "")
         .build();
 
     VendorPackage::new("bar-0.2.0")
-        .file("Cargo.toml", &basic_manifest("bar", "0.2.0"))
+        .file("Payload.toml", &basic_manifest("bar", "0.2.0"))
         .file("src/lib.rs", "pub fn bar() {}")
-        .file(".cargo-checksum", "")
+        .file(".payload-checksum", "")
         .build();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -318,7 +318,7 @@ fn multiple() {
         )
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [COMPILING] bar v0.1.0
@@ -329,11 +329,11 @@ fn multiple() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn crates_io_then_directory() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -354,7 +354,7 @@ fn crates_io_then_directory() {
         .file("src/lib.rs", "pub fn bar() -> u32 { 0 }")
         .publish();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [UPDATING] `[..]` index
@@ -370,12 +370,12 @@ fn crates_io_then_directory() {
     setup();
 
     let mut v = VendorPackage::new("bar");
-    v.file("Cargo.toml", &basic_manifest("bar", "0.1.0"));
+    v.file("Payload.toml", &basic_manifest("bar", "0.1.0"));
     v.file("src/lib.rs", "pub fn bar() -> u32 { 1 }");
     v.cksum.package = Some(cksum);
     v.build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [COMPILING] bar v0.1.0
@@ -386,11 +386,11 @@ fn crates_io_then_directory() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn crates_io_then_bad_checksum() {
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -406,15 +406,15 @@ fn crates_io_then_bad_checksum() {
 
     Package::new("bar", "0.1.0").publish();
 
-    p.cargo("build").run();
+    p.payload("build").run();
     setup();
 
     VendorPackage::new("bar")
-        .file("Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "\
@@ -433,12 +433,12 @@ unable to verify that `bar v0.1.0` is the same as when the lockfile was generate
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn bad_file_checksum() {
     setup();
 
     VendorPackage::new("bar")
-        .file("Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("src/lib.rs", "")
         .build();
 
@@ -449,7 +449,7 @@ fn bad_file_checksum() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -463,7 +463,7 @@ fn bad_file_checksum() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "\
@@ -479,12 +479,12 @@ the source
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn only_dot_files_ok() {
     setup();
 
     VendorPackage::new("bar")
-        .file("Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("src/lib.rs", "")
         .build();
     VendorPackage::new("foo")
@@ -494,7 +494,7 @@ fn only_dot_files_ok() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -508,15 +508,15 @@ fn only_dot_files_ok() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn random_files_ok() {
     setup();
 
     VendorPackage::new("bar")
-        .file("Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("Payload.toml", &basic_manifest("bar", "0.1.0"))
         .file("src/lib.rs", "")
         .build();
     VendorPackage::new("foo")
@@ -527,7 +527,7 @@ fn random_files_ok() {
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -541,25 +541,25 @@ fn random_files_ok() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn git_lock_file_doesnt_change() {
     let git = git::new("git", |p| {
-        p.file("Cargo.toml", &basic_manifest("git", "0.5.0"))
+        p.file("Payload.toml", &basic_manifest("git", "0.5.0"))
             .file("src/lib.rs", "")
     });
 
     VendorPackage::new("git")
-        .file("Cargo.toml", &basic_manifest("git", "0.5.0"))
+        .file("Payload.toml", &basic_manifest("git", "0.5.0"))
         .file("src/lib.rs", "")
         .disable_checksum()
         .build();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             &format!(
                 r#"
                     [package]
@@ -576,14 +576,14 @@ fn git_lock_file_doesnt_change() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("build").run();
+    p.payload("build").run();
 
     let lock1 = p.read_lockfile();
 
     let root = paths::root();
-    t!(fs::create_dir(&root.join(".cargo")));
+    t!(fs::create_dir(&root.join(".payload")));
     t!(fs::write(
-        root.join(".cargo/config"),
+        root.join(".payload/config"),
         format!(
             r#"
                 [source.my-git-repo]
@@ -597,7 +597,7 @@ fn git_lock_file_doesnt_change() {
         )
     ));
 
-    p.cargo("build")
+    p.payload("build")
         .with_stderr(
             "\
 [COMPILING] [..]
@@ -611,17 +611,17 @@ fn git_lock_file_doesnt_change() {
     assert_eq!(lock1, lock2, "lock files changed");
 }
 
-#[cargo_test]
+#[payload_test]
 fn git_override_requires_lockfile() {
     VendorPackage::new("git")
-        .file("Cargo.toml", &basic_manifest("git", "0.5.0"))
+        .file("Payload.toml", &basic_manifest("git", "0.5.0"))
         .file("src/lib.rs", "")
         .disable_checksum()
         .build();
 
     let p = project()
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "foo"
@@ -636,9 +636,9 @@ fn git_override_requires_lockfile() {
         .build();
 
     let root = paths::root();
-    t!(fs::create_dir(&root.join(".cargo")));
+    t!(fs::create_dir(&root.join(".payload")));
     t!(fs::write(
-        root.join(".cargo/config"),
+        root.join(".payload/config"),
         r#"
             [source.my-git-repo]
             git = 'https://example.com/'
@@ -649,7 +649,7 @@ fn git_override_requires_lockfile() {
         "#
     ));
 
-    p.cargo("build")
+    p.payload("build")
         .with_status(101)
         .with_stderr(
             "\
@@ -672,12 +672,12 @@ Caused by:
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn workspace_different_locations() {
     let p = project()
         .no_manifest()
         .file(
-            "foo/Cargo.toml",
+            "foo/Payload.toml",
             r#"
                 [package]
                 name = 'foo'
@@ -688,11 +688,11 @@ fn workspace_different_locations() {
             "#,
         )
         .file("foo/src/lib.rs", "")
-        .file("foo/vendor/baz/Cargo.toml", &basic_manifest("baz", "0.1.0"))
+        .file("foo/vendor/baz/Payload.toml", &basic_manifest("baz", "0.1.0"))
         .file("foo/vendor/baz/src/lib.rs", "")
-        .file("foo/vendor/baz/.cargo-checksum.json", "{\"files\":{}}")
+        .file("foo/vendor/baz/.payload-checksum.json", "{\"files\":{}}")
         .file(
-            "bar/Cargo.toml",
+            "bar/Payload.toml",
             r#"
                 [package]
                 name = 'bar'
@@ -704,7 +704,7 @@ fn workspace_different_locations() {
         )
         .file("bar/src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".payload/config",
             r#"
                 [build]
                 target-dir = './target'
@@ -718,8 +718,8 @@ fn workspace_different_locations() {
         )
         .build();
 
-    p.cargo("build").cwd("foo").run();
-    p.cargo("build")
+    p.payload("build").cwd("foo").run();
+    p.payload("build")
         .cwd("bar")
         .with_stderr(
             "\
@@ -730,7 +730,7 @@ fn workspace_different_locations() {
         .run();
 }
 
-#[cargo_test]
+#[payload_test]
 fn version_missing() {
     setup();
 
@@ -740,7 +740,7 @@ fn version_missing() {
 
     VendorPackage::new("bar")
         .file(
-            "Cargo.toml",
+            "Payload.toml",
             r#"
                 [package]
                 name = "bar"
@@ -754,7 +754,7 @@ fn version_missing() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    cargo_process("install bar")
+    payload_process("install bar")
         .with_stderr(
             "\
 [INSTALLING] bar v0.1.0
